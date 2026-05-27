@@ -10,10 +10,12 @@ from unplug.api.types import (
     ScanRequest,
     ScanResult,
 )
+from unplug.api.types import ApprovalRequest
 from unplug.config.policy import ScanPolicy
 
 __all__ = [
     "Action",
+    "ApprovalRequest",
     "BatchScanRequest",
     "Finding",
     "HealthResponse",

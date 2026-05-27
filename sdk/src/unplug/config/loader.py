@@ -7,11 +7,12 @@ import tomllib
 from pathlib import Path
 from typing import Any
 
+from unplug.config.agent_policy import BoundaryConfig, IntentConfig, TrajectoryConfig
 from unplug.config.cache import CacheConfig
 from unplug.config.guard import GuardConfig, PipelineConfig, ScannerConfig, ThresholdConfig
 from unplug.config.limits import LimitConfig
 from unplug.config.messages import MessageConfig
-from unplug.config.policy import ScanPolicy
+from unplug.config.tools import ToolPolicyConfig
 
 
 def load_from_file(path: str | Path) -> dict[str, Any]:
@@ -106,6 +107,48 @@ def _build_scanner_configs(data: dict[str, Any]) -> dict[str, ScannerConfig]:
     }
 
 
+def _build_models(data: dict[str, Any]) -> dict[str, Any]:
+    from unplug.core.models import ModelSpec
+
+    models: dict[str, ModelSpec] = {}
+    for name, cfg in data.items():
+        if not isinstance(cfg, dict):
+            continue
+        models[name] = ModelSpec(
+            name=str(cfg.get("name", name)),
+            version=str(cfg.get("version", "latest")),
+            backend=str(cfg.get("backend", "transformers_span")),
+            path=cfg.get("path"),
+            repo_id=cfg.get("repo_id"),
+            config=dict(cfg.get("config", {})),
+        )
+    return models
+
+
+def _build_tools(data: dict[str, Any]) -> ToolPolicyConfig:
+    kwargs: dict[str, Any] = {}
+    for key in ToolPolicyConfig.model_fields:
+        if key in data:
+            kwargs[key] = data[key]
+    if "side_effect_tools" in kwargs and isinstance(kwargs["side_effect_tools"], list):
+        kwargs["side_effect_tools"] = tuple(kwargs["side_effect_tools"])
+    if "taint_source_tools" in kwargs and isinstance(kwargs["taint_source_tools"], list):
+        kwargs["taint_source_tools"] = tuple(kwargs["taint_source_tools"])
+    return ToolPolicyConfig(**kwargs)
+
+
+def _build_boundaries(data: dict[str, Any]) -> BoundaryConfig:
+    return BoundaryConfig(**{k: v for k, v in data.items() if k in BoundaryConfig.model_fields})
+
+
+def _build_trajectory(data: dict[str, Any]) -> TrajectoryConfig:
+    return TrajectoryConfig(**{k: v for k, v in data.items() if k in TrajectoryConfig.model_fields})
+
+
+def _build_intent(data: dict[str, Any]) -> IntentConfig:
+    return IntentConfig(**{k: v for k, v in data.items() if k in IntentConfig.model_fields})
+
+
 def build_config(data: dict[str, Any]) -> GuardConfig:
     """Build a GuardConfig from a raw dict (from TOML or env)."""
     guard_data = data.get("guard", data)
@@ -157,6 +200,28 @@ def build_config(data: dict[str, Any]) -> GuardConfig:
     if "judge_high" in guard_data:
         kwargs["judge_high"] = float(guard_data["judge_high"])
 
+    models_data = guard_data.get("models", data.get("models", {}))
+    if isinstance(models_data, dict) and models_data:
+        kwargs["models"] = _build_models(models_data)
+    if "active_model" in guard_data:
+        kwargs["active_model"] = guard_data["active_model"]
+
+    tools_data = guard_data.get("tools", data.get("tools", {}))
+    if tools_data:
+        kwargs["tools"] = _build_tools(tools_data)
+
+    boundaries_data = guard_data.get("boundaries", data.get("boundaries", {}))
+    if boundaries_data:
+        kwargs["boundaries"] = _build_boundaries(boundaries_data)
+
+    trajectory_data = guard_data.get("trajectory", data.get("trajectory", {}))
+    if trajectory_data:
+        kwargs["trajectory"] = _build_trajectory(trajectory_data)
+
+    intent_data = guard_data.get("intent", data.get("intent", {}))
+    if intent_data:
+        kwargs["intent"] = _build_intent(intent_data)
+
     return GuardConfig(**kwargs)
 
 
@@ -170,6 +235,32 @@ def load(
         file_data = load_from_file(file_path)
     env_data = load_from_env(env_prefix)
     merged = _merge(file_data, env_data)
+    merged = _apply_model_env_overrides(merged)
     if not merged:
         return GuardConfig()
     return build_config(merged)
+
+
+def _apply_model_env_overrides(data: dict[str, Any]) -> dict[str, Any]:
+    """Map UNPLUG_ACTIVE_MODEL / UNPLUG_MODEL_PATH into models block."""
+    import os
+
+    active = os.environ.get("UNPLUG_ACTIVE_MODEL")
+    path = os.environ.get("UNPLUG_MODEL_PATH")
+    if not active and not path:
+        return data
+    out = dict(data)
+    guard = dict(out.get("guard", {}))
+    models = dict(out.get("models", {}))
+    tier = active or "small"
+    if active:
+        guard["active_model"] = active
+    if path:
+        slot = dict(models.get(tier, {}))
+        slot.setdefault("name", f"unplug-{tier}")
+        slot.setdefault("backend", "transformers_span")
+        slot["path"] = path
+        models[tier] = slot
+    out["guard"] = guard
+    out["models"] = models
+    return out

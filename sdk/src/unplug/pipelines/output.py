@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from unplug.config.agent_policy import TrajectoryConfig
 from unplug.config.policy import ScanPolicy
 from unplug.core.config import PipelineConfig
 from unplug.core.context import ExecutionContext
@@ -25,8 +26,9 @@ class OutputPipeline(BasePipeline):
         secrets_scanner: BaseScanner | None = None,
         config: PipelineConfig | None = None,
         metrics: MetricsCollector | None = None,
+        trajectory_config: TrajectoryConfig | None = None,
     ) -> None:
-        super().__init__(config=config, metrics=metrics)
+        super().__init__(config=config, metrics=metrics, trajectory_config=trajectory_config)
         self._sanitizer = secrets_sanitizer
         self._leakage = leakage_scanner
         self._secrets = secrets_scanner

@@ -6,13 +6,16 @@ import time
 from abc import ABC, abstractmethod
 from typing import Any
 
-from unplug.config.policy import ScanPolicy
+from unplug.config.agent_policy import TrajectoryConfig
+from unplug.config.policy import RedactionMode, ScanPolicy
 from unplug.core.config import PipelineConfig
 from unplug.core.context import ExecutionContext
 from unplug.core.logging import get_logger
 from unplug.core.policy import decide_action
+from unplug.core.redaction import apply_span_redactions
 from unplug.core.stats import MetricsCollector
 from unplug.core.taint import Tagger, TaintedText, TrustLevel
+from unplug.core.trajectory import trajectory_findings
 from unplug.models import Action, Finding, ScanResult
 
 _log = get_logger("pipelines")
@@ -27,10 +30,12 @@ class BasePipeline(ABC):
         self,
         config: PipelineConfig | None = None,
         metrics: MetricsCollector | None = None,
+        trajectory_config: TrajectoryConfig | None = None,
     ) -> None:
         self._config = config or PipelineConfig()
         self._metrics = metrics
         self._tagger = Tagger()
+        self._trajectory_config = trajectory_config or TrajectoryConfig()
 
     @property
     def config(self) -> PipelineConfig:
@@ -42,6 +47,7 @@ class BasePipeline(ABC):
 
         try:
             findings = list(self._execute(input_data, ctx))
+            findings.extend(trajectory_findings(ctx, self._trajectory_config))
         except Exception as exc:
             _log.error("pipeline %s failed: %s", self.name, exc)
             latency_ms = (time.perf_counter() - start) * 1000
@@ -69,7 +75,9 @@ class BasePipeline(ABC):
         policy = self._resolve_policy(ctx)
         action = self._decide(risk_score, findings, text_len=len(text), policy=policy)
         stages = list(dict.fromkeys(f.category for f in findings))
-        redacted = self._redact(input_data, findings, policy=policy) if findings else None
+        redacted = None
+        if findings and policy.redaction_mode != RedactionMode.NONE:
+            redacted = self._redact(input_data, findings, policy=policy)
 
         result = ScanResult(
             safe=action == Action.ALLOW,
@@ -133,25 +141,7 @@ class BasePipeline(ABC):
         text = self._extract_text(input_data)
         if text is None:
             return None
-        raw_spans = sorted(
-            [
-                (f.span_start, f.span_end, f.replacement)
-                for f in findings
-                if f.score >= policy.redact_threshold
-            ],
-            key=lambda s: s[0],
-        )
-        merged: list[tuple[int, int, str | None]] = []
-        for start, end, repl in raw_spans:
-            if merged and start <= merged[-1][1]:
-                prev_start, prev_end, prev_repl = merged[-1]
-                merged[-1] = (prev_start, max(prev_end, end), prev_repl)
-            else:
-                merged.append((start, end, repl))
-        result = text
-        for start, end, replacement in reversed(merged):
-            result = result[:start] + (replacement or "[REDACTED]") + result[end:]
-        return result
+        return apply_span_redactions(text, findings, policy)
 
     def _extract_text(self, input_data: Any) -> str | None:
         if isinstance(input_data, str):

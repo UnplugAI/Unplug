@@ -29,6 +29,9 @@ def _register_builtins() -> None:
             "secrets": SecretsScanner,
         }
     )
+    from unplug.safeguards.injection_ml import InjectionSpanScanner
+
+    _FACTORIES["injection_ml"] = InjectionSpanScanner
 
 
 class SafeguardRegistry:

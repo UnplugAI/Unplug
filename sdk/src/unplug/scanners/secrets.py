@@ -37,5 +37,5 @@ class SecretsScanner(BaseScanner):
                 span_end=m.span_end,
                 score=self._config.base_score,
                 evidence=f"Registered secret '{m.secret_name}' found in output",
-                replacement="[REDACTED]",
+                replacement=None,
             )

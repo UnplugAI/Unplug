@@ -2,7 +2,18 @@
 
 from __future__ import annotations
 
+from enum import StrEnum
+
 from pydantic import BaseModel, Field
+
+
+class RedactionMode(StrEnum):
+    """How malicious spans are replaced in redacted_text."""
+
+    BLOCKED_TAGS = "blocked_tags"
+    STRIP = "strip"
+    REDACTED_TAGS = "redacted_tags"
+    NONE = "none"
 
 
 class ScanPolicy(BaseModel):
@@ -25,3 +36,7 @@ class ScanPolicy(BaseModel):
         description="Per-span high confidence; also contributes to BLOCK",
     )
     merge_overlapping_spans: bool = True
+    redaction_mode: RedactionMode = Field(
+        default=RedactionMode.BLOCKED_TAGS,
+        description="blocked_tags=[BLOCKED:cat], strip=delete span, redacted_tags=legacy, none=no redacted_text",
+    )

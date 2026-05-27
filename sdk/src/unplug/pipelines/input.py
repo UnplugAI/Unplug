@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
+from unplug.config.agent_policy import BoundaryConfig, TrajectoryConfig
+from unplug.core.boundaries import maybe_wrap_untrusted
 from unplug.core.config import PipelineConfig
 from unplug.core.context import ExecutionContext
 from unplug.core.encodings import EncodingClassifier, scan_encoding_blobs
@@ -34,8 +36,10 @@ class InputPipeline(BasePipeline):
         judge_high: float = 0.8,
         encoding_classifier: EncodingClassifier | None = None,
         scan_encodings: bool = True,
+        boundary_config: BoundaryConfig | None = None,
+        trajectory_config: TrajectoryConfig | None = None,
     ) -> None:
-        super().__init__(config=config, metrics=metrics)
+        super().__init__(config=config, metrics=metrics, trajectory_config=trajectory_config)
         self._scanners = scanners
         self._normalizer = normalizer or Normalizer()
         self._judge = judge
@@ -43,6 +47,7 @@ class InputPipeline(BasePipeline):
         self._judge_high = judge_high
         self._encoding_classifier = encoding_classifier
         self._scan_encodings = scan_encodings
+        self._boundary_config = boundary_config or BoundaryConfig()
 
     def run(
         self,
@@ -51,14 +56,21 @@ class InputPipeline(BasePipeline):
         source: Source | TrustLevel = TrustLevel.USER,
         context: ExecutionContext | None = None,
     ) -> Any:
-        if isinstance(text, str):
+        if isinstance(text, TaintedText):
+            tainted = text
+        else:
+            body = text
+            src = source
+            body, _ = maybe_wrap_untrusted(
+                body,
+                source=src,
+                config=self._boundary_config,
+            )
             if isinstance(source, Source):
                 trust = trust_level_from_source(source)
             else:
                 trust = source
-            tainted = self._tagger.tag(text, trust, "input_pipeline")
-        else:
-            tainted = text
+            tainted = self._tagger.tag(body, trust, "input_pipeline")
 
         return super().run(tainted, context=context)
 
@@ -68,8 +80,27 @@ class InputPipeline(BasePipeline):
             findings.extend(
                 scan_encoding_blobs(input_data.text, classifier=self._encoding_classifier)
             )
+
+        regex_scanners: list[BaseScanner] = []
+        ml_scanners: list[BaseScanner] = []
+        allowed = context.allowed_scanners
         for scanner in self._scanners:
+            if allowed is not None and scanner.name not in allowed:
+                continue
+            if scanner.name == "injection_ml":
+                ml_scanners.append(scanner)
+            else:
+                regex_scanners.append(scanner)
+
+        for scanner in regex_scanners:
             findings.extend(scanner.scan(input_data, context))
+
+        block_threshold = self._config.thresholds.block
+        risk = max((f.score for f in findings), default=0.0)
+        if ml_scanners and risk < block_threshold:
+            for scanner in ml_scanners:
+                findings.extend(scanner.scan(input_data, context))
+
         if self._judge is not None:
             findings.extend(self._maybe_judge(input_data, findings, context))
         return findings

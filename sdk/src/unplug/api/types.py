@@ -7,6 +7,7 @@ from typing import Self
 from pydantic import BaseModel, Field, model_validator
 
 from unplug.api.enums import Action, Source
+from unplug.config.policy import RedactionMode
 
 
 class Finding(BaseModel):
@@ -27,6 +28,18 @@ class Finding(BaseModel):
         return self
 
 
+class ApprovalRequest(BaseModel):
+    """Payload for host/UI when a tool call needs operator approval."""
+
+    tool_name: str
+    arguments: dict = Field(default_factory=dict)
+    reason: str
+    risk_score: float = Field(ge=0.0, le=1.0)
+    action: Action = Action.REVIEW
+    findings: list[str] = Field(default_factory=list)
+    session_tainted: bool = False
+
+
 class ScanResult(BaseModel):
     safe: bool = Field(description="Whether the text is safe")
     action: Action = Field(description="Recommended action")
@@ -35,6 +48,10 @@ class ScanResult(BaseModel):
     redacted_text: str | None = Field(default=None)
     latency_ms: float = Field(description="Total scan time in milliseconds")
     stages_run: list[str] = Field(default_factory=list)
+    approval: ApprovalRequest | None = Field(
+        default=None,
+        description="Populated when action=review for side-effect tools in tainted sessions",
+    )
 
 
 class ScanRequest(BaseModel):
@@ -42,6 +59,10 @@ class ScanRequest(BaseModel):
     source: Source = Field(default=Source.USER)
     scanners: list[str] | None = Field(default=None)
     redact: bool = Field(default=True)
+    redaction_mode: RedactionMode | None = Field(
+        default=None,
+        description="Override default redaction style; ignored when redact=false",
+    )
     session_id: str | None = Field(default=None, description="Client session for logging")
     agent_id: str | None = Field(default=None, description="Agent identifier")
     turn_id: int | None = Field(default=None, description="Turn index within session")
