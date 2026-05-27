@@ -40,6 +40,20 @@ class TestBoundaryAutoWrap:
         assert result.safe is True
 
 
+class TestStripOnOutput:
+    def test_strip_boundary_markers_from_output(self) -> None:
+        from unplug.config.agent_policy import BoundaryConfig
+        from unplug.config.guard import GuardConfig
+
+        cfg = GuardConfig(boundaries=BoundaryConfig(strip_on_output=True))
+        guard = Guard(config=cfg)
+        wrapped = guard.wrap_for_context("Answer: 42", source=Source.TOOL_OUTPUT)
+        result = guard.scan_output(wrapped)
+        assert result.redacted_text is not None
+        assert "<<<UNTRUSTED" not in result.redacted_text
+        assert "Answer: 42" in result.redacted_text
+
+
 class TestHermesPersonaPatterns:
     def test_detects_hermes_persona(self) -> None:
         guard = Guard()

@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from unplug.config.agent_policy import TrajectoryConfig
+from unplug.config.agent_policy import BoundaryConfig, TrajectoryConfig
 from unplug.config.policy import ScanPolicy
+from unplug.core.boundaries import strip_boundary_markers
 from unplug.core.config import PipelineConfig
 from unplug.core.context import ExecutionContext
 from unplug.core.secrets import SecretsSanitizer
@@ -27,11 +28,13 @@ class OutputPipeline(BasePipeline):
         config: PipelineConfig | None = None,
         metrics: MetricsCollector | None = None,
         trajectory_config: TrajectoryConfig | None = None,
+        boundary_config: BoundaryConfig | None = None,
     ) -> None:
         super().__init__(config=config, metrics=metrics, trajectory_config=trajectory_config)
         self._sanitizer = secrets_sanitizer
         self._leakage = leakage_scanner
         self._secrets = secrets_scanner
+        self._boundary_config = boundary_config or BoundaryConfig()
 
     def run(
         self,
@@ -40,7 +43,19 @@ class OutputPipeline(BasePipeline):
         context: ExecutionContext | None = None,
     ) -> ScanResult:
         tainted = self._ensure_tainted(text, TrustLevel.TOOL_OUTPUT, "output_pipeline")
-        return super().run(tainted, context=context)
+        result = super().run(tainted, context=context)
+        if not self._boundary_config.strip_on_output:
+            return result
+        raw = self._extract_text(tainted)
+        if raw is None:
+            return result
+        stripped = strip_boundary_markers(raw)
+        if stripped == raw:
+            return result
+        redacted = result.redacted_text or stripped
+        if result.redacted_text:
+            redacted = strip_boundary_markers(result.redacted_text)
+        return result.model_copy(update={"redacted_text": redacted})
 
     def _execute(self, input_data: TaintedText, context: ExecutionContext) -> list[Finding]:
         findings: list[Finding] = []

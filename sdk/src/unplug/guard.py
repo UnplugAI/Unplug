@@ -186,6 +186,7 @@ class Guard:
             config=cfg.pipeline,
             metrics=self._metrics,
             trajectory_config=cfg.trajectory,
+            boundary_config=cfg.boundaries,
         )
 
         self._tool_pipeline = ToolCallPipeline(
