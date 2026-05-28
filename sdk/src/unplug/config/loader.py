@@ -12,6 +12,7 @@ from unplug.config.cache import CacheConfig
 from unplug.config.guard import GuardConfig, PipelineConfig, ScannerConfig, ThresholdConfig
 from unplug.config.limits import LimitConfig
 from unplug.config.messages import MessageConfig
+from unplug.config.policy import ScanPolicy
 from unplug.config.tools import ToolPolicyConfig
 
 

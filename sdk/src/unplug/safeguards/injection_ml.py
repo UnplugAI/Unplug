@@ -10,7 +10,6 @@ from unplug.core.models import ModelProvider
 from unplug.core.normalize import Normalizer
 from unplug.core.stats import MetricsCollector
 from unplug.core.taint import TaintedText
-from unplug.ml.types import SpanPrediction
 from unplug.models import Finding
 from unplug.safeguards.base import ModelScanner
 

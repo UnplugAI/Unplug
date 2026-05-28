@@ -8,15 +8,14 @@ from pathlib import Path
 
 import pytest
 
+from unplug.config.loader import load
 from unplug.core.encodings import (
     CompositeEncodingClassifier,
     HeuristicEncodingClassifier,
     SpanModelEncodingClassifier,
-    default_encoding_classifier,
     iter_base64_blobs,
     scan_encoding_blobs,
 )
-from unplug.config.loader import load
 from unplug.core.model_runtime import load_active_model_provider
 from unplug.pipelines.input import InputPipeline
 from unplug.safeguards.injection import InjectionScanner

@@ -105,9 +105,8 @@ class TestPipelineRedactionModes:
         assert "[BLOCKED:destructive]" in result.redacted_text
 
     def test_redact_false_skips_output(self) -> None:
-        from unplug.models import ScanRequest
-
         from unplug import Guard
+        from unplug.models import ScanRequest
 
         guard = Guard(scanners=["injection"])
         result = guard.scan_request(

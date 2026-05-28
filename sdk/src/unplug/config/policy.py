@@ -38,5 +38,8 @@ class ScanPolicy(BaseModel):
     merge_overlapping_spans: bool = True
     redaction_mode: RedactionMode = Field(
         default=RedactionMode.BLOCKED_TAGS,
-        description="blocked_tags=[BLOCKED:cat], strip=delete span, redacted_tags=legacy, none=no redacted_text",
+        description=(
+            "blocked_tags=[BLOCKED:cat], strip=delete span, "
+            "redacted_tags=legacy, none=no redacted_text"
+        ),
     )

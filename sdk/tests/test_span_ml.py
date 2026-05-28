@@ -6,7 +6,7 @@ import pytest
 
 torch = pytest.importorskip("torch")
 
-from unplug.ml.bioes import decode_bioes_spans
+from unplug.ml.bioes import decode_bioes_spans  # noqa: E402
 
 
 def test_decode_bioes_single_span() -> None:

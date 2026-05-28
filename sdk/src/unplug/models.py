@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from unplug.api.enums import Action, Source
 from unplug.api.types import (
+    ApprovalRequest,
     BatchScanRequest,
     Finding,
     HealthResponse,
     ScanRequest,
     ScanResult,
 )
-from unplug.api.types import ApprovalRequest
 from unplug.config.policy import ScanPolicy
 
 __all__ = [

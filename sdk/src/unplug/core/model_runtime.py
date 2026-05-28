@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 from pathlib import Path
-from typing import Any
 
 from unplug.config.guard import GuardConfig
 from unplug.core.models import ModelProvider, ModelRegistry, ModelSpec

@@ -5,7 +5,6 @@ from __future__ import annotations
 from unplug import Guard
 from unplug.api.enums import Action, Source
 from unplug.api.types import ApprovalRequest
-from unplug.core.approval import ApprovalProvider
 from unplug.core.taint import TaintedText, TrustLevel
 
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unplug.config.tools import ToolPolicyConfig, ToolProfile, resolve_profile
+from unplug.config.tools import ToolPolicyConfig
 
 
 def test_side_effect_exec_and_shell() -> None:

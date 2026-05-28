@@ -10,6 +10,7 @@ from pathlib import Path
 import pytest
 
 from unplug import Guard
+from unplug.config.loader import load
 from unplug.core.encodings import (
     HeuristicEncodingClassifier,
     SpanModelEncodingClassifier,
@@ -17,7 +18,6 @@ from unplug.core.encodings import (
     iter_base64_blobs,
     scan_encoding_blobs,
 )
-from unplug.config.loader import load
 from unplug.core.model_runtime import load_active_model_provider
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -78,7 +78,10 @@ class TestHeuristicEncodingProbes:
         text = _materialize(probe)
         assert scan_encoding_blobs(text, classifier=HeuristicEncodingClassifier()) == []
 
-    @pytest.mark.parametrize("probe_id", ["b64_benign_weather", "b64_benign_recipe", "api_key_not_blob"])
+    @pytest.mark.parametrize(
+        "probe_id",
+        ["b64_benign_weather", "b64_benign_recipe", "api_key_not_blob"],
+    )
     def test_benign_probes_no_finding(self, probes: list[dict], probe_id: str) -> None:
         probe = next(p for p in probes if p["id"] == probe_id)
         text = _materialize(probe)
@@ -99,7 +102,9 @@ class TestSpanModelEncodingProbes:
         assert provider is not None
         return SpanModelEncodingClassifier(provider)
 
-    def test_linkedin_flan_detected_after_decode(self, probes: list[dict], model_classifier) -> None:
+    def test_linkedin_flan_detected_after_decode(
+        self, probes: list[dict], model_classifier
+    ) -> None:
         probe = next(p for p in probes if p["id"] == "b64_linkedin_flan")
         text = _materialize(probe)
         findings = scan_encoding_blobs(text, classifier=model_classifier)

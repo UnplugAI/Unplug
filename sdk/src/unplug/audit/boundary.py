@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Any
 
 from unplug import Guard
-from unplug.api.enums import Action
 from unplug.config.guard import GuardConfig
 from unplug.config.tools import ToolPolicyConfig
 from unplug.models import Source
