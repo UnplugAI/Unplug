@@ -27,7 +27,7 @@ jobs:
 
       - name: Install and test
         run: |
-          uv sync --dev
+          uv sync --all-extras --dev
           uv run pytest -q
 
       - name: Build
