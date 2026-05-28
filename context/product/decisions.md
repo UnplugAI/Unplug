@@ -55,3 +55,20 @@
   2. Semantic intent verification before tool execution
   3. Dynamic risk scoring across agent trajectories (catches crescendo attacks)
 - These move us from "prompt injection scanner" to "agent runtime security platform"
+
+## 2026-05-28: OpenClaw agent hardening wired into SDK
+- **Boundaries:** `auto_wrap_untrusted` on `RETRIEVED` / `TOOL_OUTPUT` in `InputPipeline`; public `Guard.wrap_for_context()`
+- **Session policy:** existing CaMeL-lite taint + tool profiles unchanged; now complemented by trajectory + intent gates
+- **Crescendo:** `TrajectoryConfig` — escalating `risk_trajectory` slope → REVIEW/BLOCK findings on all pipelines
+- **Intent:** `IntentConfig` — informational user intent + side-effect tool → REVIEW
+- **Hermes/persona:** named persona + red-team regex patterns in injection scanner
+- **Out of SDK scope:** container sandbox, channel pairing, filesystem/network egress (host responsibility)
+- **Detail:** `.context/research/openclaw-agent-security.md`
+
+- **Question:** Use Microsoft Presidio to filter agent-exposed PII?
+- **Answer:** Useful as optional server-side benchmark / interim `PrivacyFilterService` backend only — not a replacement for Unplug or the planned unplug-safeguard PF head.
+- **Already covered:** `LeakageScanner` regex (email, phone, SSN, keys) + output pipeline span redaction + `ScanPolicy` coverage BLOCK.
+- **Presidio adds:** names, addresses, international/custom entities — where regex under-recalls.
+- **Does not add:** injection, destructive tools, taint, fail-closed guard architecture.
+- **Production path unchanged:** unplug-safeguard Privacy Filter on server (see span-pipeline spec Stage 3).
+- **Detail:** `.context/research/presidio-pii.md`

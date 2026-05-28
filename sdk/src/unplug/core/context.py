@@ -51,6 +51,19 @@ class ExecutionContext:
         self.secrets_registry = secrets_registry
         self.scan_policy = scan_policy
         self.scan_cache = scan_cache
+        self.allowed_scanners: list[str] | None = None
+        self.session_tainted: bool = False
+        self.taint_triggers: list[str] = []
+
+    def mark_session_tainted(self, reason: str) -> None:
+        """Conservative session taint — side-effect tools need review after this."""
+        self.session_tainted = True
+        if reason and reason not in self.taint_triggers:
+            self.taint_triggers.append(reason)
+
+    @property
+    def is_session_tainted(self) -> bool:
+        return self.session_tainted
 
     def add_message(self, msg: TaintedText) -> None:
         self.conversation.append(msg)

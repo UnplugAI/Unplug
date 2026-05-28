@@ -1,5 +1,5 @@
 [project]
-name = "unplug"
+name = "unplug-ai"
 version = "0.3.0"
 description = "Pull the plug on bad AI. Fast prompt injection detection and redaction for LLM apps, agents, and RAG pipelines."
 readme = "README.md"
@@ -24,14 +24,16 @@ dependencies = [
 [project.optional-dependencies]
 ml = [
     "onnxruntime>=1.17",
-    "transformers>=4.40",
+    "transformers>=4.44,<4.45",
+    "sentencepiece>=0.2",
     "numpy>=1.26",
+    "torch>=2.0",
 ]
 scrape = [
     "firecrawl-py>=1.0",
     "python-dotenv>=1.2.2",
 ]
-all = ["unplug[ml,scrape]"]
+all = ["unplug-ai[ml,scrape]"]
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
@@ -39,9 +41,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/chiruu12/Unplug"
-Repository = "https://github.com/chiruu12/Unplug"
-Issues = "https://github.com/chiruu12/Unplug/issues"
+Homepage = "https://unplug-ai.org"
+Repository = "https://github.com/UnplugAI/Unplug"
+Issues = "https://github.com/UnplugAI/Unplug/issues"
+Documentation = "https://github.com/UnplugAI/Unplug#readme"
 
 [build-system]
 requires = ["hatchling"]
@@ -49,6 +52,7 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/unplug"]
+include = ["src/unplug/audit/data/*.json"]
 
 [tool.ruff]
 target-version = "py311"
@@ -60,6 +64,9 @@ select = ["E", "F", "I", "N", "W", "UP"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+
+[project.scripts]
+unplug-audit = "unplug.cli.audit:main"
 
 [dependency-groups]
 dev = [

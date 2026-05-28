@@ -4,10 +4,14 @@ from __future__ import annotations
 
 import base64
 import re
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from unplug.api.types import Finding
+from unplug.core.normalize import Normalizer
 from unplug.safeguards.injection.patterns import INJECTION_PATTERNS
+
+if TYPE_CHECKING:
+    from unplug.core.models import ModelProvider
 
 # Same charset as normalize._decode_base64.
 BASE64_BLOB_PATTERN = re.compile(r"[A-Za-z0-9+/]{20,}={0,2}")
@@ -24,6 +28,14 @@ def _is_probable_base64_blob(text: str, start: int, raw: str) -> bool:
     _ = raw
     prefix = text[max(0, start - 32) : start]
     return _SECRET_CONTEXT_BEFORE.search(prefix) is None
+
+
+def _is_plausible_decoded_payload(decoded: str) -> bool:
+    """Skip decoded blobs that are not meaningful UTF-8 text (e.g. null-byte runs)."""
+    if not decoded.strip():
+        return False
+    printable = sum(1 for ch in decoded if ch.isprintable() or ch in "\n\t\r")
+    return printable / len(decoded) >= 0.8
 
 
 class EncodingBlob:
@@ -52,7 +64,7 @@ class EncodingClassifier(Protocol):
 
 
 class HeuristicEncodingClassifier:
-    """v1 stand-in: injection regex on decoded UTF-8 (PG wires in later)."""
+    """v1 stand-in: injection regex on decoded UTF-8."""
 
     def __init__(self, *, base_score: float = 0.85) -> None:
         self._base_score = base_score
@@ -62,6 +74,60 @@ class HeuristicEncodingClassifier:
             if pattern.search(decoded):
                 return True, self._base_score, subcategory
         return False, 0.0, ""
+
+
+class SpanModelEncodingClassifier:
+    """Decode-then-classify: run span model on resolved UTF-8 payload."""
+
+    def __init__(
+        self,
+        model: ModelProvider,
+        *,
+        inj_threshold: float = 0.5,
+        base_score: float = 0.85,
+    ) -> None:
+        self._model = model
+        self._inj_threshold = inj_threshold
+        self._base_score = base_score
+        self._normalizer = Normalizer()
+
+    def is_malicious(self, decoded: str) -> tuple[bool, float, str]:
+        if not self._model.loaded:
+            self._model.load()
+        norm = self._normalizer.normalize(decoded)
+        prediction = self._model.predict(norm.text)
+        if not prediction.spans:
+            return False, 0.0, ""
+        max_score = max(span.score for span in prediction.spans)
+        if max_score < self._inj_threshold:
+            return False, 0.0, ""
+        score = max(max_score, self._base_score * 0.5)
+        return True, score, "span_model"
+
+
+class CompositeEncodingClassifier:
+    """Try span model on decoded text first; fall back to regex heuristic."""
+
+    def __init__(self, *classifiers: EncodingClassifier) -> None:
+        self._classifiers = classifiers
+
+    def is_malicious(self, decoded: str) -> tuple[bool, float, str]:
+        for classifier in self._classifiers:
+            malicious, score, subcategory = classifier.is_malicious(decoded)
+            if malicious:
+                return malicious, score, subcategory
+        return False, 0.0, ""
+
+
+def default_encoding_classifier(model: ModelProvider | None = None) -> EncodingClassifier:
+    """Preferred backend: span model on decoded blobs when ML is available."""
+    heuristic = HeuristicEncodingClassifier()
+    if model is None:
+        return heuristic
+    return CompositeEncodingClassifier(
+        SpanModelEncodingClassifier(model),
+        heuristic,
+    )
 
 
 def iter_base64_blobs(text: str) -> list[EncodingBlob]:
@@ -74,6 +140,8 @@ def iter_base64_blobs(text: str) -> list[EncodingBlob]:
         try:
             decoded = base64.b64decode(raw, validate=True).decode("utf-8")
         except Exception:
+            continue
+        if not _is_plausible_decoded_payload(decoded):
             continue
         blobs.append(
             EncodingBlob(
@@ -109,7 +177,7 @@ def scan_encoding_blobs(
                     span_end=blob.end,
                     score=score,
                     evidence=f"Encoded payload matched: {subcategory}",
-                    replacement="[REDACTED]",
+                    replacement="[BLOCKED:injection]",
                 )
             )
 

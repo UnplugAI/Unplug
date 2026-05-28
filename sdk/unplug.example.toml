@@ -5,11 +5,34 @@ scanners = ["injection", "destructive", "leakage", "harmful"]
 mode = "local"
 fail_closed = true
 judge_enabled = false
+# active_model = "small"  # optional — key under [models.*] for local ML
 
 [limits]
 max_input_chars = 50000
 max_tool_calls_per_session = 100
 blocked_tools = []
+
+[tools]
+enabled = true
+session_taint_enabled = true
+tainted_side_effect_review_score = 0.75
+# profile = "readonly"   # readonly | messaging | full
+
+[boundaries]
+auto_wrap_untrusted = true
+sanitize_before_wrap = true
+strip_on_output = false
+
+[trajectory]
+enabled = true
+window = 5
+min_samples = 3
+review_slope = 0.08
+block_slope = 0.15
+
+[intent]
+enabled = true
+review_score = 0.72
 
 [messages]
 blocked_template = "Content was not safe. Threat: {category} (risk {risk_score:.2f})."
@@ -27,3 +50,26 @@ normalize = true
 
 [scanners.destructive]
 base_score = 0.90
+
+# Optional local span models (requires pip install unplug-ai[ml])
+# Server mode: set UNPLUG_SLM_MODEL_PATH to checkpoint dir instead.
+[models.small]
+name = "unplug-small"
+backend = "transformers_span"
+path = "/path/to/checkpoint-24615"
+
+[models.small.config]
+max_length = 256
+stride = 64
+inj_threshold = 0.5
+device = "auto"
+
+[models.medium]
+name = "unplug-medium"
+backend = "transformers_span"
+path = "/path/to/unplug-medium-checkpoint"
+
+[models.large]
+name = "unplug-large"
+backend = "transformers_span"
+path = "/path/to/unplug-large-checkpoint"

@@ -59,5 +59,5 @@ class InjectionScanner(RegexScanner):
                         span_end=len(text.text),
                         score=score,
                         evidence=f"Reversed text matched: {subcategory}",
-                        replacement="[REDACTED]",
+                        replacement=None,
                     )

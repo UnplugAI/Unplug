@@ -23,7 +23,7 @@ class TestSecretsScanner:
         assert findings[0].category == "secrets"
         assert "API_KEY" in findings[0].subcategory
         assert findings[0].score == 0.99
-        assert findings[0].replacement == "[REDACTED]"
+        assert findings[0].replacement is None
 
     def test_correct_span(self):
         registry = SecretsRegistry()

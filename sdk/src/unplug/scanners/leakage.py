@@ -81,7 +81,7 @@ class LeakageScanner(RegexScanner):
                 )
 
     def _get_replacement(self, subcategory: str) -> str | None:
-        return "[REDACTED]"
+        return None
 
     def _make_evidence(self, subcategory: str) -> str:
         return f"Potential data leakage: {subcategory}"

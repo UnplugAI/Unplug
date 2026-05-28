@@ -7,10 +7,12 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from unplug.config.agent_policy import BoundaryConfig, IntentConfig, TrajectoryConfig
 from unplug.config.cache import CacheConfig
 from unplug.config.limits import LimitConfig
 from unplug.config.messages import MessageConfig
 from unplug.config.policy import ScanPolicy
+from unplug.config.tools import ToolPolicyConfig
 
 
 class ThresholdConfig(BaseModel):
@@ -67,6 +69,30 @@ class GuardConfig(BaseModel):
     judge_enabled: bool = False
     judge_low: float = 0.3
     judge_high: float = 0.8
+    models: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Named ModelSpec entries (see unplug.core.models.ModelSpec)",
+    )
+    active_model: str | None = Field(
+        default=None,
+        description="Key in models dict for local ML inference (server mode ignores this)",
+    )
+    tools: ToolPolicyConfig = Field(
+        default_factory=ToolPolicyConfig,
+        description="Side-effect / taint-source tool classification for session policy",
+    )
+    boundaries: BoundaryConfig = Field(
+        default_factory=BoundaryConfig,
+        description="OpenClaw-style untrusted content boundary wrapping",
+    )
+    trajectory: TrajectoryConfig = Field(
+        default_factory=TrajectoryConfig,
+        description="Crescendo detection from session risk trajectory",
+    )
+    intent: IntentConfig = Field(
+        default_factory=IntentConfig,
+        description="User intent vs side-effect tool mismatch checks",
+    )
 
     def get_scanner_config(self, name: str) -> ScannerConfig:
         return self.scanner_configs.get(name, ScannerConfig())

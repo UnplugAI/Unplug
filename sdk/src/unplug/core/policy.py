@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from unplug.api.enums import Action
 from unplug.api.types import Finding
-from unplug.config.policy import ScanPolicy
+from unplug.config.policy import RedactionMode, ScanPolicy
 
 
 def merge_spans(spans: list[tuple[int, int]], *, merge: bool) -> list[tuple[int, int]]:
@@ -36,7 +36,7 @@ def flagged_coverage(text_len: int, findings: list[Finding], policy: ScanPolicy)
 
 def policy_from_request(request: object, default: ScanPolicy) -> ScanPolicy:
     """Merge optional ScanRequest policy overrides into defaults."""
-    overrides: dict[str, float | bool] = {}
+    overrides: dict[str, float | bool | RedactionMode] = {}
     for field in (
         "block_coverage_ratio",
         "redact_threshold",
@@ -46,6 +46,15 @@ def policy_from_request(request: object, default: ScanPolicy) -> ScanPolicy:
         value = getattr(request, field, None)
         if value is not None:
             overrides[field] = value
+
+    redaction_mode = getattr(request, "redaction_mode", None)
+    if redaction_mode is not None:
+        overrides["redaction_mode"] = redaction_mode
+
+    redact = getattr(request, "redact", True)
+    if redact is False:
+        overrides["redaction_mode"] = RedactionMode.NONE
+
     if not overrides:
         return default
     return default.model_copy(update=overrides)
