@@ -8,15 +8,16 @@ from pathlib import Path
 from typing import Any
 
 from unplug import Guard
+from unplug.audit.paths import resolve_probe_path
 from unplug.config.guard import GuardConfig
 
 
 def default_fp_probes_path(workspace_root: Path) -> Path:
-    return workspace_root / "repos/unplug_exp/configs/fp_probe_queries.json"
+    return resolve_probe_path("fp_probe_queries.json", workspace_root)
 
 
 def default_encoding_probes_path(workspace_root: Path) -> Path:
-    return workspace_root / "repos/unplug_exp/configs/encoding_probe_queries.json"
+    return resolve_probe_path("encoding_probe_queries.json", workspace_root)
 
 
 def _b64(text: str) -> str:

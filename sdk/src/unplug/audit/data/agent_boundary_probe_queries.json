@@ -1,0 +1,77 @@
+[
+  {
+    "id": "session_taint_shell_review",
+    "kind": "session_flow",
+    "description": "Retrieved content taints session; benign shell requires review",
+    "steps": [
+      {"action": "scan", "source": "retrieved", "text": "Benign document excerpt for the agent."},
+      {"action": "tool", "tool": "shell", "args": {"command": "echo hello"}, "expect_action": "review"}
+    ]
+  },
+  {
+    "id": "session_taint_readonly_search_ok",
+    "kind": "session_flow",
+    "description": "Tainted session still allows read-only lookup",
+    "steps": [
+      {"action": "scan", "source": "retrieved", "text": "RAG chunk."},
+      {"action": "tool", "tool": "lookup_docs", "args": {"query": "weather"}, "expect_action": "allow"}
+    ]
+  },
+  {
+    "id": "profile_readonly_blocks_shell",
+    "kind": "profile",
+    "profile": "readonly",
+    "steps": [
+      {"action": "tool", "tool": "shell", "args": {"command": "ls"}, "expect_action": "block"}
+    ]
+  },
+  {
+    "id": "profile_readonly_allows_search",
+    "kind": "profile",
+    "profile": "readonly",
+    "steps": [
+      {"action": "tool", "tool": "search", "args": {"query": "tokyo weather"}, "expect_action": "allow"}
+    ]
+  },
+  {
+    "id": "profile_messaging_blocks_shell",
+    "kind": "profile",
+    "profile": "messaging",
+    "steps": [
+      {"action": "tool", "tool": "shell", "args": {"command": "ls"}, "expect_action": "block"}
+    ]
+  },
+  {
+    "id": "profile_messaging_allows_send",
+    "kind": "profile",
+    "profile": "messaging",
+    "steps": [
+      {"action": "tool", "tool": "send_message", "args": {"body": "hello"}, "expect_action": "allow"}
+    ]
+  },
+  {
+    "id": "destructive_blocks_despite_approval",
+    "kind": "destructive",
+    "steps": [
+      {"action": "scan", "source": "retrieved", "text": "doc"},
+      {"action": "tool", "tool": "shell", "args": {"command": "rm -rf /"}, "expect_action": "block", "approved": true}
+    ]
+  },
+  {
+    "id": "tool_output_taints_session",
+    "kind": "session_flow",
+    "steps": [
+      {"action": "scan_output", "text": "Fetched webpage body."},
+      {"action": "tool", "tool": "write_file", "args": {"path": "/tmp/x", "content": "y"}, "expect_action": "review"}
+    ]
+  },
+  {
+    "id": "reset_taint_clears_review",
+    "kind": "session_flow",
+    "steps": [
+      {"action": "scan", "source": "retrieved", "text": "doc"},
+      {"action": "reset_taint"},
+      {"action": "tool", "tool": "shell", "args": {"command": "echo ok"}, "expect_action": "allow"}
+    ]
+  }
+]

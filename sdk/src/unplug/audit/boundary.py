@@ -7,13 +7,14 @@ from pathlib import Path
 from typing import Any
 
 from unplug import Guard
+from unplug.audit.paths import resolve_probe_path
 from unplug.config.guard import GuardConfig
 from unplug.config.tools import ToolPolicyConfig
 from unplug.models import Source
 
 
 def default_boundary_probes_path(workspace_root: Path) -> Path:
-    return workspace_root / "repos/unplug_exp/configs/agent_boundary_probe_queries.json"
+    return resolve_probe_path("agent_boundary_probe_queries.json", workspace_root)
 
 
 def _run_step(guard: Guard, step: dict[str, Any]) -> dict[str, Any]:
