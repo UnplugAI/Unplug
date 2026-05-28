@@ -26,8 +26,7 @@ def _b64(text: str) -> str:
 
 
 DEFAULT_CKPT = (
-    Path(__file__).resolve().parents[3]
-    / "repos/unplug_exp/dist/vm-v10-750k-diagnostic-bundle/"
+    Path(__file__).resolve().parents[3] / "repos/unplug_exp/dist/vm-v10-750k-diagnostic-bundle/"
     "experiments/unplug-tiny-v10-350k/checkpoint-24615"
 )
 

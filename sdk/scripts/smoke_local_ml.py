@@ -11,13 +11,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_CKPT = (
-    ROOT
-    / "repos/unplug_exp/dist/vm-v10-750k-diagnostic-bundle/"
+    ROOT / "repos/unplug_exp/dist/vm-v10-750k-diagnostic-bundle/"
     "experiments/unplug-tiny-v10-350k/checkpoint-24615"
 )
-DEFAULT_PROBES = (
-    ROOT / "repos/unplug_exp/configs/fp_probe_queries.json"
-)
+DEFAULT_PROBES = ROOT / "repos/unplug_exp/configs/fp_probe_queries.json"
 
 
 def main() -> None:

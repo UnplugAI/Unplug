@@ -41,8 +41,7 @@ def _resolve_checkpoint(workspace: Path) -> Path | None:
         if path.is_dir() and (path / "config.json").is_file():
             return path
     default = (
-        workspace
-        / "repos/unplug_exp/dist/vm-v10-750k-diagnostic-bundle/"
+        workspace / "repos/unplug_exp/dist/vm-v10-750k-diagnostic-bundle/"
         "experiments/unplug-tiny-v10-350k/checkpoint-24615"
     )
     if default.is_dir() and (default / "config.json").is_file():

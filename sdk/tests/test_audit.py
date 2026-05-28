@@ -12,8 +12,7 @@ from unplug.audit.runner import run_audit
 
 WORKSPACE = Path(__file__).resolve().parents[3]
 DEFAULT_CKPT = (
-    WORKSPACE
-    / "repos/unplug_exp/dist/vm-v10-750k-diagnostic-bundle/"
+    WORKSPACE / "repos/unplug_exp/dist/vm-v10-750k-diagnostic-bundle/"
     "experiments/unplug-tiny-v10-350k/checkpoint-24615"
 )
 

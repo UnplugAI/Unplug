@@ -23,8 +23,7 @@ from unplug.core.model_runtime import load_active_model_provider
 ROOT = Path(__file__).resolve().parents[3]
 PROBES = ROOT / "repos/unplug_exp/configs/encoding_probe_queries.json"
 DEFAULT_CKPT = (
-    ROOT
-    / "repos/unplug_exp/dist/vm-v10-750k-diagnostic-bundle/"
+    ROOT / "repos/unplug_exp/dist/vm-v10-750k-diagnostic-bundle/"
     "experiments/unplug-tiny-v10-350k/checkpoint-24615"
 )
 
