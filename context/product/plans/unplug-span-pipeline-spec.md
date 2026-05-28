@@ -33,7 +33,7 @@
 ## Non-goals (v1)
 
 - **Local ML in the pip package** (no transformers/onnxruntime required for default install).
-- Generative SLM (Gemma/LFM) as primary redaction engine.
+- Generative SLM (Gemma/LFM) as primary redaction engine — aspirational only; NOT implemented and not on the v1 path. The shipped model is the DeBERTa-v3-xsmall dual-head encoder.
 - Training span models on pure encoding tricks (Base64, leet, etc.) — handled by normalize + Prompt Guard.
 - Mandatory scan of all `retrieved` content — **callers choose** `source` and `scanners`.
 - Session-level / crescendo classifier (infra only).

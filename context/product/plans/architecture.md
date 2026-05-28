@@ -6,23 +6,25 @@ Building an LLM defense layer that stops prompt injection, destructive agent act
 
 ## 3-Stage Detection Pipeline
 
+> Status legend: [implemented] ships today · [planned] designed, not built · [target] a goal with a current measured number, not a claim. All metrics come from the golden eval harness (`unplug_exp/scripts/golden_eval.py`) — see `BENCHMARKS.md`. No hand-typed numbers.
+
 ```
-Stage 1: Regex + Heuristics (<1ms)
+Stage 1: Regex + Heuristics (<1ms)  [implemented]
 ├── 12 normalization stages (leetspeak, zero-width, homoglyphs, base64, etc.)
-├── 245+ patterns across 15 languages
+├── 29 injection patterns (English) + destructive/leakage/harmful/financial scanners
+│     (regex alone is a sub-millisecond pre-filter, NOT a standalone product)
 ├── Produces span offsets of suspicious regions
 └── High-confidence → short-circuit, return immediately
 
-Stage 2: ML Classifier (5-15ms)
-├── ONNX-quantized ModernBERT or DeBERTa
-├── Loaded once in lifespan, reused across requests
-├── CPU-optimized, runs via run_in_threadpool
-└── Confidence > 0.8 → short-circuit
+Stage 2: ML Classifier (5-15ms)  [implemented: transformers · planned: ONNX export]
+├── DeBERTa-v3-xsmall dual-head (doc classifier + token/BIOES span tagger)
+├── Runs via the optional ml extra (transformers today; ONNX/INT8 export planned)
+├── Loaded once, reused across requests
+└── Doc head → detection recall; token head → span localization / redaction
 
-Stage 3: LLM Judge (500ms-2s, ~5% of requests)
-├── Local small model (Qwen-0.6B or similar via MLX)
-├── Structured CoT reasoning
-├── FAISS embedding similarity against attack corpus
+Stage 3: LLM Judge (500ms-2s, ~5% of requests)  [planned]
+├── BYOLLM JudgeProvider (CallableJudge), disabled by default
+├── Structured reasoning on the ~5% ambiguous middle band
 └── Hard negative mining: confirmed benign → feed back to Stage 2
 ```
 

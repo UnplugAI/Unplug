@@ -36,6 +36,11 @@ jobs:
       - name: Tests
         run: uv run pytest -q
 
+      - name: Exfil demo gate (killer scenario must block)
+        run: |
+          uv run pytest tests/test_exfil_demo_integration.py -q
+          uv run python examples/agent_exfil_demo.py
+
       - name: Security regression
         run: |
           uv run pytest \

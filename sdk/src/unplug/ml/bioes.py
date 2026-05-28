@@ -13,10 +13,13 @@ def decode_bioes_spans(
     label2id: dict[str, int],
     inj_threshold: float,
 ) -> list[CharSpan]:
-    inj_label_ids = {
-        label2id.get("B-INJ", -1),
-        label2id.get("I-INJ", -1),
-    }
+    """Decode BIO or true BIOES tags into character spans.
+
+    Handles B/I and, when present in the label map, E (explicit end) and
+    S (single token). Falls back to plain BIO behavior for BIO-only checkpoints.
+    """
+    inj_cols = [label2id[t] for t in ("B-INJ", "I-INJ", "E-INJ", "S-INJ") if t in label2id]
+    inj_label_ids = set(inj_cols)
     current: CharSpan | None = None
     spans: list[CharSpan] = []
 
@@ -25,25 +28,35 @@ def decode_bioes_spans(
             continue
         pred_id = int(probs[idx].argmax().item())  # type: ignore[union-attr]
         tag = id2label.get(pred_id, "O")
-        inj_score = max(
-            float(probs[idx][label2id["B-INJ"]].item()),  # type: ignore[index]
-            float(probs[idx][label2id["I-INJ"]].item()),  # type: ignore[index]
-        )
+        inj_score = max(float(probs[idx][col].item()) for col in inj_cols)  # type: ignore[index]
         is_inj = pred_id in inj_label_ids and inj_score >= inj_threshold
 
-        if is_inj and tag.startswith("B-"):
+        if not is_inj:
+            if current is not None:
+                spans.append(current)
+                current = None
+            continue
+
+        if tag.startswith("S-"):
+            if current is not None:
+                spans.append(current)
+            spans.append(CharSpan(start=start, end=end, score=inj_score))
+            current = None
+        elif tag.startswith("B-"):
             if current is not None:
                 spans.append(current)
             current = CharSpan(start=start, end=end, score=inj_score)
-        elif is_inj and tag.startswith("I-") and current is not None:
-            current = CharSpan(
-                start=current.start,
-                end=end,
-                score=max(current.score, inj_score),
-                category=current.category,
-            )
-        else:
-            if current is not None:
+        elif tag.startswith(("I-", "E-")):
+            if current is None:
+                current = CharSpan(start=start, end=end, score=inj_score)
+            else:
+                current = CharSpan(
+                    start=current.start,
+                    end=end,
+                    score=max(current.score, inj_score),
+                    category=current.category,
+                )
+            if tag.startswith("E-"):
                 spans.append(current)
                 current = None
 

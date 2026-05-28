@@ -44,7 +44,14 @@ Copy `unplug.example.toml` to `unplug.toml` to customize scanners, tool profiles
 pip install "unplug-ai[ml]"
 ```
 
-Set `active_model = "small"` in config and point `UNPLUG_MODEL_PATH` at a DeBERTa-v3-xsmall checkpoint (HuggingFace download in 0.2.0). Until then, regex + tool enforcement is the supported default.
+Set `active_model = "small"` in config and point `UNPLUG_MODEL_PATH` at a DeBERTa-v3-xsmall
+dual-head checkpoint (HuggingFace download in 0.2.0). The model has two heads on one backbone:
+a document classifier (injection detection recall) and a token/BIOES span head (localization
+and redaction). Until then, regex + tool enforcement is the supported default.
+
+All published model metrics are produced by the frozen golden eval harness
+(`unplug_exp/scripts/golden_eval.py`) on held-out data and recorded in `BENCHMARKS.md` — no
+hand-typed numbers, measured not target.
 
 Run wiring checks anytime:
 

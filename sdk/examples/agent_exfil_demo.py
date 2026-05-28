@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import sys
+
 from unplug import Guard
 from unplug.api.enums import Action, Source
 
@@ -17,7 +19,7 @@ Weather forecast for Seattle: rain likely Tuesday.
 USER_REQUEST = "Summarize this weather page for me."
 
 
-def main() -> None:
+def main() -> int:
     guard = Guard()
 
     print("=== 1. User message (trusted) ===")
@@ -56,12 +58,16 @@ def main() -> None:
     print(f"  action={shell.action.value}")
 
     blocked = tool_result.action in (Action.BLOCK, Action.REVIEW) or not tool_result.safe
+    shell_blocked = shell.action in (Action.BLOCK, Action.REVIEW) or not shell.safe
     print("\n=== Result ===")
-    if blocked:
+    if blocked and shell_blocked:
         print("Unplug blocked or flagged the exfil attempt. Agent should not proceed.")
-    else:
-        print("Unexpected: tool call was allowed.")
+        return 0
+    print(
+        f"FAIL: exfil tool call was allowed (exfil_blocked={blocked} shell_blocked={shell_blocked})"
+    )
+    return 1
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
