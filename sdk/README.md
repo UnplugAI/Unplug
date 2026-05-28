@@ -2,8 +2,15 @@
 
 Runtime enforcement layer for AI agents — provenance-aware scanning and tool-call gates.
 
+**PyPI release follows a satisfactory unplug-tiny model run.** Until then, install from source:
+
 ```bash
-pip install unplug-ai
+git clone https://github.com/UnplugAI/Unplug.git && cd Unplug/sdk
+uv sync && uv pip install -e .
+```
+
+```bash
+pip install unplug-ai   # coming to PyPI after model validation
 ```
 
 ```python

@@ -4,8 +4,10 @@
 
 Unplug tracks where text came from (user vs retrieved vs tool output), scans for prompt injection and destructive actions, and enforces tool-call policy — with span-level redaction instead of binary blocking.
 
+**PyPI, Docker, and public release ship after the unplug-tiny model passes validation.** Install from source until then:
+
 ```bash
-pip install unplug-ai
+git clone https://github.com/UnplugAI/Unplug.git && cd Unplug/sdk && uv sync && uv pip install -e .
 ```
 
 ```python
