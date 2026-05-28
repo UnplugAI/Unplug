@@ -1,5 +1,11 @@
 name: Publish to PyPI
 
+# v0.1.0 ships regex + tool enforcement as the default (no bundled model), so it can
+# publish now. The optional ML extra later points at a validated DeBERTa-v3-xsmall
+# dual-head checkpoint whose metrics are gated by the golden harness.
+#
+# Token: GitHub Environment "pypi", secret "PYPI_TOKEN".
+
 on:
   release:
     types: [published]
@@ -11,6 +17,7 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    environment: pypi
     defaults:
       run:
         working-directory: sdk
@@ -35,5 +42,5 @@ jobs:
 
       - name: Publish unplug-ai
         env:
-          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
         run: uv publish
