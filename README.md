@@ -2,7 +2,7 @@
 
 **Pull the plug on bad AI.**
 
-> All the ways LLMs fail — one import to stop them.
+> All the ways LLMs fail one import to stop them.
 
 Fast, offline-first defense layer for LLM apps, agents, and RAG pipelines. Scans untrusted text in <20ms, returns evidence, and redacts malicious spans.
 
