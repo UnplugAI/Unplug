@@ -22,6 +22,10 @@ uv run ruff check . && uv run ruff format .   # auto-fix locally; CI uses format
 uv run pytest -q
 ```
 
+## Agent integration
+
+When adding scanner or pipeline behavior, read the **agent host checklist** in [`sdk/README.md`](sdk/README.md) and run `unplug-audit` (plus `--probes` when touching detection).
+
 ## Related repos
 
 | Repo | Role |
