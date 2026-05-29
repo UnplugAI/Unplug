@@ -61,6 +61,10 @@ unplug-audit --probes          # FP + encoding + boundary batteries
 unplug-audit --require-ml      # after ML checkpoint is configured
 ```
 
+Dual-head integration steps and checkpoint layout: [`docs/ML_INTEGRATION.md`](docs/ML_INTEGRATION.md).
+
+Gate numbers ship in `BENCHMARKS.md` after the golden eval harness passes on held-out data.
+
 ## Examples
 
 - [`examples/agent_exfil_demo.py`](examples/agent_exfil_demo.py) — hidden injection → tainted session → blocked exfil tool call

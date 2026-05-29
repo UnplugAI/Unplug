@@ -25,6 +25,7 @@ class TransformersSpanProvider(ModelProvider):
             stride=int(cfg.get("stride", 64)),
             device=cfg.get("device"),
             inj_threshold=float(cfg.get("inj_threshold", 0.5)),
+            doc_threshold=float(cfg["doc_threshold"]) if "doc_threshold" in cfg else None,
             local_files_only=bool(cfg.get("local_files_only", True)),
         )
 
@@ -39,3 +40,7 @@ class TransformersSpanProvider(ModelProvider):
             msg = "TransformersSpanProvider.predict expects str text"
             raise TypeError(msg)
         return self._engine.predict(inputs)
+
+    @property
+    def doc_threshold(self) -> float:
+        return self._engine.doc_threshold

@@ -23,7 +23,7 @@ class Sample:
 def load_jsonl(path: Path) -> list[Sample]:
     """Load samples from a JSONL file with fields: text, label, category."""
     samples = []
-    with path.open() as f:
+    with path.open(encoding="utf-8") as f:
         for line in f:
             if not line.strip():
                 continue
@@ -49,7 +49,7 @@ def load_csv(
 ) -> list[Sample]:
     """Load samples from a CSV file."""
     samples = []
-    with path.open() as f:
+    with path.open(encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
             samples.append(

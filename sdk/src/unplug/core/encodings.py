@@ -96,13 +96,21 @@ class SpanModelEncodingClassifier:
             self._model.load()
         norm = self._normalizer.normalize(decoded)
         prediction = self._model.predict(norm.text)
-        if not prediction.spans:
-            return False, 0.0, ""
-        max_score = max(span.score for span in prediction.spans)
-        if max_score < self._inj_threshold:
-            return False, 0.0, ""
-        score = max(max_score, self._base_score * 0.5)
-        return True, score, "span_model"
+        if prediction.spans:
+            max_score = max(span.score for span in prediction.spans)
+            if max_score >= self._inj_threshold:
+                score = max(max_score, self._base_score * 0.5)
+                return True, score, "span_model"
+        doc_threshold = float(
+            self._model.spec.config.get("doc_threshold", self._inj_threshold)
+        )
+        if (
+            prediction.doc_score >= doc_threshold
+            and prediction.doc_score_source == "doc_head"
+        ):
+            score = max(prediction.doc_score, self._base_score * 0.5)
+            return True, score, "doc_head"
+        return False, 0.0, ""
 
 
 class CompositeEncodingClassifier:

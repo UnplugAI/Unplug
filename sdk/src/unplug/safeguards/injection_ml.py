@@ -36,8 +36,8 @@ class InjectionSpanScanner(ModelScanner):
 
         norm = self._normalizer.normalize(text.text)
         prediction = self._model.predict(norm.text)
-        if prediction is None or not prediction.spans:
-            return
+        cfg = self._model.spec.config
+        doc_threshold = float(cfg.get("doc_threshold", cfg.get("inj_threshold", 0.5)))
 
         for span in prediction.spans:
             orig_start, orig_end = norm.to_original_span(span.start, span.end)
@@ -51,5 +51,21 @@ class InjectionSpanScanner(ModelScanner):
                 span_end=orig_end,
                 score=max(span.score, self._config.base_score * 0.5),
                 evidence="Span model flagged injection region",
+                replacement="[BLOCKED:injection]",
+            )
+
+        if (
+            not prediction.spans
+            and prediction.doc_score >= doc_threshold
+            and prediction.doc_score_source == "doc_head"
+        ):
+            yield Finding(
+                category="injection",
+                subcategory="doc_head",
+                stage="model",
+                span_start=0,
+                span_end=len(text.text),
+                score=max(prediction.doc_score, self._config.base_score * 0.5),
+                evidence="Document classifier flagged injection",
                 replacement="[BLOCKED:injection]",
             )

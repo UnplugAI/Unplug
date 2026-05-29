@@ -53,15 +53,17 @@ base_score = 0.90
 
 # Optional local span models (requires pip install unplug-ai[ml])
 # Server mode: set UNPLUG_SLM_MODEL_PATH to checkpoint dir instead.
+# Dual-head v1.21+ slim export: config.json must include "dual_head": true
 [models.small]
 name = "unplug-small"
 backend = "transformers_span"
-path = "/path/to/checkpoint-24615"
+path = "/path/to/checkpoint-slim"
 
 [models.small.config]
-max_length = 256
+max_length = 512
 stride = 64
 inj_threshold = 0.5
+doc_threshold = 0.95
 device = "auto"
 
 [models.medium]
