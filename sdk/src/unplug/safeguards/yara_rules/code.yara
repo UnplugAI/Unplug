@@ -1,0 +1,43 @@
+/*
+ * Adapted from NVIDIA NeMo Guardrails (Apache-2.0).
+ * Detect import of shell / networking modules in untrusted text.
+ */
+rule import_shells
+{
+    meta:
+        description = "Detect import of os, cmd, subprocess, shutil modules"
+
+    strings:
+        $from = "from"
+        $imp = "import"
+        $mod_os = "os"
+        $mod_cmd = "cmd"
+        $mod_subprocess = "subprocess"
+        $mod_shutil = "shutil"
+
+    condition:
+        ($imp and any of ($mod*) and for any of ($mod*) : (@imp < @)) or
+        ($imp and $from and any of ($mod*) and for any of ($mod*) : (@from < @) and for any of ($mod*) : (@ < @imp))
+}
+
+rule import_networking
+{
+    meta:
+        description = "Detect import of Python networking libraries"
+
+    strings:
+        $from = "from"
+        $imp = "import"
+        $mod_socket = "socket"
+        $mod_asyncio = "asyncio"
+        $mod_http = "http"
+        $mod_soup = "bs4"
+        $mod_requests = "requests"
+        $mod_mechanize = "mechanize"
+        $mod_urllib = "urllib"
+        $mod_asyncssh = "asyncssh"
+
+    condition:
+        ($imp and any of ($mod*) and for any of ($mod*) : (@imp < @)) or
+        ($imp and $from and any of ($mod*) and for any of ($mod*) : (@from < @) and for any of ($mod*) : (@ < @imp))
+}
