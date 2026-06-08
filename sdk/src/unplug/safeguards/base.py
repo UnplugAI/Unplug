@@ -6,7 +6,7 @@ import re
 import time
 from abc import ABC, abstractmethod
 from collections.abc import Generator
-from typing import Protocol, runtime_checkable
+from typing import ClassVar, Protocol, runtime_checkable
 
 from unplug.core.config import ScannerConfig
 from unplug.core.context import ExecutionContext
@@ -88,7 +88,7 @@ class BaseScanner(ABC):
 class RegexScanner(BaseScanner):
     """Base for regex pattern safeguards."""
 
-    _patterns: list[tuple[str, re.Pattern[str]]] = []
+    _patterns: ClassVar[list[tuple[str, re.Pattern[str]]]] = []
 
     def _scan(self, text: TaintedText, context: ExecutionContext) -> Generator[Finding, None, None]:
         raw = self._get_scan_text(text)
