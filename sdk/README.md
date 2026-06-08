@@ -44,11 +44,30 @@ Copy `unplug.example.toml` to `unplug.toml` to customize scanners, tool profiles
 
 ## Deployment modes
 
+Three paths — full architecture in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md):
+
+| Path | Who runs ML | Customer setup |
+|------|-------------|----------------|
+| **Hosted** | Unplug API (your VM + API key) | `Guard(mode="server")` only |
+| **Local embedded** | Inside the SDK process | `pip install unplug-ai[ml]` + checkpoint |
+| **Local sidecar** | Customer's local `unplug-server` | Docker sidecar + `Guard(mode="server")` → localhost |
+
+**Hosted is the default for production.** Customers do not install `unplug-server` — they use an API key against your deployment.
+
+**Local embedded** is the simplest offline path: one Python agent, model loads in-process.
+
+**Local sidecar** reuses the same HTTP API as hosted, but the customer runs `unplug-server` on localhost (no API key). Use when multiple agents should share one model load or when you want identical wire format as hosted.
+
+```bash
+unplug-sidecar doctor   # verify localhost sidecar before starting agents
+```
+
 | Mode | When to use | Init | ML runs where |
 |------|-------------|------|---------------|
-| **Hosted** | Production, no GPU | `Guard(mode="server")` or TOML `mode="server"` | Server |
+| **Hosted** | Production, no GPU | `Guard(mode="server")` or TOML `mode="server"` | Unplug API |
 | **Local regex** | Dev, air-gapped, zero deps | `Guard()` default | Nowhere |
-| **Local + ML** | Max recall, offline BYO checkpoint | `pip install unplug-ai[ml]` + `active_model="tiny"` | Client |
+| **Local + ML** | Single agent, offline BYO checkpoint | `pip install unplug-ai[ml]` + `active_model="tiny"` | Client process |
+| **Local sidecar** | Multi-agent local, shared GPU | Sidecar + `Guard(mode="server")` → localhost | Local server |
 
 ### Hosted (API key → server)
 
@@ -67,6 +86,20 @@ result = guard.scan(user_text)
 Server handles `/v1/scan` and `/v1/scan/output`. **`check_tool_call()` always runs locally** (toolchain, collusion, taint) — there is no `/v1/toolcall` endpoint yet.
 
 See [`examples/hosted_client.py`](examples/hosted_client.py).
+
+### Local sidecar (optional)
+
+Same API as hosted, run locally without an API key — see [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md):
+
+```bash
+# Terminal 1 — from unplug-server repo
+docker compose -f docker-compose.sidecar.yml up
+
+# Terminal 2
+export UNPLUG_SERVER_URL=http://127.0.0.1:8000
+unplug-sidecar doctor
+python examples/local_sidecar_client.py
+```
 
 ### Local regex (default)
 

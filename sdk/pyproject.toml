@@ -104,6 +104,9 @@ line-ending = "auto"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+markers = [
+    "requires_ml_weights: tests needing checkpoint weight files on disk",
+]
 filterwarnings = [
     "ignore:clean_up_tokenization_spaces:FutureWarning:transformers.tokenization_utils_base",
     "ignore::DeprecationWarning:torch.jit._script",
@@ -116,6 +119,7 @@ filterwarnings = [
 [project.scripts]
 unplug-audit = "unplug.cli.audit:main"
 unplug-models = "unplug.cli.models:main"
+unplug-sidecar = "unplug.cli.sidecar:main"
 
 [dependency-groups]
 dev = [
