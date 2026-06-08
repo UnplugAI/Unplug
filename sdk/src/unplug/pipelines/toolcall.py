@@ -4,14 +4,23 @@ from __future__ import annotations
 
 from typing import Any
 
-from unplug.config.agent_policy import IntentConfig, TrajectoryConfig
+from unplug.config.agent_policy import (
+    CollusionConfig,
+    DegradationConfig,
+    IntentConfig,
+    ToolChainConfig,
+    TrajectoryConfig,
+)
 from unplug.config.tools import ToolPolicyConfig
 from unplug.core.approval import build_approval_request
+from unplug.core.collusion import collusion_findings
 from unplug.core.config import PipelineConfig
 from unplug.core.context import ExecutionContext, ToolCall
+from unplug.core.degradation import degraded_tool_findings
 from unplug.core.intent import check_intent_mismatch
 from unplug.core.stats import MetricsCollector
 from unplug.core.taint import TrustLevel
+from unplug.core.toolchain import toolchain_findings
 from unplug.models import Action, Finding, ScanResult
 from unplug.pipelines.base import BasePipeline
 from unplug.safeguards.base import BaseScanner
@@ -28,13 +37,23 @@ class ToolCallPipeline(BasePipeline):
         metrics: MetricsCollector | None = None,
         tool_policy: ToolPolicyConfig | None = None,
         intent_config: IntentConfig | None = None,
+        toolchain_config: ToolChainConfig | None = None,
+        collusion_config: CollusionConfig | None = None,
         trajectory_config: TrajectoryConfig | None = None,
+        degradation_config: DegradationConfig | None = None,
     ) -> None:
-        super().__init__(config=config, metrics=metrics, trajectory_config=trajectory_config)
+        super().__init__(
+            config=config,
+            metrics=metrics,
+            trajectory_config=trajectory_config,
+            degradation_config=degradation_config,
+        )
         self._destructive = destructive_scanner
         self._financial = financial_scanner
         self._tool_policy = tool_policy or ToolPolicyConfig()
         self._intent_config = intent_config or IntentConfig()
+        self._toolchain_config = toolchain_config or ToolChainConfig()
+        self._collusion_config = collusion_config or CollusionConfig()
 
     def run(
         self,
@@ -77,6 +96,9 @@ class ToolCallPipeline(BasePipeline):
                 is_side_effect=self._tool_policy.is_side_effect(input_data.tool_name),
             )
         )
+        findings.extend(degraded_tool_findings(input_data, context, self._degradation_config))
+        findings.extend(toolchain_findings(input_data, context, self._toolchain_config))
+        findings.extend(collusion_findings(input_data, context, self._collusion_config))
 
         if self._financial:
             findings.extend(self._financial.scan(tainted, context))
