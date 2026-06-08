@@ -25,7 +25,7 @@ class DualHeadOutput(ModelOutput):
 class DebertaV2ForDualHead(DebertaV2PreTrainedModel):
     """DeBERTa-v2 with joint token-classification + document-classification heads."""
 
-    def __init__(self, config) -> None:  # noqa: ANN001 - HF config type
+    def __init__(self, config) -> None:
         super().__init__(config)
         self.num_labels = int(config.num_labels)
         self.num_doc_labels = int(getattr(config, "num_doc_labels", 2))
@@ -41,18 +41,18 @@ class DebertaV2ForDualHead(DebertaV2PreTrainedModel):
 
         self.post_init()
 
-    def forward(  # noqa: PLR0913 - mirrors HF signature
+    def forward(
         self,
-        input_ids=None,  # noqa: ANN001
-        attention_mask=None,  # noqa: ANN001
-        token_type_ids=None,  # noqa: ANN001
-        position_ids=None,  # noqa: ANN001
-        inputs_embeds=None,  # noqa: ANN001
-        labels=None,  # noqa: ANN001
-        doc_labels=None,  # noqa: ANN001
-        output_attentions=None,  # noqa: ANN001
-        output_hidden_states=None,  # noqa: ANN001
-        return_dict=None,  # noqa: ANN001
+        input_ids=None,
+        attention_mask=None,
+        token_type_ids=None,
+        position_ids=None,
+        inputs_embeds=None,
+        labels=None,
+        doc_labels=None,
+        output_attentions=None,
+        output_hidden_states=None,
+        return_dict=None,
     ) -> DualHeadOutput:
         outputs = self.deberta(
             input_ids,
@@ -73,16 +73,12 @@ class DebertaV2ForDualHead(DebertaV2PreTrainedModel):
         if labels is not None:
             loss_fct = nn.CrossEntropyLoss()
             if (labels != -100).any():
-                token_loss = loss_fct(
-                    token_logits.view(-1, self.num_labels), labels.view(-1)
-                )
+                token_loss = loss_fct(token_logits.view(-1, self.num_labels), labels.view(-1))
             else:
                 token_loss = token_logits.sum() * 0.0
             loss = token_loss
             if doc_labels is not None:
-                doc_loss = loss_fct(
-                    doc_logits.view(-1, self.num_doc_labels), doc_labels.view(-1)
-                )
+                doc_loss = loss_fct(doc_logits.view(-1, self.num_doc_labels), doc_labels.view(-1))
                 loss = token_loss + self.doc_loss_weight * doc_loss
 
         return DualHeadOutput(loss=loss, logits=token_logits, doc_logits=doc_logits)

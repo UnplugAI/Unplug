@@ -79,17 +79,22 @@ class SpanInferenceModel:
                 self._checkpoint,
                 local_files_only=self._local_files_only,
                 use_fast=True,
+                clean_up_tokenization_spaces=False,
             )
         except Exception:
             if tok_json.is_file():
                 from transformers import PreTrainedTokenizerFast
 
-                self._tokenizer = PreTrainedTokenizerFast(tokenizer_file=str(tok_json))
+                self._tokenizer = PreTrainedTokenizerFast(
+                    tokenizer_file=str(tok_json),
+                    clean_up_tokenization_spaces=False,
+                )
             else:
                 self._tokenizer = AutoTokenizer.from_pretrained(
                     self._checkpoint,
                     local_files_only=self._local_files_only,
                     use_fast=False,
+                    clean_up_tokenization_spaces=False,
                 )
 
         config = AutoConfig.from_pretrained(

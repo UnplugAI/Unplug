@@ -10,10 +10,15 @@ from unplug.core.models import ModelProvider
 from unplug.core.normalize import Normalizer
 from unplug.core.stats import MetricsCollector
 from unplug.core.taint import TaintedText
+from unplug.ml.head_tail import merge_head_tail_predictions, should_use_head_tail, split_head_tail
 from unplug.models import Finding
 from unplug.safeguards.base import ModelScanner
 
 _DEFAULT_CONFIG = ScannerConfig(base_score=0.85, enabled=True, normalize=True)
+
+# Defaults — override via ModelSpec.config (head_tail_enabled, head_tail_threshold_chars, …).
+_DEFAULT_HEAD_TAIL_THRESHOLD = 8192
+_DEFAULT_HEAD_TAIL_CHUNK = 2048
 
 
 class InjectionSpanScanner(ModelScanner):
@@ -30,12 +35,32 @@ class InjectionSpanScanner(ModelScanner):
         super().__init__(config=config or _DEFAULT_CONFIG, metrics=metrics, model=model)
         self._normalizer = Normalizer()
 
+    def _predict(self, norm_text: str):
+        cfg = self._model.spec.config
+        if not bool(cfg.get("head_tail_enabled", True)):
+            return self._model.predict(norm_text)
+
+        threshold = int(cfg.get("head_tail_threshold_chars", _DEFAULT_HEAD_TAIL_THRESHOLD))
+        chunk = int(cfg.get("head_tail_chunk_chars", _DEFAULT_HEAD_TAIL_CHUNK))
+        if not should_use_head_tail(len(norm_text), threshold_chars=threshold):
+            return self._model.predict(norm_text)
+
+        head, tail, tail_offset = split_head_tail(norm_text, chunk_chars=chunk)
+        head_pred = self._model.predict(head)
+        tail_pred = self._model.predict(tail)
+        return merge_head_tail_predictions(
+            head_pred,
+            tail_pred,
+            tail_offset=tail_offset,
+            full_text=norm_text,
+        )
+
     def _scan(self, text: TaintedText, context: ExecutionContext) -> Generator[Finding, None, None]:
         if self._model.loaded is False:
             self._model.load()
 
         norm = self._normalizer.normalize(text.text)
-        prediction = self._model.predict(norm.text)
+        prediction = self._predict(norm.text)
         cfg = self._model.spec.config
         doc_threshold = float(cfg.get("doc_threshold", cfg.get("inj_threshold", 0.5)))
 
