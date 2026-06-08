@@ -3,7 +3,7 @@
 from unplug.core.context import ExecutionContext
 from unplug.core.secrets import SecretsRegistry
 from unplug.core.taint import TaintedText, TrustLevel
-from unplug.scanners.secrets import SecretsScanner
+from unplug.safeguards.secrets import SecretsScanner
 
 
 def _make_text(text: str, trust: TrustLevel = TrustLevel.TOOL_OUTPUT) -> TaintedText:

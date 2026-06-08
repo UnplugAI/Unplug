@@ -9,6 +9,7 @@ import pytest
 
 from unplug.ml.spans_merge import merge_char_spans
 from unplug.ml.types import CharSpan
+from unplug.ml.validation import resolve_validation_checkpoint
 
 
 def test_merge_char_spans_overlapping() -> None:
@@ -24,17 +25,8 @@ def test_merge_char_spans_overlapping() -> None:
     assert merged[0].score == 0.9
 
 
-DEFAULT_CKPT = (
-    Path(__file__).resolve().parents[3] / "repos/unplug_exp/dist/vm-v10-750k-diagnostic-bundle/"
-    "experiments/unplug-tiny-v10-350k/checkpoint-24615"
-)
-
-
 def _checkpoint() -> Path | None:
-    env = os.environ.get("UNPLUG_TEST_CHECKPOINT")
-    if env and Path(env).is_dir():
-        return Path(env)
-    return DEFAULT_CKPT if DEFAULT_CKPT.is_dir() else None
+    return resolve_validation_checkpoint(require_weights=False)
 
 
 @pytest.mark.skipif(_checkpoint() is None, reason="checkpoint not available")
@@ -44,7 +36,7 @@ def test_guard_active_model_wires_injection_ml() -> None:
 
     ckpt = _checkpoint()
     assert ckpt is not None
-    os.environ["UNPLUG_ACTIVE_MODEL"] = "small"
+    os.environ["UNPLUG_ACTIVE_MODEL"] = "tiny"
     os.environ["UNPLUG_MODEL_PATH"] = str(ckpt)
 
     from unplug import Guard

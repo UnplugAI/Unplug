@@ -1,0 +1,21 @@
+{
+  "tier": "tiny",
+  "description": "Canonical unplug-tiny validation pin (DeBERTa-v3-xsmall dual-head, checkpoint-66630)",
+  "checkpoint_relative": "repos/unplug_exp/deliverables/v131-xsmall-pilot-checkpoints/extracted/v131-xsmall-ep5-8-9-10/checkpoint-66630",
+  "thresholds_relative": "repos/unplug_exp/configs/thresholds_v13.json",
+  "gates_relative": "repos/unplug_exp/configs/benchmark_holdout_v13_ship.json",
+  "catalog_config": {
+    "inj_threshold": 0.45,
+    "doc_threshold": 0.9,
+    "max_length": 512,
+    "stride": 64
+  },
+  "required_files": [
+    "config.json",
+    "tokenizer.json"
+  ],
+  "optional_weight_files": [
+    "model.safetensors",
+    "pytorch_model.bin"
+  ]
+}

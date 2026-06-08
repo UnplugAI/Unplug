@@ -52,6 +52,11 @@ def main() -> None:
             f"all_passed={report['all_passed']} "
             f"({report['checks_passed']}/{report['checks_total']})"
         )
+        if report.get("ml_inactive_hint"):
+            print(
+                "\nHint: checkpoint found but ML inactive — "
+                'set active_model = "tiny" or UNPLUG_ACTIVE_MODEL=tiny'
+            )
 
     sys.exit(0 if report["wiring_pass"] else 1)
 
