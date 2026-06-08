@@ -6,8 +6,8 @@ from unplug.config.policy import RedactionMode, ScanPolicy
 from unplug.core.redaction import apply_span_redactions, format_replacement
 from unplug.models import Finding
 from unplug.pipelines.input import InputPipeline
-from unplug.scanners.destructive import DestructiveScanner
-from unplug.scanners.injection import InjectionScanner
+from unplug.safeguards.destructive import DestructiveScanner
+from unplug.safeguards.injection import InjectionScanner
 
 
 def _finding(

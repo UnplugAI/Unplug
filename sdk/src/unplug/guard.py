@@ -21,8 +21,9 @@ from unplug.core.limits import LimitConfig, LimitViolation
 from unplug.core.logging import correlation_scope, get_logger
 from unplug.core.model_runtime import (
     load_active_model_provider,
+    merge_catalog_models,
     model_cache_version,
-    resolve_active_model_spec,
+    prepare_active_model_spec,
 )
 from unplug.core.normalize import Normalizer
 from unplug.core.policy import policy_from_request
@@ -116,6 +117,7 @@ class Guard:
         if limits is not None:
             overrides["limits"] = limits
         cfg = cfg.model_copy(update=overrides)
+        cfg = merge_catalog_models(cfg)
 
         self._config = cfg
         self._limits = cfg.limits
@@ -145,13 +147,49 @@ class Guard:
         self._model_cache_version = MODEL_VERSION_LOCAL
 
         scanner_names = list(cfg.scanners)
+        from unplug.safeguards.yara_scanner import YaraCodeScanner
+
+        if scanners is None and YaraCodeScanner.is_available() and "yara" not in scanner_names:
+            scanner_names.append("yara")
         if cfg.mode != "server" and cfg.active_model:
-            spec = resolve_active_model_spec(cfg)
+            spec = prepare_active_model_spec(cfg)
             if spec is not None:
-                provider = load_active_model_provider(cfg)
+                from unplug.exceptions import ModelError
+
+                provider = None
+                load_error: Exception | None = None
+                try:
+                    provider = load_active_model_provider(cfg)
+                except Exception as exc:
+                    load_error = exc
+                    if cfg.require_ml:
+                        tier = cfg.active_model
+                        raise ModelError(
+                            f"require_ml=true but model tier {tier!r} could not be loaded: "
+                            f"{type(exc).__name__}: {exc}"
+                        ) from exc
+                    _log.warning(
+                        "active_model=%s configured but injection_ml failed to load (%s). "
+                        "Run: unplug-models download %s  (or set UNPLUG_MODEL_PATH)",
+                        cfg.active_model,
+                        type(exc).__name__,
+                        cfg.active_model,
+                    )
                 if provider is not None:
                     self._ml_provider = provider
                     self._model_cache_version = model_cache_version(spec)
+                elif cfg.require_ml:
+                    raise ModelError(
+                        f"require_ml=true but model tier {cfg.active_model!r} could not be loaded. "
+                        f"Run: unplug-models download {cfg.active_model}"
+                    )
+                elif load_error is None:
+                    _log.warning(
+                        "active_model=%s configured but injection_ml is not loaded. "
+                        "Run: unplug-models download %s  (or set UNPLUG_MODEL_PATH)",
+                        cfg.active_model,
+                        cfg.active_model,
+                    )
 
         v2_scanners = self._registry.get_many(scanner_names, configs=cfg.scanner_configs)
         if self._ml_provider is not None:
@@ -177,6 +215,7 @@ class Guard:
             scan_encodings=scan_encodings,
             boundary_config=cfg.boundaries,
             trajectory_config=cfg.trajectory,
+            degradation_config=cfg.degradation,
         )
 
         self._output_pipeline = OutputPipeline(
@@ -187,6 +226,7 @@ class Guard:
             metrics=self._metrics,
             trajectory_config=cfg.trajectory,
             boundary_config=cfg.boundaries,
+            degradation_config=cfg.degradation,
         )
 
         self._tool_pipeline = ToolCallPipeline(
@@ -196,7 +236,10 @@ class Guard:
             metrics=self._metrics,
             tool_policy=cfg.tools,
             intent_config=cfg.intent,
+            toolchain_config=cfg.toolchain,
+            collusion_config=cfg.collusion,
             trajectory_config=cfg.trajectory,
+            degradation_config=cfg.degradation,
         )
 
     @property
@@ -235,9 +278,8 @@ class Guard:
             self._context.mark_session_tainted(f"scan:{source.value}")
 
     def reset_session_taint(self) -> None:
-        """Clear session taint (e.g. new user turn with only trusted input)."""
-        self._context.session_tainted = False
-        self._context.taint_triggers.clear()
+        """Clear session taint and degradation (e.g. new trusted user turn)."""
+        self._context.reset_security_state()
 
     def wrap_for_context(self, text: str, source: Source | str = Source.RETRIEVED) -> str:
         """Wrap untrusted content before inserting into LLM context (OpenClaw adapter pattern)."""
@@ -245,6 +287,29 @@ class Guard:
             source = Source(source)
         wrapped, _ = maybe_wrap_untrusted(text, source=source, config=self._config.boundaries)
         return wrapped
+
+    def scan_context_file(
+        self,
+        content: str,
+        *,
+        filename: str = "context",
+    ) -> tuple[str, ScanResult]:
+        """Hermes-style gate for AGENTS.md, SKILL.md, DESCRIPTION.md before system prompt.
+
+        Returns ``(text_for_prompt, scan_result)``. When injection is detected, ``text_for_prompt``
+        is a blocked placeholder and the original content must not be sent to the model.
+        """
+        result = self.scan(content, source=Source.RETRIEVED)
+        if result.safe:
+            return content, result
+
+        triggers = ", ".join(dict.fromkeys(f.subcategory for f in result.findings))[:200]
+        label = triggers or "injection"
+        blocked = (
+            f"[BLOCKED: {filename} contained potential prompt injection ({label}). "
+            "Content not loaded.]"
+        )
+        return blocked, result
 
     def _capture_user_intent(self, request: ScanRequest) -> None:
         if request.source == Source.USER:

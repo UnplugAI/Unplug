@@ -147,13 +147,34 @@ class TestLoad:
         assert cfg.mode == "server"
 
     def test_no_file_defaults(self):
-        cfg = load()
+        with patch.dict(
+            os.environ,
+            {},
+            clear=False,
+        ):
+            os.environ.pop("UNPLUG_ACTIVE_MODEL", None)
+            os.environ.pop("UNPLUG_MODEL_PATH", None)
+            cfg = load()
         assert cfg == GuardConfig()
 
     def test_env_only(self):
         with patch.dict(os.environ, {"UNPLUG_GUARD__FAIL_CLOSED": "false"}):
             cfg = load()
         assert cfg.fail_closed is False
+
+    def test_env_model_path_sets_active_model(self, tmp_path: Path) -> None:
+        ckpt = tmp_path / "ckpt"
+        ckpt.mkdir()
+        (ckpt / "config.json").write_text("{}", encoding="utf-8")
+        with patch.dict(
+            os.environ,
+            {"UNPLUG_MODEL_PATH": str(ckpt)},
+            clear=False,
+        ):
+            os.environ.pop("UNPLUG_ACTIVE_MODEL", None)
+            cfg = load()
+        assert cfg.active_model == "tiny"
+        assert cfg.models["tiny"].path == str(ckpt)
 
 
 class TestGuardConfigFactory:

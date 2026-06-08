@@ -54,6 +54,18 @@ class ExecutionContext:
         self.allowed_scanners: list[str] | None = None
         self.session_tainted: bool = False
         self.taint_triggers: list[str] = []
+        self.degradation_level: int = 0
+
+    def escalate_degradation(self, level: int) -> None:
+        """Monotonic homeostasis — level only increases until session reset."""
+        if level > self.degradation_level:
+            self.degradation_level = level
+
+    def reset_security_state(self) -> None:
+        """Clear session taint and adaptive degradation (new trusted user turn)."""
+        self.session_tainted = False
+        self.taint_triggers.clear()
+        self.degradation_level = 0
 
     def mark_session_tainted(self, reason: str) -> None:
         """Conservative session taint — side-effect tools need review after this."""

@@ -309,13 +309,9 @@ def _strip_markdown(text: str, offset_table: list[int]) -> tuple[str, list[int]]
     i = 0
     n = len(text)
     while i < n:
-        if i < n - 1 and text[i : i + 2] == "**":
+        if (i < n - 1 and text[i : i + 2] == "**") or (i < n - 1 and text[i : i + 2] == "~~"):
             i += 2
-        elif i < n - 1 and text[i : i + 2] == "~~":
-            i += 2
-        elif text[i] == "`":
-            i += 1
-        elif (
+        elif text[i] == "`" or (
             text[i] == "*" and (i == 0 or text[i - 1] in " \n") and i + 1 < n and text[i + 1] != " "
         ):
             i += 1

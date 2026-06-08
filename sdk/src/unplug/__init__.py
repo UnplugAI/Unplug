@@ -37,7 +37,6 @@ __all__ = [
     "GuardConfig",
     "LimitConfig",
     "MessageConfig",
-    "SafeguardRegistry",
     "MetricsCollector",
     "ModelProvider",
     "ModelRegistry",
@@ -45,6 +44,8 @@ __all__ = [
     "ModelSpec",
     "PipelineConfig",
     "RegexScanner",
+    "SafeContent",
+    "SafeguardRegistry",
     "ScanResult",
     "ScannerConfig",
     "ScannerRegistry",
@@ -54,12 +55,11 @@ __all__ = [
     "TaintedText",
     "ThresholdConfig",
     "ToolCall",
-    "UnplugClient",
     "TrustLevel",
+    "UnplugClient",
     "correlation_scope",
     "get_correlation_id",
     "load_config",
-    "SafeContent",
 ]
 from importlib.metadata import PackageNotFoundError
 from importlib.metadata import version as _pkg_version

@@ -23,6 +23,10 @@ class ConfigLoadError(ConfigError):
     """Failed to load config from file or environment."""
 
 
+class ModelError(UnplugError):
+    """Model download, cache, or load failure."""
+
+
 class ScannerError(ScanError):
     """A scanner failed during execution."""
 
