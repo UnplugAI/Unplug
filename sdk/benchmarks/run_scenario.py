@@ -7,7 +7,9 @@ import json
 import sys
 from pathlib import Path
 
-from benchmarks.scenario_replay import load_scenario, print_replay_report, replay_scenario
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from scenario_replay import load_scenario, print_replay_report, replay_scenario
 
 
 def main() -> None:
