@@ -130,6 +130,10 @@ require_ml = true   # optional fail-fast at init
 
 Validation manifest: [`configs/ml_validation.json`](configs/ml_validation.json) pins checkpoint-66630 and v13 thresholds.
 
+Framework integrations (LangGraph, Agno): [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md).
+
+Docker E2E (sidecar + examples): `make docker-e2e`
+
 ## Module layout
 
 Threat scanners live under **`unplug.safeguards`** (canonical). The older `unplug.scanners` path still works but emits deprecation warnings — update imports to:

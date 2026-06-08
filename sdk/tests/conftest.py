@@ -34,6 +34,30 @@ def pytest_collection_modifyitems(config: object, items: list[pytest.Item]) -> N
             if "requires_ml_weights" in item.keywords:
                 item.add_marker(skip_ml)
 
+    if not _docker_available():
+        skip_docker = pytest.mark.skip(reason="docker not available")
+        for item in items:
+            if "requires_docker" in item.keywords:
+                item.add_marker(skip_docker)
+
+
+def _docker_available() -> bool:
+    import shutil
+    import subprocess
+
+    if shutil.which("docker") is None:
+        return False
+    try:
+        proc = subprocess.run(
+            ["docker", "info"],
+            capture_output=True,
+            timeout=10,
+            check=False,
+        )
+        return proc.returncode == 0
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+
 
 @pytest.fixture(scope="session")
 def ml_checkpoint() -> Path:

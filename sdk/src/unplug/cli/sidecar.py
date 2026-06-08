@@ -68,18 +68,28 @@ def _cmd_env(args: argparse.Namespace) -> int:
 
 
 def main() -> None:
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument("--url", default=None, help=f"Sidecar base URL (default: {DEFAULT_URL})")
+
     parser = argparse.ArgumentParser(
         description="Verify local unplug-server sidecar and print SDK env hints",
     )
-    parser.add_argument("--url", default=None, help=f"Sidecar base URL (default: {DEFAULT_URL})")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    doctor = sub.add_parser("doctor", help="GET /v1/health and print SDK env hints")
+    doctor = sub.add_parser(
+        "doctor",
+        parents=[common],
+        help="GET /v1/health and print SDK env hints",
+    )
     doctor.add_argument("--timeout", type=float, default=5.0)
     doctor.add_argument("--format", choices=["text", "json"], default="text")
     doctor.set_defaults(func=_cmd_doctor)
 
-    env = sub.add_parser("env", help="Print shell exports for Guard(mode=server)")
+    env = sub.add_parser(
+        "env",
+        parents=[common],
+        help="Print shell exports for Guard(mode=server)",
+    )
     env.add_argument("--shell", choices=["bash", "fish"], default="bash")
     env.set_defaults(func=_cmd_env)
 

@@ -1,4 +1,4 @@
-.PHONY: install lint format fix check check-ci test test-security test-ml smoke-ml audit audit-ml scenarios
+.PHONY: install lint format fix check check-ci test test-security test-ml smoke-ml docker-e2e audit audit-ml scenarios examples
 
 install:
 	uv sync --all-extras --dev
@@ -47,6 +47,15 @@ scenarios:
 	@for f in benchmarks/scenarios/*.yaml; do \
 		uv run python benchmarks/run_scenario.py "$$f" || exit 1; \
 	done
+
+examples:
+	uv run python examples/agent_exfil_demo.py
+	uv run python examples/langgraph_hooks_demo.py
+	uv run python examples/agno_hooks_demo.py
+	uv run pytest tests/test_examples.py -q -k "not docker_e2e"
+
+docker-e2e:
+	bash scripts/docker_e2e.sh
 
 test:
 	uv run pytest -v

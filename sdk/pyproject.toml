@@ -106,6 +106,7 @@ testpaths = ["tests"]
 asyncio_mode = "auto"
 markers = [
     "requires_ml_weights: tests needing checkpoint weight files on disk",
+    "requires_docker: tests needing docker daemon (sidecar E2E)",
 ]
 filterwarnings = [
     "ignore:clean_up_tokenization_spaces:FutureWarning:transformers.tokenization_utils_base",
