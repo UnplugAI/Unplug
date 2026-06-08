@@ -8,8 +8,9 @@ INJECTION_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     (
         "ignore_previous",
         re.compile(
-            r"(?i)(ignore|forget|disregard|override|bypass)\s+(all\s+)?"
-            r"(previous|prior|above|earlier)\s+(instructions?|prompts?|rules?|guidelines?)",
+            r"(?i)(ignore|forget|disregard|override|bypass)\s+(?:\w+\s+)*"
+            r"(previous|all|above|prior)\s+(?:\w+\s+)*"
+            r"(instructions?|prompts?|rules?|guidelines?)",
         ),
     ),
     (
@@ -97,7 +98,7 @@ INJECTION_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     (
         "chat_role_prefix",
         re.compile(
-            r"(?i)(?:^|\n)\s*(Human|Assistant|System)\s*:\s*\S",
+            r"(?i)(?:^|\n)\s*(Human|Assistant|System|User)\s*:\s*\S",
         ),
     ),
     (
@@ -193,6 +194,170 @@ INJECTION_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
         re.compile(
             r"(?i)(red[\s-]?team\s+(assistant|mode)|"
             r"help\s+me\s+test\s+(your\s+)?(safety|guardrails|filters))",
+        ),
+    ),
+    # ── Hermes Agent (NousResearch/hermes-agent) threat_patterns alignment ──
+    (
+        "hermes_deception_hide",
+        re.compile(
+            r"(?i)do\s+not\s+(?:\w+\s+)*tell\s+(?:\w+\s+)*the\s+user",
+        ),
+    ),
+    (
+        "hermes_bypass_restrictions",
+        re.compile(
+            r"(?i)act\s+as\s+(if|though)\s+(?:\w+\s+)*you\s+(?:\w+\s+)*"
+            r"(have\s+no|don't\s+have|do\s+not\s+have)\s+(?:\w+\s+)*"
+            r"(restrictions|limits|rules)",
+        ),
+    ),
+    (
+        "hermes_translate_execute",
+        re.compile(
+            r"(?i)translate\s+.*\s+into\s+.*\s+and\s+(execute|run|eval)",
+        ),
+    ),
+    (
+        "hermes_html_comment_injection",
+        re.compile(
+            r"(?i)]*(?:ignore|override|system|secret|hidden)[^>]*-->",
+        ),
+    ),
+    (
+        "hermes_hidden_div",
+        re.compile(
+            r"(?i)<\s*div\s+style\s*=\s*['\"][\s\S]*?display\s*:\s*none",
+        ),
+    ),
+    (
+        "hermes_fake_update",
+        re.compile(
+            r"(?i)you\s+have\s+been\s+(?:\w+\s+)*(updated|upgraded|patched)\s+to",
+        ),
+    ),
+    (
+        "hermes_identity_override",
+        re.compile(r"(?i)\bname\s+yourself\s+\w+"),
+    ),
+    (
+        "hermes_env_unset_agent",
+        re.compile(
+            r"(?i)unset\s+\w*(?:CLAUDE|CODEX|HERMES|AGENT|OPENAI|ANTHROPIC)\w*",
+        ),
+    ),
+    (
+        "hermes_skill_authority_framing",
+        re.compile(
+            r"(?i)\[(?:important|system)\s*:\s*the\s+user\s+has\s+invoked",
+        ),
+    ),
+    # ── Competitor corpus (NeMo YARA, llm-injection-guard, Rebuff-adjacent, ShadowProtect) ──
+    (
+        "simulate_unrestricted_role",
+        re.compile(
+            r"(?i)(simulate\s+being|roleplay\s+as)\s+.{0,80}"
+            r"(without\s+(restrictions?|filters?|limits?|guidelines?))",
+        ),
+    ),
+    (
+        "html_comment_inject_marker",
+        re.compile(r"(?i)<!--\s*INJECT"),
+    ),
+    (
+        "encode_exfil_prompt",
+        re.compile(
+            r"(?i)(translate|encode)(\s+to\s+base64)?\s+(the\s+)?"
+            r"(above|previous|system|prior)\s+(text|prompt|message|instructions?)",
+        ),
+    ),
+    (
+        "prompt_leak_verbatim",
+        re.compile(
+            r"(?i)repeat\s+(the\s+)?(above|everything|all)\s+"
+            r"(verbatim|exactly|word\s+for\s+word)",
+        ),
+    ),
+    (
+        "persistent_override",
+        re.compile(
+            r"(?i)(in\s+your\s+next\s+response|from\s+now\s+on|for\s+all\s+future)\s+"
+            r".{0,60}(ignore|disregard|forget|override|bypass)",
+        ),
+    ),
+    (
+        "null_byte_control",
+        re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]"),
+    ),
+    (
+        "jinja_template_inject",
+        re.compile(r"\{\{|\{%"),
+    ),
+    (
+        "markdown_js_link",
+        re.compile(r"(?i)\]\(\s*javascript:"),
+    ),
+    (
+        "markdown_script_tag",
+        re.compile(r"(?i)<\s*script[^>]*>"),
+    ),
+    (
+        "chat_section_header",
+        re.compile(
+            r"(?i)###\s*(Instruction|System|Human|Assistant|Context)\s*:",
+        ),
+    ),
+    (
+        "xml_chat_role_tag",
+        re.compile(r"(?i)<\s*(system|assistant|human|user)\s*>"),
+    ),
+    (
+        "bracket_chat_role_tag",
+        re.compile(r"(?i)\[(?:SYSTEM|USER|ASSISTANT|HUMAN|INST)\]"),
+    ),
+    (
+        "indirect_when_execute",
+        re.compile(
+            r"(?i)(when\s+you\s+(see|read)|if\s+you\s+read|upon\s+receiving)\s+"
+            r".{0,40}(execute|run|perform)\s+(the\s+)?following",
+        ),
+    ),
+    (
+        "agent_chain_injection",
+        re.compile(
+            r"(?i)tell\s+(the\s+)?(next|all\s+other|every|other)\s+agent(s)?\s+to",
+        ),
+    ),
+    (
+        "forward_agent_instructions",
+        re.compile(
+            r"(?i)(forward|pass)\s+(this|the\s+following|these\s+instructions)\s+"
+            r"to\s+(the\s+)?(next|all|other)\s+agent",
+        ),
+    ),
+    (
+        "skip_neglect_override",
+        re.compile(
+            r"(?i)(skip|neglect|omit|overlook|pay\s+no\s+attention\s+to)\s+"
+            r"(?:\w+\s+)*(previous|prior|above|earlier)\s+"
+            r"(?:\w+\s+)*(instructions?|directives?|rules?|guidelines?|context)",
+        ),
+    ),
+    (
+        "do_not_follow_rules",
+        re.compile(
+            r"(?i)do\s+not\s+(follow|obey)\s+(?:\w+\s+)*"
+            r"(previous|prior|your|any)\s+(instructions?|rules?|guidelines?)",
+        ),
+    ),
+    (
+        "admin_god_mode",
+        re.compile(r"(?i)\b(admin|debug|god|uncensored|unrestricted)\s+mode\b"),
+    ),
+    (
+        "unlock_unrestricted_framing",
+        re.compile(
+            r"(?i)(unlock\s+mode|without\s+limitations?|no\s+restrictions|"
+            r"bypass\s+(?:your\s+)?(?:safety\s+)?filters?)",
         ),
     ),
 ]

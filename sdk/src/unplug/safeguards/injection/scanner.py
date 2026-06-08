@@ -49,7 +49,7 @@ class InjectionScanner(RegexScanner):
 
         if norm_result.reversed_text:
             for subcategory, pattern in self._patterns:
-                for match in pattern.finditer(norm_result.reversed_text):
+                for _match in pattern.finditer(norm_result.reversed_text):
                     score = self._compute_score(subcategory, text)
                     yield Finding(
                         category=self.name,
