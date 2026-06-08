@@ -1,4 +1,4 @@
-.PHONY: install lint format fix check check-ci test test-security audit
+.PHONY: install lint format fix check check-ci test test-security test-ml smoke-ml audit audit-ml scenarios
 
 install:
 	uv sync --all-extras --dev
@@ -29,7 +29,24 @@ check-ci: check
 		tests/test_security_stress.py \
 		tests/test_sdk_coverage.py \
 		tests/test_agent_hardening.py \
+		tests/test_deployment_modes.py \
+		tests/test_ml_validation.py \
+		tests/test_ml_integration.py \
+		tests/test_scenario_replay.py \
 		-q
+	$(MAKE) scenarios
+
+test-ml:
+	uv run pytest tests/test_ml_validation.py tests/test_ml_integration.py tests/test_guard_ml.py tests/test_head_tail.py tests/test_span_ml.py tests/test_dual_head_ml.py -v
+
+smoke-ml:
+	uv run python scripts/smoke_local_ml.py
+	$(MAKE) audit-ml
+
+scenarios:
+	@for f in benchmarks/scenarios/*.yaml; do \
+		uv run python benchmarks/run_scenario.py "$$f" || exit 1; \
+	done
 
 test:
 	uv run pytest -v
