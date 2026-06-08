@@ -9,18 +9,52 @@
 
 ## CI
 
-GitHub Actions runs on every PR to `main`:
+GitHub Actions runs on every PR to `main` (`/.github/workflows/ci.yml`):
 
-- `sdk/`: ruff + pytest (`/.github/workflows/ci.yml`)
+1. **Ruff** — `ruff check .` + `ruff format --check .`
+2. **Tests** — full pytest suite (`pytest -q`)
+3. **Exfil demo gate** — `test_exfil_demo_integration.py` + `examples/agent_exfil_demo.py`
+4. **Security regression** — explicit subset:
+   - `test_adversarial.py`
+   - `test_false_positives.py`
+   - `test_encodings.py`
+   - `test_secrets.py`
+   - `test_scan_policy.py`
+   - `test_security_stress.py`
+   - `test_sdk_coverage.py`
+   - `test_agent_hardening.py`
 
 ## Local checks (SDK)
 
 ```bash
 cd sdk
 uv sync --all-extras --dev
-uv run ruff check . && uv run ruff format .   # auto-fix locally; CI uses format --check
-uv run pytest -q
+
+# Fast local gate (lint + format + full pytest)
+make check
+
+# Exact CI parity before PR (includes exfil demo + security subset above)
+make check-ci
+
+# Auto-fix formatting and safe lint fixes
+make fix            # ruff check --fix + ruff format
+
+# Individual targets
+make lint           # ruff check only
+make format         # ruff format only
+make test           # pytest -v
+make test-security  # security subset + test_financial (verbose)
+make audit          # unplug-audit wiring
+make audit-ml       # unplug-audit --require-ml
 ```
+
+From repo root (`jakarta/`): `make check`, `make check-ci`, `make fix`, `make test`.
+
+## Code conventions
+
+- Import scanners from **`unplug.safeguards.*`** — not `unplug.scanners.*` (deprecated shims)
+- Fail closed: scanner/pipeline errors → block, never allow silently
+- All new modules: `from __future__ import annotations`, typed params/returns, Pydantic models
 
 ## Agent integration
 

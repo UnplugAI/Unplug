@@ -51,4 +51,5 @@ jobs:
             tests/test_scan_policy.py \
             tests/test_security_stress.py \
             tests/test_sdk_coverage.py \
+            tests/test_agent_hardening.py \
             -q

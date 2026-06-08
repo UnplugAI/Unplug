@@ -52,7 +52,14 @@ Regex-only doc-level detection reaches roughly **F1 0.36 / recall 0.23** on held
 5. Scan agent output — `guard.scan_output(text)`
 6. Fresh user turn — `guard.reset_session_taint()`
 
-See [sdk/README.md](sdk/README.md) for config (`unplug.toml`) and `unplug-audit`.
+See [sdk/README.md](sdk/README.md) for config (`unplug.toml`), `unplug-audit`, and dev gates (`make check`, `make check-ci`).
+
+## Development
+
+```bash
+cd sdk && uv sync --all-extras --dev
+make check-ci    # lint + tests + exfil demo + security regression
+```
 
 ## Related repos
 
