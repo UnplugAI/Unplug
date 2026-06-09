@@ -26,8 +26,7 @@ def pytest_configure(config: object) -> None:
     )
 
 
-def pytest_collection_modifyitems(config: object, items: list[pytest.Item]) -> None:
-    del config
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     if resolve_validation_checkpoint(require_weights=True) is None:
         skip_ml = pytest.mark.skip(reason="ML checkpoint weights not available")
         for item in items:
@@ -35,10 +34,16 @@ def pytest_collection_modifyitems(config: object, items: list[pytest.Item]) -> N
                 item.add_marker(skip_ml)
 
     if not _docker_e2e_enabled():
-        skip_docker = pytest.mark.skip(reason="set RUN_DOCKER_E2E=1 to run sidecar docker E2E")
+        deselected: list[pytest.Item] = []
+        keep: list[pytest.Item] = []
         for item in items:
             if "requires_docker" in item.keywords:
-                item.add_marker(skip_docker)
+                deselected.append(item)
+            else:
+                keep.append(item)
+        if deselected:
+            config.hook.pytest_deselected(items=deselected)
+            items[:] = keep
 
 
 def _docker_e2e_enabled() -> bool:

@@ -56,7 +56,7 @@ examples:
 
 docker-e2e:
 	RUN_DOCKER_E2E=1 bash scripts/docker_e2e.sh
-	RUN_DOCKER_E2E=1 uv run pytest tests/test_examples.py::test_docker_e2e_script -v
+	RUN_DOCKER_E2E=1 uv run pytest tests/test_examples.py::test_docker_e2e_script -v -o addopts=
 
 test:
 	uv run pytest -v

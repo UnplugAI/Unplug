@@ -30,29 +30,7 @@ jobs:
       - name: Install
         run: uv sync --all-extras --dev
 
-      - name: Ruff
-        run: uv run ruff check . && uv run ruff format --check .
-
-      - name: Tests
+      - name: CI gate (make check-ci; docker E2E is local-only)
         env:
-          # Docker sidecar E2E is local-only (make docker-e2e); never run in CI.
           RUN_DOCKER_E2E: ""
-        run: uv run pytest -q
-
-      - name: Exfil demo gate (killer scenario must block)
-        run: |
-          uv run pytest tests/test_exfil_demo_integration.py -q
-          uv run python examples/agent_exfil_demo.py
-
-      - name: Security regression
-        run: |
-          uv run pytest \
-            tests/test_adversarial.py \
-            tests/test_false_positives.py \
-            tests/test_encodings.py \
-            tests/test_secrets.py \
-            tests/test_scan_policy.py \
-            tests/test_security_stress.py \
-            tests/test_sdk_coverage.py \
-            tests/test_agent_hardening.py \
-            -q
+        run: make check-ci

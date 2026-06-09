@@ -104,6 +104,7 @@ line-ending = "auto"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+addopts = ["-m", "not requires_docker"]
 markers = [
     "requires_ml_weights: tests needing checkpoint weight files on disk",
     "requires_docker: tests needing docker daemon (sidecar E2E)",
