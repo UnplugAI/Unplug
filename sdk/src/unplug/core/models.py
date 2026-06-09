@@ -109,12 +109,6 @@ class ModelRegistry:
                 self._providers[key] = provider
             return self._providers[key]
 
-    def get_or_none(self, spec: ModelSpec) -> ModelProvider | None:
-        try:
-            return self.get(spec)
-        except (ValueError, Exception):
-            return None
-
     def unload_all(self) -> None:
         with self._lock:
             for provider in self._providers.values():

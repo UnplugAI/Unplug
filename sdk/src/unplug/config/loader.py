@@ -7,7 +7,12 @@ import tomllib
 from pathlib import Path
 from typing import Any
 
-from unplug.config.agent_policy import BoundaryConfig, IntentConfig, TrajectoryConfig
+from unplug.config.agent_policy import (
+    BoundaryConfig,
+    DegradationConfig,
+    IntentConfig,
+    TrajectoryConfig,
+)
 from unplug.config.cache import CacheConfig
 from unplug.config.guard import GuardConfig, PipelineConfig, ScannerConfig, ThresholdConfig
 from unplug.config.limits import LimitConfig
@@ -150,6 +155,13 @@ def _build_intent(data: dict[str, Any]) -> IntentConfig:
     return IntentConfig(**{k: v for k, v in data.items() if k in IntentConfig.model_fields})
 
 
+def _build_degradation(data: dict[str, Any]) -> DegradationConfig:
+    kwargs: dict[str, Any] = {k: v for k, v in data.items() if k in DegradationConfig.model_fields}
+    if "high_risk_tools" in kwargs and isinstance(kwargs["high_risk_tools"], list):
+        kwargs["high_risk_tools"] = tuple(kwargs["high_risk_tools"])
+    return DegradationConfig(**kwargs)
+
+
 def build_config(data: dict[str, Any]) -> GuardConfig:
     """Build a GuardConfig from a raw dict (from TOML or env)."""
     guard_data = data.get("guard", data)
@@ -206,6 +218,10 @@ def build_config(data: dict[str, Any]) -> GuardConfig:
         kwargs["models"] = _build_models(models_data)
     if "active_model" in guard_data:
         kwargs["active_model"] = guard_data["active_model"]
+    if "auto_download_model" in guard_data:
+        kwargs["auto_download_model"] = bool(guard_data["auto_download_model"])
+    if "require_ml" in guard_data:
+        kwargs["require_ml"] = bool(guard_data["require_ml"])
 
     tools_data = guard_data.get("tools", data.get("tools", {}))
     if tools_data:
@@ -222,6 +238,10 @@ def build_config(data: dict[str, Any]) -> GuardConfig:
     intent_data = guard_data.get("intent", data.get("intent", {}))
     if intent_data:
         kwargs["intent"] = _build_intent(intent_data)
+
+    degradation_data = guard_data.get("degradation", data.get("degradation", {}))
+    if degradation_data:
+        kwargs["degradation"] = _build_degradation(degradation_data)
 
     return GuardConfig(**kwargs)
 
@@ -253,9 +273,11 @@ def _apply_model_env_overrides(data: dict[str, Any]) -> dict[str, Any]:
     out = dict(data)
     guard = dict(out.get("guard", {}))
     models = dict(out.get("models", {}))
-    tier = active or "small"
+    tier = active or "tiny"
     if active:
         guard["active_model"] = active
+    elif path:
+        guard["active_model"] = tier
     if path:
         slot = dict(models.get(tier, {}))
         slot.setdefault("name", f"unplug-{tier}")

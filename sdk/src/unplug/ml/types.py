@@ -17,3 +17,6 @@ class CharSpan:
 class SpanPrediction:
     text_normalized: str
     spans: list[CharSpan]
+    # Document-level injection probability (dual-head doc head, or max token INJ prob).
+    doc_score: float = 0.0
+    doc_score_source: str = "token_max"

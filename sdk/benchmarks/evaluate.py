@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from benchmarks.loader import Sample
 from unplug import Guard
+from unplug.models import ScanResult
 
 
 @dataclass
@@ -77,20 +79,46 @@ class EvalResult:
         }
 
 
+def _default_guard_factory() -> Guard:
+    return Guard()
+
+
+def run_sample(guard: Guard, sample: Sample) -> ScanResult:
+    """Route a sample to the correct Guard pipeline based on metadata."""
+    pipeline = sample.metadata.get("pipeline", "input")
+    if pipeline == "output":
+        return guard.scan_output(sample.text)
+    if pipeline == "toolcall":
+        tool_name = sample.metadata.get("tool_name", "unknown")
+        tool_args = sample.metadata.get("tool_args", {"cmd": sample.text})
+        agent_id = sample.metadata.get("agent_id")
+        if agent_id:
+            guard.context.agent_id = str(agent_id)
+        return guard.check_tool_call(tool_name, tool_args)
+    return guard.scan(sample.text)
+
+
 def evaluate(
     samples: list[Sample],
     guard: Guard | None = None,
     threshold: float = 0.5,
+    *,
+    isolate_sessions: bool = True,
+    guard_factory: Callable[[], Guard] | None = None,
 ) -> EvalResult:
     """Run all samples through the Guard and compute metrics.
 
     Args:
         samples: Labeled evaluation samples.
-        guard: Guard instance to test. Defaults to Guard() with all scanners.
+        guard: Guard instance to test when ``isolate_sessions`` is False.
         threshold: Risk score threshold for considering a scan "detected".
+        isolate_sessions: When True (default), use a fresh Guard per sample so
+            trajectory/crescendo state does not bleed across the dataset.
+        guard_factory: Callable returning a new Guard; used when
+            ``isolate_sessions`` is True. Defaults to ``Guard()``.
     """
-    if guard is None:
-        guard = Guard()
+    factory = guard_factory or _default_guard_factory
+    shared = None if isolate_sessions else (guard or factory())
 
     result = EvalResult()
     start = time.perf_counter()
@@ -103,8 +131,11 @@ def evaluate(
             result.by_category[cat] = CategoryMetrics()
         cat_metrics = result.by_category[cat]
 
+        active = factory() if isolate_sessions else shared
+        assert active is not None
+
         scan_start = time.perf_counter()
-        scan_result = guard.scan(sample.text)
+        scan_result = run_sample(active, sample)
         latency = (time.perf_counter() - scan_start) * 1000
 
         detected = scan_result.risk_score >= threshold

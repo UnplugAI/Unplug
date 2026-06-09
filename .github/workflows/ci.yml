@@ -30,20 +30,7 @@ jobs:
       - name: Install
         run: uv sync --all-extras --dev
 
-      - name: Ruff
-        run: uv run ruff check . && uv run ruff format --check .
-
-      - name: Tests
-        run: uv run pytest -q
-
-      - name: Security regression
-        run: |
-          uv run pytest \
-            tests/test_adversarial.py \
-            tests/test_false_positives.py \
-            tests/test_encodings.py \
-            tests/test_secrets.py \
-            tests/test_scan_policy.py \
-            tests/test_security_stress.py \
-            tests/test_sdk_coverage.py \
-            -q
+      - name: CI gate (make check-ci; docker E2E is local-only)
+        env:
+          RUN_DOCKER_E2E: ""
+        run: make check-ci

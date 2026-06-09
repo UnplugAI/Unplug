@@ -7,7 +7,14 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from unplug.config.agent_policy import BoundaryConfig, IntentConfig, TrajectoryConfig
+from unplug.config.agent_policy import (
+    BoundaryConfig,
+    CollusionConfig,
+    DegradationConfig,
+    IntentConfig,
+    ToolChainConfig,
+    TrajectoryConfig,
+)
 from unplug.config.cache import CacheConfig
 from unplug.config.limits import LimitConfig
 from unplug.config.messages import MessageConfig
@@ -75,7 +82,15 @@ class GuardConfig(BaseModel):
     )
     active_model: str | None = Field(
         default=None,
-        description="Key in models dict for local ML inference (server mode ignores this)",
+        description="Model tier key: tiny, medium, or large (see models/catalog.toml)",
+    )
+    auto_download_model: bool = Field(
+        default=False,
+        description="Download active_model from Hugging Face when not cached locally",
+    )
+    require_ml: bool = Field(
+        default=False,
+        description="Raise at Guard init if active_model cannot be loaded",
     )
     tools: ToolPolicyConfig = Field(
         default_factory=ToolPolicyConfig,
@@ -92,6 +107,18 @@ class GuardConfig(BaseModel):
     intent: IntentConfig = Field(
         default_factory=IntentConfig,
         description="User intent vs side-effect tool mismatch checks",
+    )
+    degradation: DegradationConfig = Field(
+        default_factory=DegradationConfig,
+        description="Homeostasis-style tightening of high-risk tools after crescendo",
+    )
+    toolchain: ToolChainConfig = Field(
+        default_factory=ToolChainConfig,
+        description="Session tool-sequence kill-chain detection",
+    )
+    collusion: CollusionConfig = Field(
+        default_factory=CollusionConfig,
+        description="Multi-agent pair frequency and cross-agent exfil detection",
     )
 
     def get_scanner_config(self, name: str) -> ScannerConfig:

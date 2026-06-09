@@ -1,4 +1,4 @@
-"""Fine-tuned DeBERTa BIOES checkpoint → character spans."""
+"""Fine-tuned DeBERTa BIOES checkpoint → character spans (+ optional doc head)."""
 
 from __future__ import annotations
 
@@ -21,22 +21,27 @@ class SpanInferenceModel:
         self,
         checkpoint: str | Path,
         *,
-        max_length: int = 256,
+        max_length: int | None = None,
         stride: int = 64,
         device: str | None = None,
         inj_threshold: float = 0.5,
+        doc_threshold: float | None = None,
         local_files_only: bool = True,
     ) -> None:
         self._checkpoint = Path(checkpoint)
-        self._max_length = max_length
+        self._max_length_override = max_length
         self._stride = stride
         self._device = resolve_torch_device(device)
         self._inj_threshold = inj_threshold
+        self._doc_threshold = doc_threshold if doc_threshold is not None else inj_threshold
         self._local_files_only = local_files_only
         self._tokenizer: PreTrainedTokenizerBase | None = None
         self._model: PreTrainedModel | None = None
         self._label2id: dict[str, int] = {}
         self._id2label: dict[int, str] = {}
+        self._is_dual_head = False
+        self._doc_pos_index = 1
+        self._max_length = max_length or 256
 
     @property
     def checkpoint(self) -> Path:
@@ -50,11 +55,19 @@ class SpanInferenceModel:
     def loaded(self) -> bool:
         return self._model is not None
 
+    @property
+    def is_dual_head(self) -> bool:
+        return self._is_dual_head
+
+    @property
+    def doc_threshold(self) -> float:
+        return self._doc_threshold
+
     def load(self) -> None:
         if self._model is not None:
             return
         import torch
-        from transformers import AutoModelForTokenClassification, AutoTokenizer
+        from transformers import AutoConfig, AutoModelForTokenClassification, AutoTokenizer
 
         if not self._checkpoint.is_dir():
             msg = f"Checkpoint directory not found: {self._checkpoint}"
@@ -66,23 +79,50 @@ class SpanInferenceModel:
                 self._checkpoint,
                 local_files_only=self._local_files_only,
                 use_fast=True,
+                clean_up_tokenization_spaces=False,
             )
         except Exception:
             if tok_json.is_file():
                 from transformers import PreTrainedTokenizerFast
 
-                self._tokenizer = PreTrainedTokenizerFast(tokenizer_file=str(tok_json))
+                self._tokenizer = PreTrainedTokenizerFast(
+                    tokenizer_file=str(tok_json),
+                    clean_up_tokenization_spaces=False,
+                )
             else:
                 self._tokenizer = AutoTokenizer.from_pretrained(
                     self._checkpoint,
                     local_files_only=self._local_files_only,
                     use_fast=False,
+                    clean_up_tokenization_spaces=False,
                 )
-        self._model = AutoModelForTokenClassification.from_pretrained(
+
+        config = AutoConfig.from_pretrained(
             self._checkpoint,
             local_files_only=self._local_files_only,
-            torch_dtype=torch.float32,
         )
+        if self._max_length_override is None:
+            self._max_length = int(getattr(config, "max_position_embeddings", 256))
+
+        self._is_dual_head = bool(getattr(config, "dual_head", False))
+        self._doc_pos_index = int(getattr(config, "doc_positive_index", 1))
+
+        if self._is_dual_head:
+            from unplug.ml.dual_head_model import DebertaV2ForDualHead
+
+            self._model = DebertaV2ForDualHead.from_pretrained(
+                self._checkpoint,
+                local_files_only=self._local_files_only,
+                use_safetensors=True,
+                torch_dtype=torch.float32,
+            )
+        else:
+            self._model = AutoModelForTokenClassification.from_pretrained(
+                self._checkpoint,
+                local_files_only=self._local_files_only,
+                use_safetensors=True,
+                torch_dtype=torch.float32,
+            )
         self._model.to(self._device)
         self._model.eval()
         self._label2id = dict(self._model.config.label2id)
@@ -93,30 +133,106 @@ class SpanInferenceModel:
         self._tokenizer = None
         self._label2id = {}
         self._id2label = {}
+        self._is_dual_head = False
 
     def predict(self, text: str) -> SpanPrediction:
+        return self.predict_batch([text], batch_size=1)[0]
+
+    def predict_batch(
+        self,
+        texts: list[str],
+        *,
+        batch_size: int = 32,
+    ) -> list[SpanPrediction]:
         import torch
 
         self.load()
         assert self._tokenizer is not None
         assert self._model is not None
 
-        encoding = self._tokenizer(
-            text,
-            return_offsets_mapping=True,
-            truncation=True,
-            max_length=self._max_length,
-            stride=self._stride,
-            return_overflowing_tokens=True,
-            return_tensors="pt",
-        )
-        all_spans: list[CharSpan] = []
+        if not texts:
+            return []
+
+        out: list[SpanPrediction] = []
+        bs = max(1, batch_size)
+        for start in range(0, len(texts), bs):
+            chunk = texts[start : start + bs]
+            encoding = self._tokenizer(
+                chunk,
+                return_offsets_mapping=True,
+                truncation=True,
+                max_length=self._max_length,
+                stride=self._stride,
+                padding=True,
+                return_overflowing_tokens=bool(self._stride and self._stride < self._max_length),
+                return_tensors="pt",
+            )
+            if encoding.get("overflow_to_sample_mapping") is not None:
+                out.extend(self._predict_overflowing(encoding, chunk))
+                continue
+
+            offset_mappings = encoding.pop("offset_mapping")
+            skip_keys = frozenset(
+                {"offset_mapping", "overflow_to_sample_mapping", "num_overflowing_tokens"}
+            )
+            inputs = {
+                key: value.to(self._device)
+                for key, value in encoding.items()
+                if key not in skip_keys
+            }
+            with torch.no_grad():
+                outputs = self._model(**inputs)
+                logits = outputs.logits
+                probs = torch.softmax(logits, dim=-1)
+                doc_logits = getattr(outputs, "doc_logits", None)
+
+            for i, body in enumerate(chunk):
+                offset_mapping = offset_mappings[i].tolist()
+                row_probs = probs[i]
+                spans = decode_bioes_spans(
+                    offset_mapping,
+                    probs=row_probs,
+                    id2label=self._id2label,
+                    label2id=self._label2id,
+                    inj_threshold=self._inj_threshold,
+                )
+                doc_prob, doc_source = self._doc_score(
+                    offset_mapping,
+                    row_probs=row_probs,
+                    doc_logits=doc_logits[i] if doc_logits is not None else None,
+                )
+                out.append(
+                    SpanPrediction(
+                        text_normalized=body,
+                        spans=merge_char_spans(spans),
+                        doc_score=doc_prob,
+                        doc_score_source=doc_source,
+                    )
+                )
+        return out
+
+    def _predict_overflowing(
+        self,
+        encoding: dict,
+        bodies: list[str],
+    ) -> list[SpanPrediction]:
+        import torch
+
+        assert self._tokenizer is not None
+        assert self._model is not None
+
+        sample_count = len(bodies)
+        all_spans: list[list[CharSpan]] = [[] for _ in range(sample_count)]
+        doc_scores: list[float] = [0.0] * sample_count
+        doc_sources: list[str] = ["token_max"] * sample_count
+        overflow_map = encoding["overflow_to_sample_mapping"].tolist()
         batch_size = int(encoding["input_ids"].shape[0])
         skip_keys = frozenset(
             {"offset_mapping", "overflow_to_sample_mapping", "num_overflowing_tokens"}
         )
 
         for chunk_idx in range(batch_size):
+            sample_idx = int(overflow_map[chunk_idx])
             offset_mapping = encoding["offset_mapping"][chunk_idx].tolist()
             inputs = {
                 key: value[chunk_idx : chunk_idx + 1].to(self._device)
@@ -124,17 +240,73 @@ class SpanInferenceModel:
                 if key not in skip_keys
             }
             with torch.no_grad():
-                logits = self._model(**inputs).logits[0]
+                outputs = self._model(**inputs)
+                logits = outputs.logits[0]
                 probs = torch.softmax(logits, dim=-1)
-            all_spans.extend(
-                decode_bioes_spans(
-                    offset_mapping,
-                    probs=probs,
-                    id2label=self._id2label,
-                    label2id=self._label2id,
-                    inj_threshold=self._inj_threshold,
-                )
-            )
+                doc_logits = getattr(outputs, "doc_logits", None)
 
-        merged = merge_char_spans(all_spans)
-        return SpanPrediction(text_normalized=text, spans=merged)
+            spans = decode_bioes_spans(
+                offset_mapping,
+                probs=probs,
+                id2label=self._id2label,
+                label2id=self._label2id,
+                inj_threshold=self._inj_threshold,
+            )
+            all_spans[sample_idx].extend(spans)
+            doc_prob, doc_source = self._doc_score(
+                offset_mapping,
+                row_probs=probs,
+                doc_logits=doc_logits[0] if doc_logits is not None else None,
+            )
+            if doc_source == "doc_head":
+                doc_scores[sample_idx] = max(doc_scores[sample_idx], doc_prob)
+                doc_sources[sample_idx] = "doc_head"
+            else:
+                doc_scores[sample_idx] = max(doc_scores[sample_idx], doc_prob)
+
+        return [
+            SpanPrediction(
+                text_normalized=bodies[i],
+                spans=merge_char_spans(all_spans[i]),
+                doc_score=doc_scores[i],
+                doc_score_source=doc_sources[i],
+            )
+            for i in range(sample_count)
+        ]
+
+    def _doc_score(
+        self,
+        offset_mapping: list[tuple[int, int]],
+        *,
+        row_probs: object,
+        doc_logits: object | None,
+    ) -> tuple[float, str]:
+        import torch
+
+        if self._is_dual_head and doc_logits is not None:
+            doc_prob = float(torch.softmax(doc_logits, dim=-1)[self._doc_pos_index].item())
+            return doc_prob, "doc_head"
+        token_max = _token_max_inj_prob(
+            offset_mapping,
+            probs=row_probs,
+            label2id=self._label2id,
+        )
+        return token_max, "token_max"
+
+
+def _token_max_inj_prob(
+    offset_mapping: list[tuple[int, int]],
+    *,
+    probs: object,
+    label2id: dict[str, int],
+) -> float:
+    inj_cols = [label2id[t] for t in ("B-INJ", "I-INJ", "E-INJ", "S-INJ") if t in label2id]
+    if not inj_cols:
+        return 0.0
+    best = 0.0
+    for idx, (start, end) in enumerate(offset_mapping):
+        if start == end == 0:
+            continue
+        token_prob = max(float(probs[idx][col].item()) for col in inj_cols)  # type: ignore[index]
+        best = max(best, token_prob)
+    return best

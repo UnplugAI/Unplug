@@ -8,8 +8,8 @@ from unplug.core.models import ModelRegistry, ModelSpec, NullModelProvider
 from unplug.core.stats import MetricsCollector
 from unplug.core.taint import TaintedText, TrustLevel
 from unplug.models import Finding
-from unplug.scanners import ScannerRegistry
-from unplug.scanners.base import BaseScanner, ModelScanner, RegexScanner
+from unplug.safeguards import ScannerRegistry
+from unplug.safeguards.base import BaseScanner, ModelScanner, RegexScanner
 
 
 def _make_text(text: str = "hello", trust: TrustLevel = TrustLevel.USER) -> TaintedText:

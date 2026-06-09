@@ -20,8 +20,8 @@ __all__ = [
     "Finding",
     "HealthResponse",
     "SafeContent",
-    "ScrapeOutcome",
     "ScanRequest",
     "ScanResult",
+    "ScrapeOutcome",
     "Source",
 ]

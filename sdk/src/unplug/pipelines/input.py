@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
-from unplug.config.agent_policy import BoundaryConfig, TrajectoryConfig
+from unplug.config.agent_policy import BoundaryConfig, DegradationConfig, TrajectoryConfig
 from unplug.core.boundaries import maybe_wrap_untrusted
 from unplug.core.config import PipelineConfig
 from unplug.core.context import ExecutionContext
@@ -38,8 +38,14 @@ class InputPipeline(BasePipeline):
         scan_encodings: bool = True,
         boundary_config: BoundaryConfig | None = None,
         trajectory_config: TrajectoryConfig | None = None,
+        degradation_config: DegradationConfig | None = None,
     ) -> None:
-        super().__init__(config=config, metrics=metrics, trajectory_config=trajectory_config)
+        super().__init__(
+            config=config,
+            metrics=metrics,
+            trajectory_config=trajectory_config,
+            degradation_config=degradation_config,
+        )
         self._scanners = scanners
         self._normalizer = normalizer or Normalizer()
         self._judge = judge

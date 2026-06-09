@@ -17,6 +17,7 @@ from unplug.core.encodings import (
     scan_encoding_blobs,
 )
 from unplug.core.model_runtime import load_active_model_provider
+from unplug.ml.validation import resolve_validation_checkpoint
 from unplug.pipelines.input import InputPipeline
 from unplug.safeguards.injection import InjectionScanner
 
@@ -25,17 +26,8 @@ def _b64(text: str) -> str:
     return base64.b64encode(text.encode()).decode()
 
 
-DEFAULT_CKPT = (
-    Path(__file__).resolve().parents[3] / "repos/unplug_exp/dist/vm-v10-750k-diagnostic-bundle/"
-    "experiments/unplug-tiny-v10-350k/checkpoint-24615"
-)
-
-
 def _checkpoint() -> Path | None:
-    env = os.environ.get("UNPLUG_TEST_CHECKPOINT")
-    if env and Path(env).is_dir():
-        return Path(env)
-    return DEFAULT_CKPT if DEFAULT_CKPT.is_dir() else None
+    return resolve_validation_checkpoint(require_weights=False)
 
 
 class TestEncodingBlobs:
@@ -116,7 +108,7 @@ class TestEncodingClassifiers:
         pytest.importorskip("torch")
         ckpt = _checkpoint()
         assert ckpt is not None
-        os.environ["UNPLUG_ACTIVE_MODEL"] = "small"
+        os.environ["UNPLUG_ACTIVE_MODEL"] = "tiny"
         os.environ["UNPLUG_MODEL_PATH"] = str(ckpt)
         provider = load_active_model_provider(load())
         assert provider is not None

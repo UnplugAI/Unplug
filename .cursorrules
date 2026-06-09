@@ -5,12 +5,26 @@ Runtime security SDK for LLM applications. Scans text for prompt injection, dest
 
 ## Repository Layout
 ```
-sdk/                          # Python SDK (pip install unplug) — THIS IS THE MAIN PACKAGE
+sdk/                          # Python SDK (pip install unplug-ai) — THIS IS THE MAIN PACKAGE
   src/unplug/
     guard.py                  # Entry point: Guard class
     models.py                 # Shared Pydantic schemas (Finding, ScanResult, Action, Source)
     client.py                 # HTTP client for server mode
     exceptions.py             # Exception hierarchy
+    safeguards/               # CANONICAL threat scanners + registry
+      base.py                 # BaseScanner, RegexScanner, ModelScanner, Scanner protocol
+      registry.py             # SafeguardRegistry (ScannerRegistry alias)
+      injection/              # Regex injection + patterns
+      injection_ml.py         # ML span scanner (dual-head DeBERTa)
+      destructive.py          # SQL, shell, git, file ops
+      leakage.py              # API keys, PII, prompt leak
+      harmful.py              # dangerous, self-harm, illegal
+      financial.py            # crypto, payments, amount thresholds
+      secrets.py              # registry-based exact-match detection
+    scanners/                 # DEPRECATION SHIMS → unplug.safeguards.*
+    audit/                    # unplug-audit runner + probe batteries
+    ml/                       # ModelStore, catalog, download-once cache
+    cli/                      # unplug-audit, unplug-models CLIs
     core/
       taint.py                # TaintedText, TrustLevel (6 levels), Tagger
       context.py              # ExecutionContext, ToolCall, session tracking
@@ -18,31 +32,20 @@ sdk/                          # Python SDK (pip install unplug) — THIS IS THE 
       normalize.py            # 12-stage text normalizer with span mapping
       config.py               # GuardConfig, PipelineConfig, ScannerConfig (Pydantic)
       config_loader.py        # TOML file loading + env var overrides
+      model_runtime.py        # active_model resolution, HF cache integration
       logging.py              # Correlation IDs via contextvars
       models.py               # ModelProvider ABC, ModelRegistry, ModelSpec (Pydantic)
       stats.py                # MetricsCollector, ScannerStats, PipelineStats (Pydantic)
       judge.py                # JudgeProvider protocol, CallableJudge (BYOLLM)
       content.py              # ContentProvider protocol, ScrapedContent
       limits.py               # LimitConfig — input length + tool permissions
-    scanners/
-      base.py                 # BaseScanner, RegexScanner, ModelScanner, Scanner protocol
-      injection.py            # 6 regex patterns + 12-stage normalization
-      destructive.py          # 8 patterns (SQL, shell, git, file ops)
-      leakage.py              # 9 patterns (API keys, PII, prompt leak)
-      harmful.py              # 3 patterns (dangerous, self-harm, illegal)
-      financial.py            # Crypto, payments, amount thresholds
-      secrets.py              # Registry-based exact-match detection
     pipelines/
       base.py                 # BasePipeline with fail-closed, timing, redaction
       input.py                # InputPipeline (taint → normalize → scan → decide)
       output.py               # OutputPipeline (secrets + leakage)
       toolcall.py             # ToolCallPipeline (destructive + financial + taint)
   benchmarks/                 # Dataset evaluation framework
-    loader.py                 # JSONL/CSV/Parquet loaders
-    evaluate.py               # Precision/recall/F1 per category
-    builtin_samples.py        # Built-in smoke test samples
-    run.py                    # CLI runner
-  tests/                      # 317 tests, all passing
+  tests/                      # 535+ tests, all passing
 .context/                     # Gitignored — strategy, architecture, research docs
 .claude/rules/                # Behavioral rules for Claude Code
 ```
@@ -54,14 +57,17 @@ Server, MCP, and site live in separate repos:
 
 ## Commands
 ```bash
-cd sdk && uv sync --all-extras        # install
-cd sdk && uv run pytest -v            # test
-cd sdk && uv run ruff check .         # lint
-cd sdk && uv run ruff format .        # format
+cd sdk && uv sync --all-extras --dev   # install
+cd sdk && make check                   # lint + format + pytest
+cd sdk && make check-ci                # CI parity (exfil demo + security subset)
+cd sdk && make fix                     # auto-fix lint + format
+cd sdk && uv run pytest -v             # verbose tests
+cd sdk && uv run unplug-audit          # wiring + ML health checks
 ```
 
 ## Architecture Rules (STRICT)
-- Guard → Pipelines → Scanners → Core (never skip layers)
+- Guard → Pipelines → Safeguards → Core (never skip layers)
+- Import scanners from `unplug.safeguards.*` (not `unplug.scanners.*`)
 - Nothing enters as raw string — everything is TaintedText
 - Scanners receive TaintedText + ExecutionContext, never raw str
 - Fail closed: scanner/pipeline errors → block, never allow silently
@@ -96,13 +102,12 @@ except Exception as exc:
 - Never expose: competitor names, model details, infrastructure, business strategy
 - No "based on analysis", "after discussing", "AI-assisted" in any public output
 
-## Current State (2026-05-20)
-- Branch: v2-enforcement-layer (17 commits ahead of main, not merged)
-- 317 tests passing, all lint clean
+## Current State (2026-06-01)
+- 535+ tests passing, ruff clean, `make check-ci` mirrors GitHub Actions
+- Safeguards migration complete; `unplug.scanners.*` shims until major version
+- Model catalog + download-once cache + `unplug-models` CLI + `unplug-audit` ML checks
 - SDK refactor complete: Pydantic config, fail-closed, logging, TOML config
-- Base classes added: JudgeProvider (BYOLLM), ContentProvider, LimitConfig
-- Evaluation framework ready in benchmarks/
-- Baseline eval on built-in samples: 92.3% F1, 0% FPR
+- Agent hardening: boundaries, trajectory, intent gate, degradation, Hermes patterns
 
 ## Research Context (read before making design decisions)
 All verified research lives in `.context/research/`:
@@ -116,9 +121,9 @@ All verified research lives in `.context/research/`:
 Also read: `.context/design-next-phase.md` (synthesized design doc with all decisions)
 
 ## What's Next
-1. Merge v2-enforcement-layer to main
-2. Download real datasets (neuralchemy 22K, microsoft 208K) and run evaluation
-3. Wire LimitConfig + JudgeProvider into Guard (base classes exist, need integration)
-4. Expand regex patterns based on evaluation gaps
-5. Server hardening (unplug-server repo): middleware, auth, Docker
-6. MCP server implementation
+1. Golden eval green → publish HF checkpoint + update catalog revision pin
+2. Wire ABSTAIN band from training into SDK `Action` + `injection_ml` policy
+3. Real dataset eval (neuralchemy, microsoft) and pattern expansion
+4. Server hardening (unplug-server repo): middleware, auth, Docker
+5. MCP server implementation
+6. Remove `unplug.scanners.*` shims at major version bump

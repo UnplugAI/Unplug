@@ -1,0 +1,48 @@
+# Bundled model catalog — tiers, Hugging Face repos, and default inference settings.
+# Override paths with UNPLUG_MODEL_PATH or unplug.toml [models.<tier>].path
+
+[catalog]
+default_tier = "tiny"
+# Set UNPLUG_MODEL_CACHE to override ~/.cache/unplug/models
+
+[catalog.tiers.tiny]
+name = "unplug-tiny"
+repo_id = "UnplugAI/unplug-v1"
+revision = "main"
+backend = "transformers_span"
+description = "Default dual-head span injection model (DeBERTa-v3-xsmall)"
+
+[catalog.tiers.tiny.config]
+inj_threshold = 0.45
+doc_threshold = 0.9
+max_length = 512
+stride = 64
+device = "auto"
+
+[catalog.tiers.medium]
+name = "unplug-medium"
+repo_id = "UnplugAI/unplug-medium"
+revision = "main"
+backend = "transformers_span"
+description = "Higher-capacity injection model (future release)"
+
+[catalog.tiers.medium.config]
+inj_threshold = 0.45
+doc_threshold = 0.9
+max_length = 512
+stride = 64
+device = "auto"
+
+[catalog.tiers.large]
+name = "unplug-large"
+repo_id = "UnplugAI/unplug-large"
+revision = "main"
+backend = "transformers_span"
+description = "Largest injection model tier (future release)"
+
+[catalog.tiers.large.config]
+inj_threshold = 0.45
+doc_threshold = 0.9
+max_length = 512
+stride = 64
+device = "auto"

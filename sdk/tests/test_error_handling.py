@@ -10,7 +10,7 @@ from unplug.core.context import ExecutionContext
 from unplug.core.stats import MetricsCollector
 from unplug.core.taint import TaintedText, TrustLevel
 from unplug.models import Action, Finding
-from unplug.scanners.base import RegexScanner
+from unplug.safeguards.base import RegexScanner
 
 
 def _taint(text: str) -> TaintedText:

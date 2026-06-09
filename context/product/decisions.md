@@ -61,9 +61,18 @@
 - **Session policy:** existing CaMeL-lite taint + tool profiles unchanged; now complemented by trajectory + intent gates
 - **Crescendo:** `TrajectoryConfig` — escalating `risk_trajectory` slope → REVIEW/BLOCK findings on all pipelines
 - **Intent:** `IntentConfig` — informational user intent + side-effect tool → REVIEW
-- **Hermes/persona:** named persona + red-team regex patterns in injection scanner
-- **Out of SDK scope:** container sandbox, channel pairing, filesystem/network egress (host responsibility)
-- **Detail:** `.context/research/openclaw-agent-security.md`
+- **Hermes Agent (NousResearch):** `scan_context_file()`, Hermes-aligned injection patterns, assembled-prompt scan guidance
+- **Hermes jailbreak persona:** `named_persona_hermes` + red-team regex (attack pattern, not the agent product)
+- **Out of SDK scope:** container sandbox, channel pairing, skills hub trust tiers, cron scheduler (host responsibility)
+- **Detail:** `jakarta/sdk/docs/HERMES_AGENT_SECURITY.md`, `docs/AGENT_FLOW_SECURITY.md`
+
+## 2026-06-01: SDK cleanup — safeguards, audit, CI parity
+- **Safeguards migration:** canonical scanners in `unplug.safeguards.*`; `unplug.scanners.*` are deprecation shims until major version
+- **Audit ML checks:** `unplug-audit` splits checkpoint found vs configured vs active (`ml_checkpoint`, `ml_configured`, `ml_active`); `--require-ml` gates all three
+- **Path auto-wire:** `UNPLUG_MODEL_PATH` alone sets `active_model=tiny` in config loader
+- **CI / local gates:** `make check` (lint + full pytest), `make check-ci` (CI parity incl. exfil demo + security subset with `test_agent_hardening`)
+- **Lint:** Ruff with extended rules; `make fix` for auto-format
+- **Detail:** `jakarta/sdk/docs/SDK_HARDENING_PLAN.md`, `CONTRIBUTING.md`
 
 - **Question:** Use Microsoft Presidio to filter agent-exposed PII?
 - **Answer:** Useful as optional server-side benchmark / interim `PrivacyFilterService` backend only — not a replacement for Unplug or the planned unplug-safeguard PF head.

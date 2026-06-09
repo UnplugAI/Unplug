@@ -2,10 +2,17 @@
 
 [guard]
 scanners = ["injection", "destructive", "leakage", "harmful"]
+# mode: "local" (default) | "server" (hosted API)
 mode = "local"
 fail_closed = true
 judge_enabled = false
-# active_model = "small"  # optional — key under [models.*] for local ML
+# server_url = "https://api.unplug.example"
+# server_api_key = "up_live_xxxxxxxx"
+
+# Local ML (optional — requires pip install unplug-ai[ml])
+# active_model = "tiny"
+# require_ml = false
+# auto_download_model = false
 
 [limits]
 max_input_chars = 50000
@@ -17,6 +24,16 @@ enabled = true
 session_taint_enabled = true
 tainted_side_effect_review_score = 0.75
 # profile = "readonly"   # readonly | messaging | full
+
+[toolchain]
+enabled = true
+history_size = 20
+
+[collusion]
+enabled = true
+window_seconds = 60.0
+pair_message_threshold = 10
+cross_agent_window_seconds = 120.0
 
 [boundaries]
 auto_wrap_untrusted = true
@@ -51,17 +68,26 @@ normalize = true
 [scanners.destructive]
 base_score = 0.90
 
-# Optional local span models (requires pip install unplug-ai[ml])
-# Server mode: set UNPLUG_SLM_MODEL_PATH to checkpoint dir instead.
-[models.small]
-name = "unplug-small"
-backend = "transformers_span"
-path = "/path/to/checkpoint-24615"
+# --- Hosted mode (server) ---
+# Set mode = "server" and credentials (or env UNPLUG_SERVER_URL + UNPLUG_API_KEY).
+# Text scan/output run on the server; check_tool_call() always runs locally.
 
-[models.small.config]
-max_length = 256
+# --- Local ML mode ---
+# pip install "unplug-ai[ml]"
+# unplug-models download tiny
+# Or: export UNPLUG_MODEL_PATH=/path/to/checkpoint-66630
+# Dual-head checkpoint: config.json must include "dual_head": true
+
+[models.tiny]
+name = "unplug-tiny"
+backend = "transformers_span"
+path = "/path/to/checkpoint-66630"
+
+[models.tiny.config]
+max_length = 512
 stride = 64
-inj_threshold = 0.5
+inj_threshold = 0.45
+doc_threshold = 0.9
 device = "auto"
 
 [models.medium]

@@ -2,7 +2,7 @@
 
 from unplug.core.context import ExecutionContext
 from unplug.core.taint import TaintedText, TrustLevel
-from unplug.scanners.financial import FinancialScanner
+from unplug.safeguards.financial import FinancialScanner
 
 
 def _make_text(text: str, trust: TrustLevel = TrustLevel.USER) -> TaintedText:

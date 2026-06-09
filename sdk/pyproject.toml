@@ -23,17 +23,24 @@ dependencies = [
 
 [project.optional-dependencies]
 ml = [
+    "huggingface_hub>=0.23",
     "onnxruntime>=1.17",
     "transformers>=4.44,<4.45",
     "sentencepiece>=0.2",
     "numpy>=1.26",
     "torch>=2.0",
 ]
+litellm = [
+    "litellm>=1.40",
+]
+yara = [
+    "yara-python>=4.5",
+]
 scrape = [
     "firecrawl-py>=1.0",
     "python-dotenv>=1.2.2",
 ]
-all = ["unplug-ai[ml,scrape]"]
+all = ["unplug-ai[ml,scrape,litellm,yara]"]
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
@@ -52,24 +59,73 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/unplug"]
-include = ["src/unplug/audit/data/*.json"]
+include = [
+    "src/unplug/audit/data/*.json",
+    "src/unplug/models/catalog.toml",
+    "src/unplug/safeguards/yara_rules/*.yara",
+]
 
 [tool.ruff]
 target-version = "py311"
 line-length = 100
+exclude = [".venv", "build", "dist"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "N", "W", "UP"]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "W",   # pycodestyle warnings
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "SIM", # flake8-simplify
+    "RUF", # ruff-specific
+]
+ignore = [
+    "SIM108",  # ternary — often less readable in security code
+    "RUF001",  # ambiguous unicode — required in homoglyph maps and attack fixtures
+    "RUF003",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["N802", "N803", "RUF001", "RUF003", "RUF012", "B011"]
+"src/unplug/core/normalize.py" = ["RUF001", "RUF003", "SIM102"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["unplug", "benchmarks"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+addopts = ["-m", "not requires_docker"]
+markers = [
+    "requires_ml_weights: tests needing checkpoint weight files on disk",
+    "requires_docker: tests needing docker daemon (sidecar E2E)",
+]
+filterwarnings = [
+    "ignore:clean_up_tokenization_spaces:FutureWarning:transformers.tokenization_utils_base",
+    "ignore::DeprecationWarning:torch.jit._script",
+    "ignore:builtin type swigvarlink:DeprecationWarning",
+    "ignore:builtin type SwigPyPacked:DeprecationWarning",
+    "ignore:builtin type SwigPyObject:DeprecationWarning",
+    "ignore:unplug.scanners:DeprecationWarning",
+]
 
 [project.scripts]
 unplug-audit = "unplug.cli.audit:main"
+unplug-models = "unplug.cli.models:main"
+unplug-sidecar = "unplug.cli.sidecar:main"
 
 [dependency-groups]
 dev = [
     "datasets>=4.8.5",
     "pyarrow>=24.0.0",
+    "pyyaml>=6.0.3",
 ]

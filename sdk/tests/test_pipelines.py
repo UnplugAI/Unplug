@@ -7,11 +7,11 @@ from unplug.models import Action, Source
 from unplug.pipelines.input import InputPipeline
 from unplug.pipelines.output import OutputPipeline
 from unplug.pipelines.toolcall import ToolCallPipeline
-from unplug.scanners.destructive import DestructiveScanner
-from unplug.scanners.financial import FinancialScanner
-from unplug.scanners.injection import InjectionScanner
-from unplug.scanners.leakage import LeakageScanner
-from unplug.scanners.secrets import SecretsScanner
+from unplug.safeguards.destructive import DestructiveScanner
+from unplug.safeguards.financial import FinancialScanner
+from unplug.safeguards.injection import InjectionScanner
+from unplug.safeguards.leakage import LeakageScanner
+from unplug.safeguards.secrets import SecretsScanner
 
 
 class TestInputPipeline:

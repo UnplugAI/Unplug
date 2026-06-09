@@ -12,12 +12,12 @@ _FACTORIES: dict[str, Callable[..., BaseScanner]] = {}
 
 
 def _register_builtins() -> None:
+    from unplug.safeguards.destructive import DestructiveScanner
+    from unplug.safeguards.financial import FinancialScanner
+    from unplug.safeguards.harmful import HarmfulScanner
     from unplug.safeguards.injection import InjectionScanner
-    from unplug.scanners.destructive import DestructiveScanner
-    from unplug.scanners.financial import FinancialScanner
-    from unplug.scanners.harmful import HarmfulScanner
-    from unplug.scanners.leakage import LeakageScanner
-    from unplug.scanners.secrets import SecretsScanner
+    from unplug.safeguards.leakage import LeakageScanner
+    from unplug.safeguards.secrets import SecretsScanner
 
     _FACTORIES.update(
         {
@@ -30,8 +30,10 @@ def _register_builtins() -> None:
         }
     )
     from unplug.safeguards.injection_ml import InjectionSpanScanner
+    from unplug.safeguards.yara_scanner import YaraCodeScanner
 
     _FACTORIES["injection_ml"] = InjectionSpanScanner
+    _FACTORIES["yara"] = YaraCodeScanner
 
 
 class SafeguardRegistry:

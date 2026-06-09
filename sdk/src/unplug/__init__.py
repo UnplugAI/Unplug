@@ -37,7 +37,6 @@ __all__ = [
     "GuardConfig",
     "LimitConfig",
     "MessageConfig",
-    "SafeguardRegistry",
     "MetricsCollector",
     "ModelProvider",
     "ModelRegistry",
@@ -45,6 +44,8 @@ __all__ = [
     "ModelSpec",
     "PipelineConfig",
     "RegexScanner",
+    "SafeContent",
+    "SafeguardRegistry",
     "ScanResult",
     "ScannerConfig",
     "ScannerRegistry",
@@ -54,11 +55,17 @@ __all__ = [
     "TaintedText",
     "ThresholdConfig",
     "ToolCall",
-    "UnplugClient",
     "TrustLevel",
+    "UnplugClient",
     "correlation_scope",
     "get_correlation_id",
     "load_config",
-    "SafeContent",
 ]
-__version__ = "0.3.0"
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _pkg_version
+
+try:
+    # Single source of truth is pyproject.toml; avoids version drift.
+    __version__ = _pkg_version("unplug-ai")
+except PackageNotFoundError:  # not installed (e.g. running from a source checkout)
+    __version__ = "0.1.0"

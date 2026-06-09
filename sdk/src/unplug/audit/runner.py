@@ -18,6 +18,7 @@ from unplug.audit.probes import (
 from unplug.config.guard import GuardConfig
 from unplug.config.loader import load
 from unplug.config.tools import ToolPolicyConfig
+from unplug.ml.validation import resolve_validation_checkpoint, workspace_root
 
 
 def _check(name: str, passed: bool, detail: str, **extra: Any) -> dict[str, Any]:
@@ -30,23 +31,27 @@ def _resolve_workspace_root(explicit: Path | None) -> Path:
     env = os.environ.get("UNPLUG_WORKSPACE_ROOT")
     if env:
         return Path(env)
-    # .../jakarta/sdk/src/unplug/audit/runner.py -> unplug-v1
-    return Path(__file__).resolve().parents[5]
+    return workspace_root()
 
 
 def _resolve_checkpoint(workspace: Path) -> Path | None:
-    env = os.environ.get("UNPLUG_MODEL_PATH")
-    if env:
-        path = Path(env)
-        if path.is_dir() and (path / "config.json").is_file():
-            return path
-    default = (
-        workspace / "repos/unplug_exp/dist/vm-v10-750k-diagnostic-bundle/"
-        "experiments/unplug-tiny-v10-350k/checkpoint-24615"
-    )
-    if default.is_dir() and (default / "config.json").is_file():
-        return default
-    return None
+    del workspace
+    return resolve_validation_checkpoint(require_weights=False)
+
+
+def _ensure_ml_loaded(guard: Guard) -> bool:
+    ml_present = "injection_ml" in guard.scanners_loaded
+    if not ml_present:
+        return False
+    if guard.ml_model_loaded:
+        return True
+    provider = getattr(guard, "_ml_provider", None)
+    if provider is not None:
+        try:
+            provider.load()
+        except Exception:
+            return False
+    return guard.ml_model_loaded
 
 
 def run_audit(
@@ -61,18 +66,21 @@ def run_audit(
     ckpt = _resolve_checkpoint(workspace)
     if ckpt is not None and (ckpt / "config.json").is_file():
         if require_ml:
-            os.environ["UNPLUG_ACTIVE_MODEL"] = "small"
+            os.environ["UNPLUG_ACTIVE_MODEL"] = "tiny"
             os.environ["UNPLUG_MODEL_PATH"] = str(ckpt)
     elif require_ml:
         checks.append(_check("ml_checkpoint", False, "checkpoint missing or invalid"))
+        checks.append(_check("ml_configured", False, "cannot verify — checkpoint missing"))
+        checks.append(_check("ml_active", False, "cannot verify — checkpoint missing"))
         return {
             "workspace_root": str(workspace),
             "checks_passed": 0,
-            "checks_total": 1,
+            "checks_total": len(checks),
             "wiring_pass": False,
             "all_passed": False,
             "checks": checks,
             "probes": {},
+            "ml_inactive_hint": False,
         }
 
     try:
@@ -83,9 +91,21 @@ def run_audit(
         cfg = None
 
     if ckpt is not None:
-        checks.append(_check("ml_checkpoint", True, str(ckpt)))
+        checks.append(_check("ml_checkpoint", True, f"path={ckpt}"))
     else:
-        checks.append(_check("ml_checkpoint", True, "optional — not configured"))
+        checks.append(_check("ml_checkpoint", True, "none (optional)"))
+
+    active_model = cfg.active_model if cfg else None
+    if active_model:
+        checks.append(_check("ml_configured", True, f"active_model={active_model}"))
+    else:
+        checks.append(
+            _check(
+                "ml_configured",
+                False,
+                "not set — set active_model or UNPLUG_ACTIVE_MODEL",
+            )
+        )
 
     guard = Guard(config=cfg) if cfg else Guard()
     checks.append(
@@ -97,23 +117,17 @@ def run_audit(
     )
 
     ml_present = "injection_ml" in guard.scanners_loaded
-    ml_ok = True
-    if require_ml:
-        if ml_present and not guard.ml_model_loaded:
-            provider = getattr(guard, "_ml_provider", None)
-            if provider is not None:
-                try:
-                    provider.load()
-                except Exception:
-                    ml_ok = False
-        ml_ok = guard.ml_model_loaded if ml_present else False
+    ml_active = _ensure_ml_loaded(guard)
     checks.append(
         _check(
-            "ml_wired",
-            ml_ok,
-            f"ml_loaded={guard.ml_model_loaded} injection_ml={ml_present}",
+            "ml_active",
+            ml_active,
+            f"injection_ml={ml_present} ml_loaded={guard.ml_model_loaded}",
         )
     )
+
+    checkpoint_found = ckpt is not None
+    ml_inactive_hint = checkpoint_found and not ml_active and not require_ml
 
     tools = cfg.tools if cfg else ToolPolicyConfig()
     checks.append(
@@ -161,13 +175,8 @@ def run_audit(
     probe_guard: Guard | None = None
     if require_ml:
         probe_guard = Guard(config=cfg) if cfg else Guard()
-        if probe_guard.ml_model_loaded is False:
-            provider = getattr(probe_guard, "_ml_provider", None)
-            if provider is not None:
-                try:
-                    provider.load()
-                except Exception:
-                    probe_guard = None
+        if not _ensure_ml_loaded(probe_guard):
+            probe_guard = None
 
     if include_probes:
         if fp_path.is_file():
@@ -212,10 +221,9 @@ def run_audit(
         "fp_probes_file",
         "encoding_probes_file",
         "boundary_probes_file",
-        "ml_checkpoint",
     }
     if require_ml:
-        wiring_names.add("ml_wired")
+        wiring_names.update({"ml_checkpoint", "ml_configured", "ml_active"})
     wiring_pass = all(c["passed"] for c in checks if c["name"] in wiring_names)
     all_pass = all(c["passed"] for c in checks)
 
@@ -227,4 +235,5 @@ def run_audit(
         "all_passed": all_pass,
         "checks": checks,
         "probes": probe_summary,
+        "ml_inactive_hint": ml_inactive_hint,
     }

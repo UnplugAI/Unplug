@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from unplug.config.agent_policy import BoundaryConfig, TrajectoryConfig
+from unplug.config.agent_policy import BoundaryConfig, DegradationConfig, TrajectoryConfig
 from unplug.config.policy import ScanPolicy
 from unplug.core.boundaries import strip_boundary_markers
 from unplug.core.config import PipelineConfig
@@ -29,8 +29,14 @@ class OutputPipeline(BasePipeline):
         metrics: MetricsCollector | None = None,
         trajectory_config: TrajectoryConfig | None = None,
         boundary_config: BoundaryConfig | None = None,
+        degradation_config: DegradationConfig | None = None,
     ) -> None:
-        super().__init__(config=config, metrics=metrics, trajectory_config=trajectory_config)
+        super().__init__(
+            config=config,
+            metrics=metrics,
+            trajectory_config=trajectory_config,
+            degradation_config=degradation_config,
+        )
         self._sanitizer = secrets_sanitizer
         self._leakage = leakage_scanner
         self._secrets = secrets_scanner

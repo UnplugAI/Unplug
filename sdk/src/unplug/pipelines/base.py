@@ -6,10 +6,11 @@ import time
 from abc import ABC, abstractmethod
 from typing import Any
 
-from unplug.config.agent_policy import TrajectoryConfig
+from unplug.config.agent_policy import DegradationConfig, TrajectoryConfig
 from unplug.config.policy import RedactionMode, ScanPolicy
 from unplug.core.config import PipelineConfig
 from unplug.core.context import ExecutionContext
+from unplug.core.degradation import sync_degradation_from_trajectory
 from unplug.core.logging import get_logger
 from unplug.core.policy import decide_action
 from unplug.core.redaction import apply_span_redactions
@@ -31,11 +32,13 @@ class BasePipeline(ABC):
         config: PipelineConfig | None = None,
         metrics: MetricsCollector | None = None,
         trajectory_config: TrajectoryConfig | None = None,
+        degradation_config: DegradationConfig | None = None,
     ) -> None:
         self._config = config or PipelineConfig()
         self._metrics = metrics
         self._tagger = Tagger()
         self._trajectory_config = trajectory_config or TrajectoryConfig()
+        self._degradation_config = degradation_config or DegradationConfig()
 
     @property
     def config(self) -> PipelineConfig:
@@ -47,7 +50,9 @@ class BasePipeline(ABC):
 
         try:
             findings = list(self._execute(input_data, ctx))
-            findings.extend(trajectory_findings(ctx, self._trajectory_config))
+            traj = trajectory_findings(ctx, self._trajectory_config)
+            findings.extend(traj)
+            sync_degradation_from_trajectory(ctx, traj, self._degradation_config)
         except Exception as exc:
             _log.error("pipeline %s failed: %s", self.name, exc)
             latency_ms = (time.perf_counter() - start) * 1000
