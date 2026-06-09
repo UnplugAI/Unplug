@@ -7,7 +7,7 @@ default_tier = "tiny"
 
 [catalog.tiers.tiny]
 name = "unplug-tiny"
-repo_id = "UnplugAI/unplug-v1"
+repo_id = "UnplugAI/unplug-tiny-v1"
 revision = "main"
 backend = "transformers_span"
 description = "Default dual-head span injection model (DeBERTa-v3-xsmall)"
