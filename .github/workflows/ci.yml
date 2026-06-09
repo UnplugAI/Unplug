@@ -34,6 +34,9 @@ jobs:
         run: uv run ruff check . && uv run ruff format --check .
 
       - name: Tests
+        env:
+          # Docker sidecar E2E is local-only (make docker-e2e); never run in CI.
+          RUN_DOCKER_E2E: ""
         run: uv run pytest -q
 
       - name: Exfil demo gate (killer scenario must block)
