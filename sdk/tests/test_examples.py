@@ -45,9 +45,7 @@ def _mock_health_client() -> MagicMock:
 
 def _mock_unplug_client() -> MagicMock:
     benign = ScanResult(safe=True, action=Action.ALLOW, risk_score=0.0, findings=[], latency_ms=1)
-    attack = ScanResult(
-        safe=False, action=Action.BLOCK, risk_score=0.95, findings=[], latency_ms=1
-    )
+    attack = ScanResult(safe=False, action=Action.BLOCK, risk_score=0.95, findings=[], latency_ms=1)
     leak = ScanResult(
         safe=False,
         action=Action.BLOCK,

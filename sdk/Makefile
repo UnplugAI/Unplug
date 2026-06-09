@@ -55,7 +55,8 @@ examples:
 	uv run pytest tests/test_examples.py -q -k "not docker_e2e"
 
 docker-e2e:
-	bash scripts/docker_e2e.sh
+	RUN_DOCKER_E2E=1 bash scripts/docker_e2e.sh
+	RUN_DOCKER_E2E=1 uv run pytest tests/test_examples.py::test_docker_e2e_script -v
 
 test:
 	uv run pytest -v

@@ -34,29 +34,17 @@ def pytest_collection_modifyitems(config: object, items: list[pytest.Item]) -> N
             if "requires_ml_weights" in item.keywords:
                 item.add_marker(skip_ml)
 
-    if not _docker_available():
-        skip_docker = pytest.mark.skip(reason="docker not available")
+    if not _docker_e2e_enabled():
+        skip_docker = pytest.mark.skip(reason="set RUN_DOCKER_E2E=1 to run sidecar docker E2E")
         for item in items:
             if "requires_docker" in item.keywords:
                 item.add_marker(skip_docker)
 
 
-def _docker_available() -> bool:
-    import shutil
-    import subprocess
+def _docker_e2e_enabled() -> bool:
+    import os
 
-    if shutil.which("docker") is None:
-        return False
-    try:
-        proc = subprocess.run(
-            ["docker", "info"],
-            capture_output=True,
-            timeout=10,
-            check=False,
-        )
-        return proc.returncode == 0
-    except (OSError, subprocess.TimeoutExpired):
-        return False
+    return os.environ.get("RUN_DOCKER_E2E", "").strip() in {"1", "true", "yes"}
 
 
 @pytest.fixture(scope="session")
