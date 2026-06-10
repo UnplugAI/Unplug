@@ -37,6 +37,7 @@ from unplug.pipelines.output import OutputPipeline
 from unplug.pipelines.toolcall import ToolCallPipeline
 from unplug.safeguards import ScannerRegistry
 from unplug.safeguards.injection_ml import InjectionSpanScanner
+from unplug.streaming import StreamScanner, scan_stream
 
 _log = get_logger("guard")
 
@@ -323,11 +324,61 @@ class Guard:
     def config(self) -> GuardConfig:
         return self._config
 
+    @classmethod
+    def with_tiny(
+        cls,
+        *,
+        auto_download: bool = True,
+        require_ml: bool = False,
+        **kwargs: Any,
+    ) -> Guard:
+        """Local guard with unplug-tiny from Hugging Face (Unplug-AI/unplug-tiny-v1)."""
+        cfg = kwargs.pop("config", None) or GuardConfig()
+        cfg = cfg.model_copy(
+            update={
+                "active_model": "tiny",
+                "auto_download_model": auto_download,
+                "require_ml": require_ml,
+                "mode": "local",
+            }
+        )
+        return cls(config=cfg, **kwargs)
+
     def scan(self, text: str, source: Source | str = Source.USER) -> ScanResult:
         """Scan text and return findings with optional redaction."""
         if isinstance(source, str):
             source = Source(source)
         return self.scan_request(self._build_scan_request(text, source))
+
+    def scan_stream(
+        self,
+        chunks: list[str] | tuple[str, ...],
+        *,
+        source: Source | str = Source.USER,
+        document_id: str | None = None,
+    ) -> ScanResult:
+        """Scan streamed chunks as one document (sliding-window ML covers all text)."""
+        return scan_stream(
+            self,
+            chunks,
+            source=source,
+            document_id=document_id,
+        )
+
+    def stream_scanner(
+        self,
+        *,
+        source: Source | str = Source.TOOL_OUTPUT,
+        scan_every_chars: int = 1024,
+        document_id: str | None = None,
+    ) -> StreamScanner:
+        """Incremental scanner for token/chunk streams (e.g. LLM output)."""
+        return StreamScanner(
+            self,
+            source=source,
+            scan_every_chars=scan_every_chars,
+            document_id=document_id,
+        )
 
     def _build_scan_request(
         self,

@@ -7,7 +7,7 @@ default_tier = "tiny"
 
 [catalog.tiers.tiny]
 name = "unplug-tiny"
-repo_id = "UnplugAI/unplug-tiny-v1"
+repo_id = "Unplug-AI/unplug-tiny-v1"
 revision = "main"
 backend = "transformers_span"
 description = "Default dual-head span injection model (DeBERTa-v3-xsmall)"
@@ -18,6 +18,12 @@ doc_threshold = 0.9
 max_length = 512
 stride = 64
 device = "auto"
+batch_size = 4
+# Long documents: sliding windows cover the full text (not head/tail only).
+long_text_mode = "sliding"
+long_text_threshold_chars = 8192
+long_text_chunk_chars = 2048
+long_text_overlap_chars = 256
 
 [catalog.tiers.medium]
 name = "unplug-medium"

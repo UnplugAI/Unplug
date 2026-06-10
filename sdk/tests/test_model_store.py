@@ -17,7 +17,7 @@ def test_catalog_loads_tiny_tier() -> None:
     cat = load_catalog()
     assert cat.default_tier == "tiny"
     assert "tiny" in cat.tiers
-    assert cat.tiers["tiny"].repo_id.startswith("UnplugAI/")
+    assert cat.tiers["tiny"].repo_id == "Unplug-AI/unplug-tiny-v1"
 
 
 def test_merge_catalog_injects_tiers() -> None:
@@ -36,7 +36,7 @@ def test_store_manifest_roundtrip(tmp_path: Path) -> None:
     from unplug.ml.store import ModelManifest
 
     store.write_manifest(
-        ModelManifest(tier="tiny", repo_id="UnplugAI/test", revision="main", path=str(ckpt))
+        ModelManifest(tier="tiny", repo_id="Unplug-AI/test", revision="main", path=str(ckpt))
     )
     resolved = store.resolve_local_path("tiny")
     assert resolved == ckpt

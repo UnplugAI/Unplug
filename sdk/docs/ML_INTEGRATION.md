@@ -14,28 +14,79 @@ checkpoint-slim/
   thresholds.json      # optional sidecar from calibration
 ```
 
-## SDK wiring
+## Hugging Face model (recommended)
 
-1. Install ML extras: `pip install "unplug-ai[ml]"`
-2. Copy slim checkpoint locally or set `UNPLUG_MODEL_PATH`
-3. Enable in `unplug.toml`:
+Public preview weights: **`Unplug-AI/unplug-tiny-v1`** (DeBERTa-v3-xsmall dual-head, checkpoint-66630).
+
+The bundled catalog in `src/unplug/models/catalog.toml` pins this repo. Enable auto-download:
 
 ```toml
-active_model = "small"
+# unplug.toml
+active_model = "tiny"
+auto_download_model = true
+require_ml = false   # set true to fail-fast if weights missing
+```
 
-[models.small]
-name = "unplug-small"
+Or in Python:
+
+```python
+from unplug import Guard
+
+guard = Guard.with_tiny(auto_download=True, require_ml=False)
+result = guard.scan(user_text)
+```
+
+Manual download (optional):
+
+```bash
+pip install "unplug-ai[ml]"
+unplug-models download tiny
+```
+
+## Local checkpoint override
+
+1. Install ML extras: `pip install "unplug-ai[ml]"`
+2. Set `UNPLUG_MODEL_PATH=/path/to/checkpoint-slim` or configure in `unplug.toml`:
+
+```toml
+active_model = "tiny"
+
+[models.tiny]
+name = "unplug-tiny"
 backend = "transformers_span"
 path = "/path/to/checkpoint-slim"
 
-[models.small.config]
+[models.tiny.config]
 max_length = 512
-inj_threshold = 0.5
-doc_threshold = 0.95   # from configs/thresholds.json after calibration
+stride = 64
+inj_threshold = 0.45
+doc_threshold = 0.9
 device = "auto"
+batch_size = 4
 ```
 
-4. Verify:
+## Long-text and streaming
+
+Defaults in `catalog.toml` for the `tiny` tier:
+
+| Key | Default | Meaning |
+| --- | --- | --- |
+| `long_text_mode` | `sliding` | Full-document coverage via overlapping windows (`head_tail` still available) |
+| `long_text_threshold_chars` | `8192` | Start chunking above this length |
+| `long_text_chunk_chars` | `2048` | Window size in characters |
+| `long_text_overlap_chars` | `256` | Overlap between windows |
+
+Within each window, token stride inference uses `max_length=512` and `stride=64`.
+
+Streaming helpers (`unplug.streaming`):
+
+```python
+scanner = guard.stream_scanner(scan_every_chars=1024)
+# push chunks as they arrive; flush() at end of stream
+guard.scan_stream(["chunk1", "chunk2"])
+```
+
+## Verify
 
 ```bash
 unplug-audit --require-ml
@@ -56,7 +107,7 @@ Encoding blobs (Base64) use the same thresholds via decode-then-classify.
 
 - `BENCHMARKS.md` — auto-generated from golden eval (no hand-typed numbers)
 - PyPI `unplug-ai` version bump after gate review
-- HuggingFace model repo (optional) pointing at slim checkpoint
+- HuggingFace model repo: `Unplug-AI/unplug-tiny-v1`
 
 ## v1.22 fallback
 

@@ -117,7 +117,31 @@ unplug-models download tiny   # or export UNPLUG_MODEL_PATH=.../checkpoint-66630
 ```toml
 # unplug.toml
 active_model = "tiny"
+auto_download_model = true
 require_ml = true   # optional fail-fast at init
+```
+
+**Quickest path** — downloads `Unplug-AI/unplug-tiny-v1` from Hugging Face on first scan:
+
+```python
+from unplug import Guard
+
+guard = Guard.with_tiny()  # active_model=tiny, auto_download_model=true
+result = guard.scan(user_text)
+```
+
+**Long documents** (8K+ chars): sliding windows (2048 chars, 256 overlap) cover the full text — not head/tail only. Configure via `[catalog.tiers.tiny.config]` in `catalog.toml` or `unplug.toml`.
+
+**Streaming LLM output:**
+
+```python
+scanner = guard.stream_scanner(scan_every_chars=1024)
+for chunk in token_stream:
+    if hit := scanner.push(chunk):
+        handle(hit)
+result = scanner.flush()
+# Or scan a finished chunk list:
+guard.scan_stream(["part1", "part2", "part3"])
 ```
 
 | Variable | Hosted | Local ML |
