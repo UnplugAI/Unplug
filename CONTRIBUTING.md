@@ -11,18 +11,18 @@
 
 GitHub Actions runs on every PR to `main` (`/.github/workflows/ci.yml`):
 
-1. **Ruff** — `ruff check .` + `ruff format --check .`
-2. **Tests** — full pytest suite (`pytest -q`)
-3. **Exfil demo gate** — `test_exfil_demo_integration.py` + `examples/agent_exfil_demo.py`
-4. **Security regression** — explicit subset:
-   - `test_adversarial.py`
-   - `test_false_positives.py`
-   - `test_encodings.py`
-   - `test_secrets.py`
-   - `test_scan_policy.py`
-   - `test_security_stress.py`
-   - `test_sdk_coverage.py`
-   - `test_agent_hardening.py`
+1. **Ruff** - `ruff check .` + `ruff format --check .`
+2. **Tests** - full pytest suite (`pytest -q`)
+3. **Exfil demo gate** - `test_exfil_demo_integration.py` + `examples/agent_exfil_demo.py`
+4. **Security regression** - explicit subset:
+  - `test_adversarial.py`
+  - `test_false_positives.py`
+  - `test_encodings.py`
+  - `test_secrets.py`
+  - `test_scan_policy.py`
+  - `test_security_stress.py`
+  - `test_sdk_coverage.py`
+  - `test_agent_hardening.py`
 
 ## Local checks (SDK)
 
@@ -52,8 +52,8 @@ From repo root (`jakarta/`): `make check`, `make check-ci`, `make fix`, `make te
 
 ## Code conventions
 
-- Import scanners from **`unplug.safeguards.*`** — not `unplug.scanners.*` (deprecated shims)
-- Fail closed: scanner/pipeline errors → block, never allow silently
+- Import scanners from **`unplug.safeguards.*`** - not `unplug.scanners.*` (deprecated shims)
+- Fail closed: scanner/pipeline errors -> block, never allow silently
 - All new modules: `from __future__ import annotations`, typed params/returns, Pydantic models
 
 ## Agent integration

@@ -1,14 +1,26 @@
 # Unplug
 
-**Agent runtime security for LLM applications.**
+**Find the attack. Cut the attack. Keep the rest.**
 
-Unplug tracks where text came from (user vs retrieved vs tool output), scans for prompt injection and destructive actions, and enforces tool-call policy — with span-level redaction instead of binary blocking.
+Unplug is agent runtime security for LLM applications. It tracks where text came from (user vs retrieved vs tool output), scans for prompt injection and destructive actions, and enforces tool-call policy, with span-level redaction instead of binary blocking.
 
-**PyPI, Docker, and public release ship after the unplug-tiny model passes validation.** Install from source until then:
+<p>
+  <a href="https://huggingface.co/spaces/Unplug-AI/unplug-tiny-demo"><img alt="Live demo" src="https://img.shields.io/badge/Live_demo-Hugging_Face_Space-22c55e"></a>
+  <a href="https://huggingface.co/Unplug-AI/unplug-tiny-v1"><img alt="Model" src="https://img.shields.io/badge/Model-unplug--tiny--v1-f59e0b"></a>
+  <a href="https://www.apache.org/licenses/LICENSE-2.0"><img alt="License" src="https://img.shields.io/badge/License-Apache_2.0-9ca3af"></a>
+</p>
+
+## Install
+
+PyPI release is queued behind final validation. Install from source today:
 
 ```bash
-git clone https://github.com/UnplugAI/Unplug.git && cd Unplug/sdk && uv sync && uv pip install -e .
+git clone https://github.com/UnplugAI/Unplug.git && cd Unplug/sdk
+uv sync && uv pip install -e .       # regex-only core
+uv pip install -e ".[ml]"            # add the ML span model
 ```
+
+## Quickstart
 
 ```python
 from unplug import Guard
@@ -31,7 +43,15 @@ print(result.action)   # review or block
 print(result.findings) # evidence with span offsets
 ```
 
-## What ships in 0.1.0
+One line upgrades detection to the ML span model (downloads [unplug-tiny-v1](https://huggingface.co/Unplug-AI/unplug-tiny-v1) once, cached):
+
+```python
+guard = Guard.with_tiny()
+```
+
+Try it without installing anything: [live demo](https://huggingface.co/spaces/Unplug-AI/unplug-tiny-demo).
+
+## What ships today
 
 | Capability | Status |
 |------------|--------|
@@ -39,18 +59,19 @@ print(result.findings) # evidence with span offsets
 | TaintedText provenance + session taint | **Included** |
 | Tool-call enforcement (destructive block, tainted review) | **Included** |
 | Span-level redaction | **Included** |
-| DeBERTa span classifier (`pip install unplug-ai[ml]`) | **Preview in 0.2.0** |
+| ML span model `Guard.with_tiny()` | **Preview** ([unplug-tiny-v1](https://huggingface.co/Unplug-AI/unplug-tiny-v1)) |
+| Sliding-window long documents + streaming scan | **Included** |
 
-Regex-only doc-level detection reaches roughly **F1 0.36 / recall 0.23** on held-out attacks — fine as a first line, not sufficient alone. The span ML model (0.2.0) targets **~0.88 span F1** on internal holdout.
+Regex-only doc-level detection reaches roughly **F1 0.36 / recall 0.23** on held-out attacks: fine as a first line, not sufficient alone. The ML span model's measured per-axis numbers (including failures) are on the [model card](https://huggingface.co/Unplug-AI/unplug-tiny-v1).
 
 ## Agent host checklist
 
-1. Scan user input — `guard.scan(text, source="user")`
-2. Wrap untrusted content — `guard.wrap_for_context(chunk, source="retrieved")`
-3. After fetch tools — `guard.notify_taint_source("web_fetch")`
-4. Before every tool call — `guard.check_tool_call(name, args)`
-5. Scan agent output — `guard.scan_output(text)`
-6. Fresh user turn — `guard.reset_session_taint()`
+1. Scan user input: `guard.scan(text, source="user")`
+2. Wrap untrusted content: `guard.wrap_for_context(chunk, source="retrieved")`
+3. After fetch tools: `guard.notify_taint_source("web_fetch")`
+4. Before every tool call: `guard.check_tool_call(name, args)`
+5. Scan agent output: `guard.scan_output(text)`
+6. Fresh user turn: `guard.reset_session_taint()`
 
 See [sdk/README.md](sdk/README.md) for config (`unplug.toml`), `unplug-audit`, and dev gates (`make check`, `make check-ci`).
 
@@ -63,8 +84,8 @@ make check-ci    # lint + tests + exfil demo + security regression
 
 ## Related repos
 
-- [unplug-mcp](https://github.com/UnplugAI/unplug-mcp) — MCP server for Claude Code / Cursor
-- [unplug-server](https://github.com/UnplugAI/unplug-server) — self-hosted API (premium tiers, later)
+- [unplug-mcp](https://github.com/UnplugAI/unplug-mcp): MCP server for Claude Code / Cursor
+- [unplug-server](https://github.com/UnplugAI/unplug-server): self-hosted API (premium tiers, later)
 
 ## License
 

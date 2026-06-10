@@ -1,4 +1,4 @@
-# Bundled model catalog — tiers, Hugging Face repos, and default inference settings.
+# Bundled model catalog - tiers, Hugging Face repos, and default inference settings.
 # Override paths with UNPLUG_MODEL_PATH or unplug.toml [models.<tier>].path
 
 [catalog]

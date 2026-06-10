@@ -22,12 +22,12 @@ GITHUB_URL = "https://github.com/UnplugAI/Unplug"
 EXFIL_URL = "https://github.com/UnplugAI/Unplug/blob/main/sdk/examples/agent_exfil_demo.py"
 
 DISCLAIMER = (
-    "Preview OSS detector — not a production WAF. Known gaps: subtle OOD direct "
+    "Preview OSS detector - not a production WAF. Known gaps: subtle OOD direct "
     "injections, harmful-but-not-injection over-fire, diverse benign chat FPR."
 )
 
 # Findings whose span covers nearly the whole input are document-level flags,
-# not localized spans — surfaced in the verdict banner instead of painting everything.
+# not localized spans - surfaced in the verdict banner instead of painting everything.
 _DOC_LEVEL_COVERAGE = 0.9
 _DOC_LEVEL_MIN_CHARS = 120
 
@@ -61,8 +61,8 @@ HERO = f"""
   <h1>Unplug <span style="opacity:.6">tiny</span></h1>
   <div class="tagline">Find the attack. Cut the attack. Keep the rest.</div>
   <div class="links">
-    <a href="{MODEL_URL}" target="_blank">Model card</a> &nbsp;·&nbsp;
-    <a href="{GITHUB_URL}" target="_blank">SDK on GitHub</a> &nbsp;·&nbsp;
+    <a href="{MODEL_URL}" target="_blank">Model card</a> &nbsp;|&nbsp;
+    <a href="{GITHUB_URL}" target="_blank">SDK on GitHub</a> &nbsp;|&nbsp;
     <code>pip install "unplug-ai[ml]"</code>
   </div>
   <div class="disclaimer">{DISCLAIMER}</div>
@@ -71,23 +71,23 @@ HERO = f"""
 
 ABOUT = f"""
 **unplug-tiny-v1** is a dual-head span detector: a document head decides *whether* text is
-hostile, a BIOES token head localizes *where* — so the pipeline redacts the malicious span
+hostile, a BIOES token head localizes *where* - so the pipeline redacts the malicious span
 instead of dropping the whole document.
 
-- **Policy:** `doc_or_span` — doc threshold 0.9, span threshold 0.45
+- **Policy:** `doc_or_span` - doc threshold 0.9, span threshold 0.45
 - **Long documents:** sliding windows (2048 chars, 256 overlap) cover the full text
 - **Encoded payloads:** Base64 blobs are decoded and classified
 - **Regex baseline:** uncheck the ML box to compare against pattern matching alone
 
-Honest, measured strengths and weaknesses — including failing axes — are on the
-[model card]({MODEL_URL}). For a full agent kill chain (hidden webpage injection →
-tainted session → blocked exfil tool call) see
+Honest, measured strengths and weaknesses - including failing axes - are on the
+[model card]({MODEL_URL}). For a full agent kill chain (hidden webpage injection ->
+tainted session -> blocked exfil tool call) see
 [`agent_exfil_demo.py`]({EXFIL_URL}).
 """
 
 FOOTER = f"""
 <div class="footer">
-  Built with the <a href="{GITHUB_URL}" target="_blank">Unplug SDK</a> · Apache-2.0 ·
+  Built with the <a href="{GITHUB_URL}" target="_blank">Unplug SDK</a> | Apache-2.0 |
   Model: <a href="{MODEL_URL}" target="_blank">Unplug-AI/unplug-tiny-v1</a>
 </div>
 """
@@ -180,27 +180,27 @@ def _verdict_html(
 ) -> str:
     mode = "ML (unplug-tiny)" if use_ml else "regex baseline"
     detail = (
-        f"<small>risk {result.risk_score:.2f} · {result.latency_ms:.0f} ms · "
-        f"{len(result.findings)} finding(s) · mode: {mode}</small>"
+        f"<small>risk {result.risk_score:.2f} | {result.latency_ms:.0f} ms | "
+        f"{len(result.findings)} finding(s) | mode: {mode}</small>"
     )
     if result.safe:
-        return f'<div class="verdict verdict-safe">SAFE — nothing flagged<br>{detail}</div>'
+        return f'<div class="verdict verdict-safe">SAFE - nothing flagged<br>{detail}</div>'
     doc_note = ""
     if doc_level:
         doc_note = (
             "<br><small>Document-level classifier fired (no single localized span "
-            "— the whole text reads as hostile).</small>"
+            " -  the whole text reads as hostile).</small>"
         )
     action = result.action.value.upper()
     cls = "verdict-review" if action == "REVIEW" else "verdict-block"
-    return f'<div class="verdict {cls}">{action} — threat detected<br>{detail}{doc_note}</div>'
+    return f'<div class="verdict {cls}">{action} - threat detected<br>{detail}{doc_note}</div>'
 
 
 def _expectation_note(text: str) -> str:
     for meta in load_examples().values():
         if meta["text"].strip() == text.strip():
             expected = meta["expected"]
-            return f"**{meta['label']}** — expected: `{expected}`. {meta['note']}"
+            return f"**{meta['label']}** - expected: `{expected}`. {meta['note']}"
     return ""
 
 
@@ -216,7 +216,7 @@ def analyze(
         result = guard.scan(text, source="user")
     except Exception as exc:  # surface failure in the UI, fail closed
         err = (
-            '<div class="verdict verdict-block">SCANNER ERROR — failing closed<br>'
+            '<div class="verdict verdict-block">SCANNER ERROR - failing closed<br>'
             f"<small>{type(exc).__name__}</small></div>"
         )
         return err, "", [(text, None)], "", []
@@ -238,7 +238,7 @@ def build_demo() -> gr.Blocks:
         neutral_hue=gr.themes.colors.slate,
     )
 
-    with gr.Blocks(theme=theme, css=CSS, title="Unplug Tiny — prompt injection scanner") as demo:
+    with gr.Blocks(theme=theme, css=CSS, title="Unplug Tiny - prompt injection scanner") as demo:
         gr.HTML(HERO)
 
         with gr.Row(equal_height=False):
@@ -246,11 +246,11 @@ def build_demo() -> gr.Blocks:
                 text_in = gr.Textbox(
                     label="Untrusted text",
                     lines=12,
-                    placeholder="Paste a user message, RAG chunk, tool output, or web page…",
+                    placeholder="Paste a user message, RAG chunk, tool output, or web page...",
                 )
                 use_ml = gr.Checkbox(
                     value=True,
-                    label="ML model (unplug-tiny) — uncheck for regex-only baseline",
+                    label="ML model (unplug-tiny) - uncheck for regex-only baseline",
                 )
                 with gr.Row():
                     gr.ClearButton([text_in], value="Clear")
@@ -283,7 +283,7 @@ def build_demo() -> gr.Blocks:
             fn=analyze,
             run_on_click=True,
             cache_examples=False,
-            label="Curated test cases — including ones this model gets wrong",
+            label="Curated test cases - including ones this model gets wrong",
             examples_per_page=7,
         )
 

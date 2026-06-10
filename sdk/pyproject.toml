@@ -83,8 +83,8 @@ select = [
     "RUF", # ruff-specific
 ]
 ignore = [
-    "SIM108",  # ternary — often less readable in security code
-    "RUF001",  # ambiguous unicode — required in homoglyph maps and attack fixtures
+    "SIM108",  # ternary - often less readable in security code
+    "RUF001",  # ambiguous unicode - required in homoglyph maps and attack fixtures
     "RUF003",
 ]
 

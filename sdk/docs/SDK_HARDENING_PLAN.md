@@ -1,17 +1,17 @@
-# SDK hardening plan — models, eval, and developer UX
+# SDK hardening plan - models, eval, and developer UX
 
 **Status:** Active (2026-06-01)  
 **Goal:** Devs install once, model downloads once, ML always wired when enabled, optional BYOLLM for smoke testing.
 
 ---
 
-## Phase 1 — Done
+## Phase 1 - Done
 
 | Item | Implementation |
 |------|----------------|
 | Fix pytest noise | `filterwarnings` in pyproject + `clean_up_tokenization_spaces=False` on tokenizer load |
-| Model catalog | `src/unplug/models/catalog.toml` — `tiny` / `medium` / `large` + HF `repo_id` |
-| Download once | `ModelStore` → `~/.cache/unplug/models/<tier>/` + `manifest.json` |
+| Model catalog | `src/unplug/models/catalog.toml` - `tiny` / `medium` / `large` + HF `repo_id` |
+| Download once | `ModelStore` -> `~/.cache/unplug/models/<tier>/` + `manifest.json` |
 | CLI | `unplug-models list \| download \| upgrade \| status` |
 | Guard wiring | `merge_catalog_models`, `auto_download_model`, `require_ml` |
 | Optional LiteLLM | `pip install 'unplug-ai[litellm]'` + `create_litellm_judge()` |
@@ -21,7 +21,7 @@
 
 ---
 
-## Phase 1.5 — SDK cleanup (2026-06-01, done)
+## Phase 1.5 - SDK cleanup (2026-06-01, done)
 
 | Item | Implementation |
 |------|----------------|
@@ -41,7 +41,7 @@ cd sdk && uv sync --all-extras --dev
 make fix          # ruff --fix + format
 make check        # lint + format --check + pytest -q
 make check-ci     # check + exfil demo + security regression subset
-make test-security  # adversarial, encodings, agent hardening, financial, …
+make test-security  # adversarial, encodings, agent hardening, financial, ...
 ```
 
 **`unplug-audit` ML checks:**
@@ -56,14 +56,14 @@ With `--require-ml`, all three must pass for `wiring_pass`. Without it, regex-on
 
 ---
 
-## Phase 2 — Before PyPI + v1.22 model ship
+## Phase 2 - Before PyPI + v1.22 model ship
 
 ### 2.1 Publish Hugging Face checkpoint
 
-1. Run `golden_eval.py` — all **required** gates green (`benchmark_holdout.json`).
-2. `export_slim_checkpoints.py` → upload to `UnplugAI/unplug-tiny-v122`.
+1. Run `golden_eval.py` - all **required** gates green (`benchmark_holdout.json`).
+2. `export_slim_checkpoints.py` -> upload to `UnplugAI/unplug-tiny-v122`.
 3. Update `catalog.toml` revision pin to release tag (not `main`).
-4. Smoke: `unplug-models download tiny` on clean machine → `unplug-audit --require-ml --probes`.
+4. Smoke: `unplug-models download tiny` on clean machine -> `unplug-audit --require-ml --probes`.
 
 ### 2.2 SDK test plan (pre-ship checklist)
 
@@ -79,12 +79,12 @@ uv run unplug-audit
 
 # 2. Local checkpoint (dev / CI with artifact)
 export UNPLUG_MODEL_PATH=/path/to/checkpoint-slim
-# UNPLUG_ACTIVE_MODEL=tiny optional — path alone auto-selects tiny
+# UNPLUG_ACTIVE_MODEL=tiny optional - path alone auto-selects tiny
 uv run unplug-audit --require-ml --probes
 python examples/agent_exfil_demo.py
 python scripts/smoke_local_ml.py
 
-# 3. Golden gates (training repo — ship authority)
+# 3. Golden gates (training repo - ship authority)
 cd repos/unplug_exp && python scripts/golden_eval.py
 
 # 4. Optional BYOLLM smoke (needs API key)
@@ -95,12 +95,12 @@ pip install 'unplug-ai[litellm]'
 ### 2.3 Wire ABSTAIN band (v1.22 training)
 
 - Training: `repos/unplug_exp/lib/decision.py` (`ALLOW | ABSTAIN | BLOCK`)
-- SDK follow-up: add `Action.ABSTAIN`, map abstain→redact_spans in `injection_ml` + policy
-- Optional: abstain → LiteLLM judge when `judge_enabled`
+- SDK follow-up: add `Action.ABSTAIN`, map abstain->redact_spans in `injection_ml` + policy
+- Optional: abstain -> LiteLLM judge when `judge_enabled`
 
 ---
 
-## Phase 3 — Developer defaults (recommended `unplug.toml`)
+## Phase 3 - Developer defaults (recommended `unplug.toml`)
 
 ```toml
 [guard]
@@ -127,7 +127,7 @@ unplug-models upgrade tiny  # re-downloads, updates manifest
 
 ---
 
-## Phase 4 — Optional BYOLLM (not production default)
+## Phase 4 - Optional BYOLLM (not production default)
 
 For teams that **skip** unplug-tiny and use their own LLM for borderline cases:
 
@@ -146,9 +146,9 @@ guard = Guard(
 )
 ```
 
-Judge runs only on **borderline** scores (between `judge_low` and `judge_high`). Use for SDK integration testing — **not** as a replacement for golden eval on unplug-tiny.
+Judge runs only on **borderline** scores (between `judge_low` and `judge_high`). Use for SDK integration testing - **not** as a replacement for golden eval on unplug-tiny.
 
-Missing extra → Agno-style error:
+Missing extra -> Agno-style error:
 
 ```
 LiteLLM judge requires optional dependency 'litellm'.
@@ -157,7 +157,7 @@ Install with: pip install 'unplug-ai[litellm]'
 
 ---
 
-## Phase 5 — CI / release blockers to clear
+## Phase 5 - CI / release blockers to clear
 
 | Blocker | Owner | Gate |
 |---------|-------|------|
@@ -194,7 +194,7 @@ flowchart TD
 | Path | Role |
 |------|------|
 | `src/unplug/safeguards/` | Canonical threat scanners + registry |
-| `src/unplug/scanners/` | Deprecation shims → `safeguards.*` |
+| `src/unplug/scanners/` | Deprecation shims -> `safeguards.*` |
 | `src/unplug/models/catalog.toml` | Tier definitions + HF repos |
 | `src/unplug/ml/store.py` | Cache + download |
 | `src/unplug/ml/catalog.py` | Load catalog |

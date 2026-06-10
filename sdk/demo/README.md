@@ -11,22 +11,22 @@ pinned: false
 license: apache-2.0
 short_description: Detect and redact prompt injection with span precision
 models:
-  - Unplug-AI/unplug-tiny-v1
+ - Unplug-AI/unplug-tiny-v1
 ---
 
-# Unplug Tiny — prompt injection span demo
+# Unplug Tiny - prompt injection span demo
 
-Interactive demo for **[Unplug-AI/unplug-tiny-v1](https://huggingface.co/Unplug-AI/unplug-tiny-v1)** — find the attack, cut the attack, keep the rest.
+Interactive demo for **[Unplug-AI/unplug-tiny-v1](https://huggingface.co/Unplug-AI/unplug-tiny-v1)** - find the attack, cut the attack, keep the rest.
 
 - Scan untrusted text with the dual-head span model (or a regex-only baseline)
 - Span highlights, redacted output, per-finding scores
-- Curated test cases — **including the ones this model gets wrong**
+- Curated test cases - **including the ones this model gets wrong**
 
-**Disclaimer:** Preview OSS detector — not a production WAF. Honest per-axis benchmarks (with failing gates) are on the [model card](https://huggingface.co/Unplug-AI/unplug-tiny-v1).
+**Disclaimer:** Preview OSS detector - not a production WAF. Honest per-axis benchmarks (with failing gates) are on the [model card](https://huggingface.co/Unplug-AI/unplug-tiny-v1).
 
 ## Agent integration
 
-Full kill chain (hidden webpage injection → tainted session → blocked exfil tool call): [agent_exfil_demo.py](https://github.com/UnplugAI/Unplug/blob/main/sdk/examples/agent_exfil_demo.py)
+Full kill chain (hidden webpage injection -> tainted session -> blocked exfil tool call): [agent_exfil_demo.py](https://github.com/UnplugAI/Unplug/blob/main/sdk/examples/agent_exfil_demo.py)
 
 ## Run locally
 

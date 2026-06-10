@@ -171,7 +171,8 @@ class Guard:
                         ) from exc
                     _log.warning(
                         "active_model=%s configured but injection_ml failed to load (%s). "
-                        "Run: unplug-models download %s  (or set UNPLUG_MODEL_PATH)",
+                        'Fix: pip install "unplug-ai[ml]", then unplug-models download %s '
+                        "(or set UNPLUG_MODEL_PATH). Continuing with regex scanners only.",
                         cfg.active_model,
                         type(exc).__name__,
                         cfg.active_model,
@@ -187,7 +188,8 @@ class Guard:
                 elif load_error is None:
                     _log.warning(
                         "active_model=%s configured but injection_ml is not loaded. "
-                        "Run: unplug-models download %s  (or set UNPLUG_MODEL_PATH)",
+                        "Run: unplug-models download %s (or set UNPLUG_MODEL_PATH). "
+                        "Continuing with regex scanners only.",
                         cfg.active_model,
                         cfg.active_model,
                     )
