@@ -1,28 +1,35 @@
-# unplug-tiny Gradio demo
+---
+title: Unplug Tiny Demo
+emoji: 🛡️
+colorFrom: blue
+colorTo: green
+sdk: gradio
+sdk_version: 5.9.1
+app_file: app.py
+pinned: false
+license: apache-2.0
+suggested_hardware: cpu-basic
+---
 
-Interactive span detection demo for **Unplug-AI/unplug-tiny-v1**.
+# unplug-tiny span injection demo
 
-## Run locally
+Interactive demo for **[Unplug-AI/unplug-tiny-v1](https://huggingface.co/Unplug-AI/unplug-tiny-v1)** — dual-head span detection with redaction.
 
-```bash
-cd sdk
-uv sync --extra ml
-uv pip install gradio
-uv run python demo/unplug_tiny_demo.py
-```
+**Disclaimer:** Preview OSS detector — not a production WAF. Known gaps: Deepset OOD recall, harmful-non-injection contrast FPR, WildGuard benign FPR.
 
-First scan downloads weights from Hugging Face (~90MB).
+## Features
 
-## Deploy to Hugging Face Spaces
-
-Target: **Unplug-AI/unplug-tiny-demo** (Gradio, `cpu-basic`).
-
-Copy `demo/app.py`, `demo/unplug_tiny_demo.py`, `demo/examples.json`, and `demo/requirements.txt` to the Space repo root, then push.
-
-## Disclaimer
-
-Preview OSS detector — not a production WAF. Known limitations are documented on the [model card](https://huggingface.co/Unplug-AI/unplug-tiny-v1).
+- Scan arbitrary text with the unplug-tiny ML model (or regex-only baseline)
+- Span highlights and redacted output
+- Six curated examples (BIPIA TP, notinject TN, XSTest homonym, Deepset FN risk, jailbreak TP, harmful contrast FP risk)
 
 ## Agent integration
 
-See [`examples/agent_exfil_demo.py`](../examples/agent_exfil_demo.py) for hidden injection → tainted session → blocked exfil.
+See [agent_exfil_demo.py](https://github.com/UnplugAI/Unplug/blob/main/sdk/examples/agent_exfil_demo.py) for hidden injection → tainted session → blocked exfil.
+
+## Local run
+
+```bash
+cd sdk && uv sync --extra ml && uv pip install gradio
+uv run python demo/unplug_tiny_demo.py
+```
