@@ -6,6 +6,7 @@ colorTo: green
 sdk: gradio
 sdk_version: 5.9.1
 app_file: app.py
+python_version: 3.11
 pinned: false
 license: apache-2.0
 suggested_hardware: cpu-basic
