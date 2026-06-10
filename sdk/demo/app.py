@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
-from unplug_tiny_demo import build_demo
+import threading
+
+from unplug_tiny_demo import build_demo, warm_start
+
+# Download weights + load the model while the Space boots, not on first scan.
+threading.Thread(target=warm_start, daemon=True).start()
 
 demo = build_demo()
 
