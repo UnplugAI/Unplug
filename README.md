@@ -5,6 +5,7 @@
 Unplug is agent runtime security for LLM applications. It tracks where text came from (user vs retrieved vs tool output), scans for prompt injection and destructive actions, and enforces tool-call policy, with span-level redaction instead of binary blocking.
 
 <p>
+  <a href="https://pypi.org/project/unplug-ai/"><img alt="PyPI" src="https://img.shields.io/pypi/v/unplug-ai"></a>
   <a href="https://huggingface.co/spaces/Unplug-AI/unplug-tiny-demo"><img alt="Live demo" src="https://img.shields.io/badge/Live_demo-Hugging_Face_Space-22c55e"></a>
   <a href="https://huggingface.co/Unplug-AI/unplug-tiny-v1"><img alt="Model" src="https://img.shields.io/badge/Model-unplug--tiny--v1-f59e0b"></a>
   <a href="https://www.apache.org/licenses/LICENSE-2.0"><img alt="License" src="https://img.shields.io/badge/License-Apache_2.0-9ca3af"></a>
@@ -12,12 +13,16 @@ Unplug is agent runtime security for LLM applications. It tracks where text came
 
 ## Install
 
-PyPI release is queued behind final validation. Install from source today:
+```bash
+pip install unplug-ai           # regex-only core, zero ML deps
+pip install "unplug-ai[ml]"     # add the ML span model
+```
+
+Or from source:
 
 ```bash
 git clone https://github.com/UnplugAI/Unplug.git && cd Unplug/sdk
-uv sync && uv pip install -e .       # regex-only core
-uv pip install -e ".[ml]"            # add the ML span model
+uv sync && uv pip install -e ".[ml]"
 ```
 
 ## Quickstart

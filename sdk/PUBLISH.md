@@ -5,12 +5,12 @@ Package: **`unplug-ai`** | Import: **`from unplug import Guard`**
 ## One-time setup
 
 1. Create a [PyPI account](https://pypi.org/account/register/) (org account recommended).
-2. Create an API token with **Upload** scope for project `unplug-ai` (or entire account for first release).
-3. In [UnplugAI/Unplug](https://github.com/UnplugAI/Unplug) -> **Settings -> Secrets -> Actions**, add:
+2. Create an API token with **Upload** scope for project `unplug-ai`.
+3. In [UnplugAI/Unplug](https://github.com/UnplugAI/Unplug) -> **Settings -> Environments -> `pypi`**, add:
 
-   | Secret           | Value        |
-   |------------------|--------------|
-   | `PYPI_API_TOKEN` | `pypi-...`   |
+   | Secret       | Value        |
+   |--------------|--------------|
+   | `PYPI_TOKEN` | `pypi-...`   |
 
 ## Publish
 
