@@ -76,6 +76,12 @@ class TestEncodingBlobs:
         text = f"token={short}"
         assert iter_base64_blobs(text) == []
 
+    def test_oversized_decode_skipped(self) -> None:
+        payload = "x" * 10_001
+        blob = base64.b64encode(payload.encode()).decode()
+        text = f"payload={blob}"
+        assert iter_base64_blobs(text) == []
+
 
 class TestEncodingClassifiers:
     def test_heuristic_classifier(self) -> None:

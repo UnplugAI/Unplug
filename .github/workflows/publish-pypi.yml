@@ -45,4 +45,4 @@ jobs:
       - name: Publish unplug-ai
         env:
           UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
-        run: uv publish
+        run: uv publish --check-url https://pypi.org/pypi/unplug-ai/json

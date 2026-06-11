@@ -244,6 +244,21 @@ class TestStripDelimiters:
         assert offsets[0] == 0  # 'i' at pos 0
         assert offsets[1] == 2  # 'g' at pos 2
 
+    def test_pipe_separated_evasion(self):
+        text = "i|g|n|o|r|e"
+        result, _ = _strip_delimiters(text, _make_table(text))
+        assert result == "ignore"
+
+    def test_shell_pipe_preserved(self):
+        text = "ls | grep secret"
+        result, _ = _strip_delimiters(text, _make_table(text))
+        assert result == text
+
+    def test_cross_word_pipe_evasion(self):
+        text = "i|g|n|o|r|e| |p|r|e|v|i|o|u|s"
+        result, _ = _strip_delimiters(text, _make_table(text))
+        assert result == "ignore previous"
+
 
 class TestMatchCrossLanguage:
     def test_spanish_ignore(self):

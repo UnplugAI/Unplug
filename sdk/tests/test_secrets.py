@@ -149,6 +149,15 @@ class TestSecretsSanitizer:
         assert "sk-" not in result.clean_text
         assert result.clean_text.count("[REDACTED]") >= 2
 
+    def test_sanitize_overlapping_generic_spans(self):
+        reg = SecretsRegistry()
+        sanitizer = SecretsSanitizer(reg)
+        text = "export api_key=sk-abcdefghijklmnopqrstuvwxyz1234567890abcdef"
+        result = sanitizer.sanitize(text)
+        assert "sk-" not in result.clean_text
+        assert "api_key=" not in result.clean_text
+        assert "[REDACTED]" in result.clean_text
+
     def test_register_redos_pattern_rejected(self):
         reg = SecretsRegistry()
         with pytest.raises(ValueError, match="backtracking"):

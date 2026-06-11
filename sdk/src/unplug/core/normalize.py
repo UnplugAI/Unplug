@@ -450,24 +450,18 @@ def _strip_delimiters(text: str, offset_table: list[int]) -> tuple[str, list[int
             break
         current_text, current_offsets = new_text, result_offsets
 
-    pipe_between = re.compile(r"(?<=[a-zA-Z])\|(?=[a-zA-Z])")
-    if pipe_between.search(current_text):
+    pipe_evasion = (
+        re.compile(r"(?<=[a-zA-Z])\|(?=[a-zA-Z])"),
+        re.compile(r"(?<=[a-zA-Z])\|(?=\s)"),
+        re.compile(r"(?<=\s)\|(?=[a-zA-Z])"),
+    )
+    for pattern in pipe_evasion:
+        if not pattern.search(current_text):
+            continue
         result_chars = []
         result_offsets = []
         for i, ch in enumerate(current_text):
-            if ch == "|" and i > 0 and i + 1 < len(current_text):
-                if current_text[i - 1].isalpha() and current_text[i + 1].isalpha():
-                    continue
-            result_chars.append(ch)
-            result_offsets.append(current_offsets[i])
-        current_text = "".join(result_chars)
-        current_offsets = result_offsets
-
-    if "|" in current_text:
-        result_chars = []
-        result_offsets = []
-        for i, ch in enumerate(current_text):
-            if ch == "|":
+            if ch == "|" and pattern.match(current_text, i):
                 continue
             result_chars.append(ch)
             result_offsets.append(current_offsets[i])
