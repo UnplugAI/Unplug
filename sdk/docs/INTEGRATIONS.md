@@ -1,6 +1,6 @@
 # Agent framework integrations
 
-Unplug ships **framework-agnostic hooks** first. LangGraph and Agno do not need to be installed to use the SDK — copy the patterns below or run the demos.
+Unplug ships **framework-agnostic hooks** first. LangGraph and Agno do not need to be installed to use the SDK - copy the patterns below or run the demos.
 
 ## Core: `AgentHooks`
 

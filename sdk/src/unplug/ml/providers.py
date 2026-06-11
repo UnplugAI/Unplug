@@ -41,6 +41,14 @@ class TransformersSpanProvider(ModelProvider):
             raise TypeError(msg)
         return self._engine.predict(inputs)
 
+    def predict_batch(self, batch: list[Any]) -> list[SpanPrediction]:
+        texts = [item for item in batch if isinstance(item, str)]
+        if len(texts) != len(batch):
+            msg = "TransformersSpanProvider.predict_batch expects str items"
+            raise TypeError(msg)
+        batch_size = int(self._spec.config.get("batch_size", 8))
+        return self._engine.predict_batch(texts, batch_size=batch_size)
+
     @property
     def doc_threshold(self) -> float:
         return self._engine.doc_threshold

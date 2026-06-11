@@ -1,6 +1,6 @@
 [project]
 name = "unplug-ai"
-version = "0.1.0"
+version = "0.2.0"
 description = "Pull the plug on bad AI. Fast prompt injection detection and redaction for LLM apps, agents, and RAG pipelines."
 readme = "README.md"
 license = "Apache-2.0"
@@ -83,8 +83,8 @@ select = [
     "RUF", # ruff-specific
 ]
 ignore = [
-    "SIM108",  # ternary — often less readable in security code
-    "RUF001",  # ambiguous unicode — required in homoglyph maps and attack fixtures
+    "SIM108",  # ternary - often less readable in security code
+    "RUF001",  # ambiguous unicode - required in homoglyph maps and attack fixtures
     "RUF003",
 ]
 

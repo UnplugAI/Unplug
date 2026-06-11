@@ -1,0 +1,8 @@
+gradio>=5.0
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch>=2.0
+transformers>=4.44,<4.45
+huggingface_hub>=0.23
+sentencepiece>=0.2
+numpy>=1.26
+unplug-ai @ git+https://github.com/UnplugAI/Unplug.git@d925c550261b8f98e76b42561db08ac8034d6644#subdirectory=sdk

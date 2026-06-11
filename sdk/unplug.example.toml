@@ -1,4 +1,4 @@
-# Unplug configuration — copy to unplug.toml and customize
+# Unplug configuration - copy to unplug.toml and customize
 
 [guard]
 scanners = ["injection", "destructive", "leakage", "harmful"]
@@ -9,10 +9,10 @@ judge_enabled = false
 # server_url = "https://api.unplug.example"
 # server_api_key = "up_live_xxxxxxxx"
 
-# Local ML (optional — requires pip install unplug-ai[ml])
-# active_model = "tiny"
-# require_ml = false
-# auto_download_model = false
+# Local ML - downloads Unplug-AI/unplug-tiny-v1 on first use (pip install unplug-ai[ml])
+active_model = "tiny"
+auto_download_model = true
+require_ml = false
 
 [limits]
 max_input_chars = 50000
@@ -78,10 +78,8 @@ base_score = 0.90
 # Or: export UNPLUG_MODEL_PATH=/path/to/checkpoint-66630
 # Dual-head checkpoint: config.json must include "dual_head": true
 
-[models.tiny]
-name = "unplug-tiny"
-backend = "transformers_span"
-path = "/path/to/checkpoint-66630"
+# Catalog default: repo_id = "Unplug-AI/unplug-tiny-v1" (see src/unplug/models/catalog.toml)
+# Override only for offline/air-gapped: path = "/path/to/checkpoint"
 
 [models.tiny.config]
 max_length = 512
@@ -89,6 +87,10 @@ stride = 64
 inj_threshold = 0.45
 doc_threshold = 0.9
 device = "auto"
+long_text_mode = "sliding"
+long_text_threshold_chars = 8192
+long_text_chunk_chars = 2048
+long_text_overlap_chars = 256
 
 [models.medium]
 name = "unplug-medium"

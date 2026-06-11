@@ -10,7 +10,12 @@ from unplug.core.models import ModelProvider
 from unplug.core.normalize import Normalizer
 from unplug.core.stats import MetricsCollector
 from unplug.core.taint import TaintedText
-from unplug.ml.head_tail import merge_head_tail_predictions, should_use_head_tail, split_head_tail
+from unplug.ml.document_chunks import (
+    merge_window_predictions,
+    should_chunk_document,
+    split_sliding_windows,
+)
+from unplug.ml.head_tail import merge_head_tail_predictions, split_head_tail
 from unplug.models import Finding
 from unplug.safeguards.base import ModelScanner
 
@@ -37,23 +42,41 @@ class InjectionSpanScanner(ModelScanner):
 
     def _predict(self, norm_text: str):
         cfg = self._model.spec.config
-        if not bool(cfg.get("head_tail_enabled", True)):
-            return self._model.predict(norm_text)
-
-        threshold = int(cfg.get("head_tail_threshold_chars", _DEFAULT_HEAD_TAIL_THRESHOLD))
-        chunk = int(cfg.get("head_tail_chunk_chars", _DEFAULT_HEAD_TAIL_CHUNK))
-        if not should_use_head_tail(len(norm_text), threshold_chars=threshold):
-            return self._model.predict(norm_text)
-
-        head, tail, tail_offset = split_head_tail(norm_text, chunk_chars=chunk)
-        head_pred = self._model.predict(head)
-        tail_pred = self._model.predict(tail)
-        return merge_head_tail_predictions(
-            head_pred,
-            tail_pred,
-            tail_offset=tail_offset,
-            full_text=norm_text,
+        threshold = int(
+            cfg.get(
+                "long_text_threshold_chars",
+                cfg.get("head_tail_threshold_chars", _DEFAULT_HEAD_TAIL_THRESHOLD),
+            )
         )
+        chunk = int(
+            cfg.get(
+                "long_text_chunk_chars",
+                cfg.get("head_tail_chunk_chars", _DEFAULT_HEAD_TAIL_CHUNK),
+            )
+        )
+        if not should_chunk_document(len(norm_text), threshold_chars=threshold):
+            return self._model.predict(norm_text)
+
+        mode = str(cfg.get("long_text_mode", "sliding"))
+        if mode == "head_tail" and bool(cfg.get("head_tail_enabled", True)):
+            head, tail, tail_offset = split_head_tail(norm_text, chunk_chars=chunk)
+            head_pred = self._model.predict(head)
+            tail_pred = self._model.predict(tail)
+            return merge_head_tail_predictions(
+                head_pred,
+                tail_pred,
+                tail_offset=tail_offset,
+                full_text=norm_text,
+            )
+
+        overlap = int(cfg.get("long_text_overlap_chars", 256))
+        windows = split_sliding_windows(norm_text, chunk_chars=chunk, overlap_chars=overlap)
+        window_texts = [text for text, _ in windows]
+        predictions = list(self._model.predict_batch(window_texts))
+        window_preds = [
+            (offset, pred) for (_, offset), pred in zip(windows, predictions, strict=True)
+        ]
+        return merge_window_predictions(window_preds, full_text=norm_text)
 
     def _scan(self, text: TaintedText, context: ExecutionContext) -> Generator[Finding, None, None]:
         if self._model.loaded is False:
