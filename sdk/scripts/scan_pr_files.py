@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Scan changed files in a PR for prompt injection patterns (regex-only Guard)."""
+"""Scan agent config files changed in a PR (regex-only Guard).
+
+Only paths matching AGENTS.md, .cursor/, mcp.json, or claude_desktop_config are
+scanned so docs/tests with attack fixtures do not false-positive the workflow.
+"""
 
 from __future__ import annotations
 

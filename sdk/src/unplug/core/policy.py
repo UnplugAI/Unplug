@@ -69,12 +69,12 @@ def decide_action(
     risk_score: float,
 ) -> Action:
     """Apply document coverage gate then span-level thresholds."""
-    if policy.abstain_enabled and any(f.subcategory == ML_ABSTAIN_SUBCATEGORY for f in findings):
-        return Action.ABSTAIN
     if text_len > 0 and flagged_coverage(text_len, findings, policy) >= policy.block_coverage_ratio:
         return Action.BLOCK
     if risk_score >= policy.block_threshold:
         return Action.BLOCK
+    if policy.abstain_enabled and any(f.subcategory == ML_ABSTAIN_SUBCATEGORY for f in findings):
+        return Action.ABSTAIN
     if any(f.score >= policy.redact_threshold for f in findings):
         return Action.REDACT
     if risk_score >= policy.review_threshold:
