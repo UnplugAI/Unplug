@@ -169,6 +169,18 @@ class SecretsRegistry:
         return result
 
 
+def _merge_spans(spans: list[tuple[int, int]]) -> list[tuple[int, int]]:
+    if not spans:
+        return []
+    merged: list[tuple[int, int]] = []
+    for start, end in sorted(spans):
+        if merged and start <= merged[-1][1]:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], end))
+        else:
+            merged.append((start, end))
+    return merged
+
+
 class SecretsSanitizer:
     """Sanitizes text by replacing all detected secrets."""
 
@@ -184,7 +196,7 @@ class SecretsSanitizer:
             for m in pat.finditer(clean):
                 generic_spans.append((m.start(), m.end()))
 
-        for start, end in sorted(generic_spans, reverse=True):
+        for start, end in sorted(_merge_spans(generic_spans), reverse=True):
             clean = clean[:start] + "[REDACTED]" + clean[end:]
 
         return SanitizeResult(clean_text=clean, secrets_found=matches)

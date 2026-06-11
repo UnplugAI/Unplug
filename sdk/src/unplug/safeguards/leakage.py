@@ -29,8 +29,10 @@ LEAKAGE_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("jwt_token", re.compile(r"eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]+")),
     ("email_address", re.compile(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}")),
     ("phone_number", re.compile(r"\b(\+?1?\s?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4})\b")),
-    ("ssn", re.compile(r"\b\d{3}[\s.-]?\d{2}[\s.-]?\d{4}\b")),
-    ("ssn_compact", re.compile(r"\b\d{3}\d{2}\d{4}\b")),
+    (
+        "ssn",
+        re.compile(r"\b(?!000|666|9\d{2})\d{3}[\s.-]?\d{2}[\s.-]?\d{4}\b"),
+    ),
     (
         "system_prompt_leak",
         re.compile(

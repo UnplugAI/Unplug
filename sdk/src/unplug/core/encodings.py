@@ -7,7 +7,7 @@ import re
 from typing import TYPE_CHECKING, Protocol
 
 from unplug.api.types import Finding
-from unplug.core.normalize import Normalizer
+from unplug.core.normalize import _MAX_BASE64_DECODED_SIZE, Normalizer
 from unplug.safeguards.injection.patterns import INJECTION_PATTERNS
 
 if TYPE_CHECKING:
@@ -141,7 +141,10 @@ def iter_base64_blobs(text: str) -> list[EncodingBlob]:
             continue
         decoded: str | None = None
         try:
-            decoded = base64.b64decode(raw, validate=True).decode("utf-8")
+            decoded_bytes = base64.b64decode(raw, validate=True)
+            if len(decoded_bytes) > _MAX_BASE64_DECODED_SIZE:
+                continue
+            decoded = decoded_bytes.decode("utf-8")
         except Exception:
             continue
         if not _is_plausible_decoded_payload(decoded):

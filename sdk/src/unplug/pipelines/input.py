@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import asyncio
 from typing import Any
 
 from unplug.config.agent_policy import BoundaryConfig, DegradationConfig, TrajectoryConfig
+from unplug.core.asyncio_compat import run_coroutine_sync
 from unplug.core.boundaries import maybe_wrap_untrusted
 from unplug.core.config import PipelineConfig
 from unplug.core.context import ExecutionContext
@@ -122,17 +122,7 @@ class InputPipeline(BasePipeline):
             return []
         judge_ctx = JudgeContext(scanner_findings=findings)
         try:
-            try:
-                loop = asyncio.get_running_loop()
-            except RuntimeError:
-                result = asyncio.run(self._judge.judge(input_data.text, judge_ctx))
-            else:
-                future = asyncio.run_coroutine_threadsafe(
-                    self._judge.judge(input_data.text, judge_ctx),
-                    loop,
-                )
-                timeout = self._config.judge_timeout
-                result = future.result(timeout=timeout)
+            result = run_coroutine_sync(self._judge.judge(input_data.text, judge_ctx))
         except Exception as exc:
             _log.error("input pipeline judge failed: %s", exc)
             return [

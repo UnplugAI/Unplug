@@ -252,7 +252,17 @@ class TestLeakageScanner:
     def test_detects_spaced_ssn(self):
         text = _make_text("SSN 123 45 6789", trust=TrustLevel.RETRIEVED)
         findings = self.scanner.scan(text, self.ctx)
-        assert any(f.subcategory in ("ssn", "ssn_compact") for f in findings)
+        assert any(f.subcategory == "ssn" for f in findings)
+
+    def test_compact_ssn_without_redundant_pattern(self):
+        text = _make_text("SSN 123456789", trust=TrustLevel.RETRIEVED)
+        findings = self.scanner.scan(text, self.ctx)
+        assert any(f.subcategory == "ssn" for f in findings)
+
+    def test_nine_digit_order_id_not_ssn(self):
+        text = _make_text("order id 987654321", trust=TrustLevel.TOOL_OUTPUT)
+        findings = self.scanner.scan(text, self.ctx)
+        assert not any(f.subcategory in ("ssn", "ssn_compact") for f in findings)
 
     def test_detects_zero_width_email(self):
         text = _make_text("contact test\u200b@example.com today", trust=TrustLevel.RETRIEVED)
