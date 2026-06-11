@@ -6,6 +6,7 @@ from collections.abc import Generator
 
 from unplug.core.config import ScannerConfig
 from unplug.core.context import ExecutionContext
+from unplug.core.ml_band import ML_ABSTAIN_SUBCATEGORY, MlBand, decide_ml_band, max_span_score
 from unplug.core.models import ModelProvider
 from unplug.core.normalize import Normalizer
 from unplug.core.stats import MetricsCollector
@@ -86,6 +87,54 @@ class InjectionSpanScanner(ModelScanner):
         prediction = self._predict(norm.text)
         cfg = self._model.spec.config
         doc_threshold = float(cfg.get("doc_threshold", cfg.get("inj_threshold", 0.5)))
+        span_threshold = float(cfg.get("inj_threshold", 0.5))
+        tau_abstain_low = float(cfg.get("tau_abstain_low", 0.35))
+        abstain_enabled = bool(cfg.get("abstain_enabled", True))
+        span_score = max_span_score(list(prediction.spans))
+
+        band = (
+            decide_ml_band(
+                doc_score=float(prediction.doc_score),
+                span_score=span_score,
+                tau_doc=doc_threshold,
+                tau_span=span_threshold,
+                tau_abstain_low=tau_abstain_low,
+            )
+            if abstain_enabled
+            else MlBand.BLOCK
+            if (float(prediction.doc_score) >= doc_threshold or span_score >= span_threshold)
+            else MlBand.ALLOW
+        )
+
+        if band == MlBand.ALLOW:
+            return
+
+        if band == MlBand.ABSTAIN:
+            yield Finding(
+                category="injection",
+                subcategory=ML_ABSTAIN_SUBCATEGORY,
+                stage="ml_band",
+                span_start=0,
+                span_end=len(text.text),
+                score=max(float(prediction.doc_score), span_score, 0.55),
+                evidence="ML abstain band: uncertain injection signal",
+                replacement="[REDACTED:injection]",
+            )
+            for span in prediction.spans:
+                orig_start, orig_end = norm.to_original_span(span.start, span.end)
+                if orig_end <= orig_start:
+                    continue
+                yield Finding(
+                    category="injection",
+                    subcategory="span_model",
+                    stage="model",
+                    span_start=orig_start,
+                    span_end=orig_end,
+                    score=max(span.score, 0.55),
+                    evidence="Span model flagged uncertain injection region",
+                    replacement="[REDACTED:injection]",
+                )
+            return
 
         for span in prediction.spans:
             orig_start, orig_end = norm.to_original_span(span.start, span.end)

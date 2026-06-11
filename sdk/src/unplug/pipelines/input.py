@@ -12,6 +12,7 @@ from unplug.core.context import ExecutionContext
 from unplug.core.encodings import EncodingClassifier, scan_encoding_blobs
 from unplug.core.judge import JudgeContext, JudgeProvider
 from unplug.core.logging import get_logger
+from unplug.core.ml_band import ML_ABSTAIN_SUBCATEGORY
 from unplug.core.normalize import Normalizer
 from unplug.core.stats import MetricsCollector
 from unplug.core.taint import TaintedText, TrustLevel, trust_level_from_source
@@ -118,7 +119,8 @@ class InputPipeline(BasePipeline):
         context: ExecutionContext,
     ) -> list[Finding]:
         risk = max((f.score for f in findings), default=0.0)
-        if risk < self._judge_low or risk >= self._judge_high:
+        has_abstain = any(f.subcategory == ML_ABSTAIN_SUBCATEGORY for f in findings)
+        if not has_abstain and (risk < self._judge_low or risk >= self._judge_high):
             return []
         judge_ctx = JudgeContext(scanner_findings=findings)
         try:

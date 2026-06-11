@@ -81,11 +81,17 @@ base_score = 0.90
 # Catalog default: repo_id = "Unplug-AI/unplug-tiny-v1" (see src/unplug/models/catalog.toml)
 # Override only for offline/air-gapped: path = "/path/to/checkpoint"
 
+[policy]
+abstain_enabled = true
+tau_abstain_low = 0.35
+
 [models.tiny.config]
 max_length = 512
 stride = 64
 inj_threshold = 0.45
 doc_threshold = 0.9
+tau_abstain_low = 0.35
+abstain_enabled = true
 device = "auto"
 long_text_mode = "sliding"
 long_text_threshold_chars = 8192

@@ -15,5 +15,6 @@ class Source(StrEnum):
 class Action(StrEnum):
     ALLOW = "allow"
     REDACT = "redact"
+    ABSTAIN = "abstain"
     BLOCK = "block"
     REVIEW = "review"

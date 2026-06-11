@@ -83,9 +83,11 @@ class BasePipeline(ABC):
         redacted = None
         if findings and policy.redaction_mode != RedactionMode.NONE:
             redacted = self._redact(input_data, findings, policy=policy)
+        if action == Action.ABSTAIN and redacted is None and findings:
+            redacted = self._redact(input_data, findings, policy=policy)
 
         result = ScanResult(
-            safe=action == Action.ALLOW,
+            safe=action in (Action.ALLOW, Action.ABSTAIN),
             action=action,
             risk_score=risk_score,
             findings=findings,

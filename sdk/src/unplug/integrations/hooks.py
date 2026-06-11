@@ -36,7 +36,7 @@ class AgentHooks:
 
     def scan_user_input(self, text: str, *, source: Source | str = Source.USER) -> HookDecision:
         result = self.guard.scan(text, source=source)
-        allowed = result.safe and result.action == Action.ALLOW
+        allowed = result.safe and result.action in (Action.ALLOW, Action.ABSTAIN)
         if allowed:
             msg = None
         else:
