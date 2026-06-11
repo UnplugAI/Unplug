@@ -11,8 +11,16 @@ from pathlib import Path
 from unplug import Guard
 from unplug.api.enums import Action
 
-_SKIP_PREFIXES = ("sdk/tests/", "sdk/benchmarks/data/", ".github/")
-_SCAN_SUFFIXES = {".py", ".md", ".json", ".yaml", ".yml"}
+_SKIP_PREFIXES = (
+    "sdk/tests/",
+    "sdk/benchmarks/",
+    "sdk/docs/",
+    "sdk/examples/",
+    "sdk/demo/",
+    ".github/",
+    ".context/",
+)
+_AGENT_MARKERS = ("AGENTS.md", ".cursor/", "mcp.json", "claude_desktop_config")
 _MAX_CHUNK = 2000
 
 
@@ -28,7 +36,10 @@ def _changed_files(base_ref: str, repo_root: Path) -> list[Path]:
         if not rel or any(rel.startswith(p) for p in _SKIP_PREFIXES):
             continue
         path = repo_root / rel
-        if path.is_file() and (path.suffix in _SCAN_SUFFIXES or path.name == "AGENTS.md"):
+        if not path.is_file():
+            continue
+        rel_posix = rel.replace("\\", "/")
+        if any(marker in rel_posix for marker in _AGENT_MARKERS):
             paths.append(path)
     return paths
 
