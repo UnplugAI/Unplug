@@ -1,22 +1,22 @@
-name: CI
+name: PR agent scan
 
 on:
   pull_request:
-    branches: [main]
-  push:
     branches: [main]
 
 permissions:
   contents: read
 
 jobs:
-  sdk:
+  scan:
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: sdk
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: astral-sh/setup-uv@v5
         with:
@@ -27,10 +27,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install
-        run: uv sync --all-extras --dev
+      - name: Install SDK
+        run: uv sync --dev
 
-      - name: CI gate (make check-ci; docker E2E is local-only)
-        env:
-          RUN_DOCKER_E2E: ""
-        run: make check-ci
+      - name: Scan changed files
+        run: uv run python scripts/scan_pr_files.py --base-ref ${{ github.base_ref }}

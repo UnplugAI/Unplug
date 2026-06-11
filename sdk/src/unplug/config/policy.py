@@ -43,3 +43,13 @@ class ScanPolicy(BaseModel):
             "redacted_tags=legacy, none=no redacted_text"
         ),
     )
+    abstain_enabled: bool = Field(
+        default=True,
+        description="Use ML abstain band when injection_ml is active",
+    )
+    tau_abstain_low: float = Field(
+        default=0.35,
+        ge=0.0,
+        le=1.0,
+        description="Doc score below this (and no span fire) -> ALLOW band",
+    )

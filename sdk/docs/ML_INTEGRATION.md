@@ -94,6 +94,16 @@ unplug-audit --probes
 python examples/agent_exfil_demo.py
 ```
 
+## ABSTAIN band
+
+When `abstain_enabled` is true (default in `catalog.toml`), the ML scanner uses a three-way band:
+
+- **BLOCK** — doc or span score above threshold
+- **ALLOW** — scores below `tau_abstain_low` with no span fire
+- **ABSTAIN** — uncertain middle band → `Action.ABSTAIN` (safe with span redaction)
+
+Optional `JudgeProvider` runs on ABSTAIN when `judge_enabled=true`.
+
 ## Dual-head behavior
 
 | Head | SDK subcategory | When it fires |

@@ -5,6 +5,7 @@ from __future__ import annotations
 from unplug.api.enums import Action
 from unplug.api.types import Finding
 from unplug.config.policy import RedactionMode, ScanPolicy
+from unplug.core.ml_band import ML_ABSTAIN_SUBCATEGORY
 
 
 def merge_spans(spans: list[tuple[int, int]], *, merge: bool) -> list[tuple[int, int]]:
@@ -68,6 +69,8 @@ def decide_action(
     risk_score: float,
 ) -> Action:
     """Apply document coverage gate then span-level thresholds."""
+    if policy.abstain_enabled and any(f.subcategory == ML_ABSTAIN_SUBCATEGORY for f in findings):
+        return Action.ABSTAIN
     if text_len > 0 and flagged_coverage(text_len, findings, policy) >= policy.block_coverage_ratio:
         return Action.BLOCK
     if risk_score >= policy.block_threshold:

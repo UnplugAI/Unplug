@@ -8,13 +8,15 @@ default_tier = "tiny"
 [catalog.tiers.tiny]
 name = "unplug-tiny"
 repo_id = "Unplug-AI/unplug-tiny-v1"
-revision = "main"
+revision = "19b7d6701bea"
 backend = "transformers_span"
 description = "Default dual-head span injection model (DeBERTa-v3-xsmall)"
 
 [catalog.tiers.tiny.config]
 inj_threshold = 0.45
 doc_threshold = 0.9
+tau_abstain_low = 0.35
+abstain_enabled = true
 max_length = 512
 stride = 64
 device = "auto"

@@ -6,6 +6,9 @@ __pycache__/
 # C extensions
 *.so
 
+# Downloaded benchmark datasets (regenerate via benchmarks.download)
+sdk/benchmarks/data/*.jsonl
+
 # Distribution / packaging
 .Python
 build/

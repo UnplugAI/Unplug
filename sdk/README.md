@@ -196,6 +196,7 @@ from unplug.safeguards.registry import SafeguardRegistry
 | Doc | Covers |
 |-----|--------|
 | [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Hosted vs embedded vs sidecar architecture |
+| [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md) | Regex SDK eval results (neuralchemy, microsoft) |
 | [`docs/ML_INTEGRATION.md`](docs/ML_INTEGRATION.md) | Checkpoint layout, thresholds, long-text and streaming config |
 | [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md) | LangGraph, Agno, framework-agnostic hooks |
 | [`docs/AGENT_FLOW_SECURITY.md`](docs/AGENT_FLOW_SECURITY.md) | End-to-end agent hardening flow |
