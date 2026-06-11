@@ -122,7 +122,7 @@ class InjectionSpanScanner(ModelScanner):
                 subcategory=ML_ABSTAIN_SUBCATEGORY,
                 stage="ml_band",
                 span_start=0,
-                span_end=len(text.text),
+                span_end=0,
                 score=max(float(prediction.doc_score), span_score, 0.55),
                 evidence="ML abstain band: uncertain injection signal",
                 replacement="[REDACTED:injection]",

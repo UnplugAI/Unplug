@@ -36,14 +36,29 @@ class TestAbstainPolicy:
                 category="injection",
                 subcategory="ml_abstain_band",
                 stage="ml_band",
-                span_start=2,
-                span_end=5,
+                span_start=0,
+                span_end=0,
                 score=0.6,
                 evidence="uncertain",
             )
         ]
         action = decide_action(findings, text_len=100, policy=ScanPolicy(), risk_score=0.6)
         assert action == Action.ABSTAIN
+
+    def test_abstain_finding_blocks_via_coverage_gate(self) -> None:
+        findings = [
+            Finding(
+                category="injection",
+                subcategory="ml_abstain_band",
+                stage="ml_band",
+                span_start=0,
+                span_end=100,
+                score=0.85,
+                evidence="uncertain but full-document coverage",
+            )
+        ]
+        action = decide_action(findings, text_len=100, policy=ScanPolicy(), risk_score=0.85)
+        assert action == Action.BLOCK
 
     def test_high_risk_abstain_finding_blocks(self) -> None:
         findings = [
