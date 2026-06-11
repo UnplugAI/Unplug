@@ -86,10 +86,17 @@ class InjectionSpanScanner(ModelScanner):
         norm = self._normalizer.normalize(text.text)
         prediction = self._predict(norm.text)
         cfg = self._model.spec.config
+        policy = context.scan_policy
         doc_threshold = float(cfg.get("doc_threshold", cfg.get("inj_threshold", 0.5)))
         span_threshold = float(cfg.get("inj_threshold", 0.5))
-        tau_abstain_low = float(cfg.get("tau_abstain_low", 0.35))
-        abstain_enabled = bool(cfg.get("abstain_enabled", True))
+        tau_abstain_low = (
+            policy.tau_abstain_low
+            if policy is not None
+            else float(cfg.get("tau_abstain_low", 0.35))
+        )
+        abstain_enabled = (
+            policy.abstain_enabled if policy is not None else bool(cfg.get("abstain_enabled", True))
+        )
         span_score = max_span_score(list(prediction.spans))
 
         band = (
@@ -115,7 +122,7 @@ class InjectionSpanScanner(ModelScanner):
                 subcategory=ML_ABSTAIN_SUBCATEGORY,
                 stage="ml_band",
                 span_start=0,
-                span_end=len(text.text),
+                span_end=0,
                 score=max(float(prediction.doc_score), span_score, 0.55),
                 evidence="ML abstain band: uncertain injection signal",
                 replacement="[REDACTED:injection]",

@@ -31,4 +31,4 @@ jobs:
         run: uv sync --dev
 
       - name: Scan changed files
-        run: uv run python scripts/scan_pr_files.py --base-ref ${{ github.base_ref }}
+        run: uv run python scripts/scan_pr_files.py --base-ref "${{ github.base_ref }}"
