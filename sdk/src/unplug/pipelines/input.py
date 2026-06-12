@@ -66,23 +66,36 @@ class InputPipeline(BasePipeline):
         if isinstance(text, TaintedText):
             tainted = text
         else:
-            body = text
-            src = source
-            body, _ = maybe_wrap_untrusted(
-                body,
-                source=src,
+            body, _, sanitized = maybe_wrap_untrusted(
+                text,
+                source=source,
                 config=self._boundary_config,
             )
             if isinstance(source, Source):
                 trust = trust_level_from_source(source)
             else:
                 trust = source
-            tainted = self._tagger.tag(body, trust, "input_pipeline")
+            tainted = self._tagger.tag(body, trust, "input_pipeline", boundary_sanitized=sanitized)
 
         return super().run(tainted, context=context)
 
     def _execute(self, input_data: TaintedText, context: ExecutionContext) -> list[Finding]:
         findings: list[Finding] = []
+        if input_data.metadata.get("boundary_sanitized"):
+            findings.append(
+                Finding(
+                    category="injection",
+                    subcategory="spoofed_boundary_marker",
+                    stage="sanitize",
+                    span_start=0,
+                    span_end=len(input_data.text),
+                    score=0.85,
+                    evidence=(
+                        "Spoofed untrusted-content boundary markers were stripped "
+                        "before wrapping; forged trust boundaries indicate an attack"
+                    ),
+                )
+            )
         if self._scan_encodings:
             findings.extend(
                 scan_encoding_blobs(input_data.text, classifier=self._encoding_classifier)

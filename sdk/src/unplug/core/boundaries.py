@@ -126,15 +126,16 @@ _FULL_WRAP_RE = re.compile(
 def already_wrapped(text: str) -> bool:
     """True only for a single well-formed wrap covering the entire payload.
 
-    Markers merely embedded in the text are spoofed (we sanitize at wrap time,
-    so our own output never contains inner markers) and must not short-circuit
-    the sanitize-and-wrap path.
+    Structured markers inside the body are spoofed or nested (we sanitize at
+    wrap time, so our own output never contains inner markers) and must not
+    short-circuit the sanitize-and-wrap path. Bare strings like ``<<<END``
+    without the full marker syntax are harmless payload text.
     """
     match = _FULL_WRAP_RE.match(text)
     if match is None:
         return False
     inner = match.group(2)
-    return _BEGIN_PREFIX not in inner and _END_PREFIX not in inner
+    return not (_ORPHAN_BEGIN_RE.search(inner) or _ORPHAN_END_RE.search(inner))
 
 
 def maybe_wrap_untrusted(
@@ -142,19 +143,23 @@ def maybe_wrap_untrusted(
     *,
     source: Source | TrustLevel,
     config: BoundaryConfig,
-) -> tuple[str, bool]:
-    """Wrap untrusted payloads for LLM context (OpenClaw adapter pattern)."""
+) -> tuple[str, bool, bool]:
+    """Wrap untrusted payloads for LLM context (OpenClaw adapter pattern).
+
+    Returns ``(text, wrapped, sanitized)``; ``sanitized`` is True when spoofed
+    boundary markers were stripped from the payload before wrapping.
+    """
     if not config.auto_wrap_untrusted or not is_untrusted_source(source):
-        return text, False
+        return text, False, False
     if already_wrapped(text):
-        return text, False
+        return text, False, False
     kind = _source_kind(source) or "external"
     wrapped = wrap_external_content(
         text,
         source=kind,
         sanitize=config.sanitize_before_wrap,
     )
-    return wrapped.text, True
+    return wrapped.text, True, wrapped.sanitized
 
 
 def strip_boundary_markers(text: str) -> str:

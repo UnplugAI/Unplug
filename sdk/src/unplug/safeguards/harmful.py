@@ -44,14 +44,15 @@ _DEFAULT_CONFIG = ScannerConfig(base_score=0.75)
 
 
 def harmful_signal(normalized_text: str) -> float:
-    """Max harmful-pattern score for already-normalized text.
+    """Categorical harmful-pattern probe for already-normalized text.
 
-    Lightweight probe used by the ML injection scanner to resolve the
-    injection vs harmful-not-injection disposition without building findings.
+    Returns 1.0 on any pattern match, 0.0 otherwise. Used by the ML injection
+    scanner to resolve the injection vs harmful-not-injection disposition; a
+    regex hit is definite evidence, independent of scanner score tuning.
     """
     for _, pattern in _PATTERNS:
         if pattern.search(normalized_text):
-            return _DEFAULT_CONFIG.base_score
+            return 1.0
     return 0.0
 
 
