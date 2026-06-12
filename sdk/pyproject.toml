@@ -40,7 +40,10 @@ scrape = [
     "firecrawl-py>=1.0",
     "python-dotenv>=1.2.2",
 ]
-all = ["unplug-ai[ml,scrape,litellm,yara]"]
+haystack = [
+    "haystack-ai>=2.0",
+]
+all = ["unplug-ai[ml,scrape,litellm,yara,haystack]"]
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",

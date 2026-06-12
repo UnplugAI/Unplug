@@ -69,6 +69,43 @@ Demo:
 python examples/agno_hooks_demo.py
 ```
 
+## Haystack (RAG)
+
+The retrieval path is the blind spot in most injection defenses: a poisoned
+document in the store carries its payload straight into the prompt. The
+`UnplugDocumentGuard` component sits between the retriever and the prompt
+builder — it scans each retrieved `Document`, drops or redacts on findings, and
+boundary-wraps survivors so injected text cannot impersonate system
+instructions. See [`RAG_DEFENSE.md`](RAG_DEFENSE.md) for the threat model.
+
+```python
+from haystack import Pipeline
+from unplug.integrations.haystack import UnplugDocumentGuard
+
+pipe = Pipeline()
+pipe.add_component("retriever", retriever)
+pipe.add_component("guard", UnplugDocumentGuard())   # Guard() under the hood
+pipe.add_component("prompt", prompt_builder)
+pipe.connect("retriever.documents", "guard.documents")
+pipe.connect("guard.documents", "prompt.documents")
+```
+
+Defend at ingestion too, so poisoned content never reaches the store:
+
+```python
+from unplug import Guard
+from unplug.integrations.haystack import scan_for_ingestion
+
+decision = scan_for_ingestion(Guard(), document_text)
+if decision.index_ok:
+    document.meta.update(decision.meta_update)  # marks it pre-scanned
+    document_store.write_documents([document])
+```
+
+Install: `pip install unplug-ai[haystack]`. The scanning core (`scan_document`,
+`scan_for_ingestion`) is import-safe without Haystack; only the component
+requires it.
+
 ## Hosted vs local
 
 | Setup | Guard init |
@@ -95,3 +132,4 @@ Builds `unplug-server` sidecar, waits for `/v1/health`, runs `local_sidecar_clie
 - Official PyPI extras `unplug-ai[langgraph]` / `[agno]` (hooks work without them)
 - Auto-instrumentation via `Guard.init()` (manual hooks only)
 - MCP / CrewAI / LlamaIndex wrappers (same `AgentHooks` pattern applies)
+- LlamaIndex `NodePostprocessor` equivalent of `UnplugDocumentGuard` (same `scan_document` core applies)
