@@ -42,8 +42,43 @@ INJECTION_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     (
         "system_extraction_alt",
         re.compile(
-            r"(?i)(what\s+(are|is)\s+your\s+(system\s+)?(prompt|instructions?|rules?)|"
-            r"copy\s+your\s+(initial|system)\s+prompt)",
+            r"(?i)(what\s+(are|is|were)\s+your\s+"
+            r"(system\s+|initial\s+|starting\s+|original\s+)?(prompt|instructions?|rules?)|"
+            r"copy\s+your\s+(initial|system)\s+prompt|"
+            r"what\s+were\s+you\s+told\s+(before|prior|initially|at\s+the\s+(beginning|start)))",
+        ),
+    ),
+    (
+        "reveal_system_prompt_direct",
+        re.compile(
+            r"(?i)(reveal|show|display|print|output|repeat|see|view|share|give)\b[^.\n]{0,40}\b"
+            r"(system\s+(prompt|message|instructions?)|"
+            r"initial\s+(prompt|instructions?|configuration)|"
+            r"starting\s+instructions?|"
+            r"(original|hidden)\s+(prompt|instructions?)|"
+            r"instructions?\s+(you\s+were\s+given|given\s+to\s+you))",
+        ),
+    ),
+    (
+        "prompt_echo_above",
+        re.compile(
+            r"(?i)((output|print|repeat|show|copy)\s+(the\s+)?"
+            r"((text|everything|message|content)\s+above|above\s+(text|message|content|conversation))|"
+            r"repeat\s+(this|the)\s+(entire\s+)?conversation)",
+        ),
+    ),
+    (
+        "completion_prefix_leak",
+        re.compile(
+            r"(?i)(start\s+your\s+(answer|response|reply)\s+with|"
+            r"complete\s+th(is|e)\s+(sentence|phrase)|continue\s+the\s+following)"
+            r"[^.\n]{0,40}(instruct|system\s+prompt|told\s+to|my\s+rules)",
+        ),
+    ),
+    (
+        "code_framed_extraction",
+        re.compile(
+            r"(?i)(console\.log|print|echo|alert)\s*\(\s*[\"']?(system_?prompt|instructions)",
         ),
     ),
     (
@@ -266,8 +301,10 @@ INJECTION_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     (
         "encode_exfil_prompt",
         re.compile(
-            r"(?i)(translate|encode)(\s+to\s+base64)?\s+(the\s+)?"
-            r"(above|previous|system|prior)\s+(text|prompt|message|instructions?)",
+            r"(?i)(translate|encode|rot13|base64)\b[^.\n]{0,40}\b"
+            r"((your\s+|the\s+)?(above|previous|system|prior|initial)\s+"
+            r"(text|prompt|message|instructions?)|"
+            r"(text|instructions?)\s+you\s+were\s+given)",
         ),
     ),
     (

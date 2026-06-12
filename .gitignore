@@ -8,6 +8,8 @@ __pycache__/
 
 # Downloaded benchmark datasets (regenerate via benchmarks.download)
 sdk/benchmarks/data/*.jsonl
+# Keep the small, attributed attack corpus the CI gate depends on
+!sdk/benchmarks/data/garak_attacks.jsonl
 
 # Distribution / packaging
 .Python

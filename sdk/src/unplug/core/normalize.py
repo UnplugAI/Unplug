@@ -148,6 +148,7 @@ _OVERRIDE_PATTERN = re.compile(
 )
 
 _ALL_STAGES = [
+    "unicode_tags",
     "zero_width",
     "base64",
     "fullwidth",
@@ -164,6 +165,7 @@ _ALL_STAGES = [
 
 # Stages safe for digit-heavy content (PII, amounts) — excludes leet and base64.
 EVASION_ONLY_STAGES = [
+    "unicode_tags",
     "zero_width",
     "fullwidth",
     "enclosed",
@@ -191,6 +193,7 @@ class Normalizer:
         stage_fns = {
             "leet": _normalize_leet,
             "spacing": _collapse_spacing,
+            "unicode_tags": _decode_unicode_tags,
             "zero_width": _strip_zero_width,
             "cross_line": _join_cross_line,
             "markdown": _strip_markdown,
@@ -260,6 +263,32 @@ def _collapse_spacing(text: str, offset_table: list[int]) -> tuple[str, list[int
         result_offsets.append(offset_table[i])
         i += 1
 
+    new_text = "".join(result_chars)
+    if new_text == text:
+        return text, offset_table
+    return new_text, result_offsets
+
+
+def _decode_unicode_tags(text: str, offset_table: list[int]) -> tuple[str, list[int]]:
+    """Decode Unicode tag-block smuggling (U+E0020-U+E007E -> ASCII).
+
+    Tag characters render as invisible, letting an attacker hide a full
+    instruction stream inside otherwise benign text (PyRIT's unicode
+    substitution converter). Printable tags map back to ASCII; the
+    remaining tag-block code points (language tag, cancel) are dropped.
+    """
+    result_chars: list[str] = []
+    result_offsets: list[int] = []
+    for i, ch in enumerate(text):
+        cp = ord(ch)
+        if 0xE0020 <= cp <= 0xE007E:
+            result_chars.append(chr(cp - 0xE0000))
+            result_offsets.append(offset_table[i])
+        elif 0xE0000 <= cp <= 0xE007F:
+            continue
+        else:
+            result_chars.append(ch)
+            result_offsets.append(offset_table[i])
     new_text = "".join(result_chars)
     if new_text == text:
         return text, offset_table
