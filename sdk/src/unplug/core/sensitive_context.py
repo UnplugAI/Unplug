@@ -35,8 +35,10 @@ def apply_sensitive_context_boost(
         return findings, 0.0
 
     boosted: list[Finding] = []
+    boosted_any = False
     for finding in findings:
         if finding.category in _BOOST_CATEGORIES:
+            boosted_any = True
             boosted.append(
                 finding.model_copy(
                     update={"score": min(1.0, finding.score + score_boost)},
@@ -45,4 +47,5 @@ def apply_sensitive_context_boost(
         else:
             boosted.append(finding)
 
-    return boosted, block_threshold_delta
+    delta = block_threshold_delta if boosted_any else 0.0
+    return boosted, delta

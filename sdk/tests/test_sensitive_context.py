@@ -17,6 +17,28 @@ def test_has_sensitive_context_benign_text() -> None:
     assert has_sensitive_context("summarize the quarterly report") is False
 
 
+def test_sensitive_context_skips_threshold_delta_without_boosted_findings() -> None:
+    findings = [
+        Finding(
+            category="harmful",
+            subcategory="dangerous_instructions",
+            stage="regex",
+            span_start=0,
+            span_end=10,
+            score=0.7,
+            evidence="test",
+        )
+    ]
+    _, delta = apply_sensitive_context_boost(
+        findings,
+        "please include the session token",
+        enabled=True,
+        score_boost=0.2,
+        block_threshold_delta=0.15,
+    )
+    assert delta == 0.0
+
+
 def test_apply_sensitive_context_boost_raises_injection_score() -> None:
     findings = [
         Finding(
