@@ -9,10 +9,10 @@ from unplug.core.asyncio_compat import run_coroutine_sync
 from unplug.core.boundaries import maybe_wrap_untrusted
 from unplug.core.config import PipelineConfig
 from unplug.core.context import ExecutionContext
+from unplug.core.decision import ML_ABSTAIN_SUBCATEGORY, should_invoke_ml
 from unplug.core.encodings import EncodingClassifier, scan_encoding_blobs
 from unplug.core.judge import JudgeContext, JudgeProvider
 from unplug.core.logging import get_logger
-from unplug.core.ml_band import ML_ABSTAIN_SUBCATEGORY
 from unplug.core.normalize import Normalizer
 from unplug.core.stats import MetricsCollector
 from unplug.core.taint import TaintedText, TrustLevel, trust_level_from_source
@@ -115,9 +115,13 @@ class InputPipeline(BasePipeline):
         for scanner in regex_scanners:
             findings.extend(scanner.scan(input_data, context))
 
-        block_threshold = self._config.thresholds.block
         risk = max((f.score for f in findings), default=0.0)
-        if ml_scanners and risk < block_threshold:
+        if ml_scanners and should_invoke_ml(
+            regex_risk=risk,
+            regex_flagged=bool(findings),
+            gate=self._config.ml_gate,
+            block_threshold=self._config.thresholds.block,
+        ):
             for scanner in ml_scanners:
                 findings.extend(scanner.scan(input_data, context))
 

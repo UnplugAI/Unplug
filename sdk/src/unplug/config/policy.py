@@ -16,6 +16,42 @@ class RedactionMode(StrEnum):
     NONE = "none"
 
 
+class DecisionMode(StrEnum):
+    """How ML doc-head and span-head signals combine into a detection."""
+
+    DOC_OR_SPAN = "doc_or_span"
+    DOC_ONLY = "doc_only"
+    DOC_GATED = "doc_gated"
+
+
+class MlGateConfig(BaseModel):
+    """Hybrid regex-to-ML routing: run the ML scanner only when regex is uncertain.
+
+    Ported from the server's semantic-layer routing. Defaults preserve the
+    classic behavior: always run ML below the high-confidence cutoff.
+    """
+
+    model_config = {"frozen": True}
+
+    gray_high: float | None = Field(
+        default=None,
+        description="Skip ML at/above this regex risk; None = pipeline block threshold",
+    )
+    gray_low: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Gray-band floor: below this (and nothing flagged) ML is skipped",
+    )
+    always_below_high: bool = Field(
+        default=True,
+        description=(
+            "True: second-pass every scan below gray_high (catches regex misses at risk 0). "
+            "False: invoke ML only in the gray band or when regex flagged something."
+        ),
+    )
+
+
 class ScanPolicy(BaseModel):
     """Controls redact/review/block using per-span scores and flagged coverage."""
 
@@ -52,6 +88,16 @@ class ScanPolicy(BaseModel):
         ge=0.0,
         le=1.0,
         description="Doc score below this (and no span fire) -> ALLOW band",
+    )
+    decision_mode: DecisionMode = Field(
+        default=DecisionMode.DOC_OR_SPAN,
+        description="How ML doc/span heads combine: doc_or_span | doc_only | doc_gated",
+    )
+    tau_doc_gate: float = Field(
+        default=0.3,
+        ge=0.0,
+        le=1.0,
+        description="DOC_GATED only: doc score alone suffices at/above this once doc head fires",
     )
     sensitive_context_enabled: bool = Field(
         default=True,

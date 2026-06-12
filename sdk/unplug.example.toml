@@ -60,6 +60,12 @@ block = 0.8
 redact = 0.5
 review = 0.3
 
+# Hybrid regex-to-ML routing: skip ML when regex is already confident.
+[pipeline.ml_gate]
+# gray_high = 0.8        # skip ML at/above this regex risk (default: block threshold)
+gray_low = 0.0           # gray-band floor when always_below_high = false
+always_below_high = true # false = run ML only in the gray band or on a regex flag
+
 # Per-scanner overrides
 [scanners.injection]
 base_score = 0.85
@@ -84,6 +90,9 @@ base_score = 0.90
 [policy]
 abstain_enabled = true
 tau_abstain_low = 0.35
+# decision_mode: how ML doc/span heads combine: doc_or_span | doc_only | doc_gated
+decision_mode = "doc_or_span"
+tau_doc_gate = 0.3
 sensitive_context_enabled = true
 sensitive_context_boost = 0.2
 sensitive_context_block_delta = 0.15

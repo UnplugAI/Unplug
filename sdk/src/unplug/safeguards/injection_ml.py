@@ -6,8 +6,15 @@ from collections.abc import Generator
 
 from unplug.core.config import ScannerConfig
 from unplug.core.context import ExecutionContext
+from unplug.core.decision import (
+    ML_ABSTAIN_SUBCATEGORY,
+    DecisionMode,
+    DecisionPolicy,
+    MlBand,
+    decide_band,
+    max_span_score,
+)
 from unplug.core.disposition import DispositionLabel, resolve_disposition
-from unplug.core.ml_band import ML_ABSTAIN_SUBCATEGORY, MlBand, decide_ml_band, max_span_score
 from unplug.core.models import ModelProvider
 from unplug.core.normalize import Normalizer
 from unplug.core.stats import MetricsCollector
@@ -91,28 +98,33 @@ class InjectionSpanScanner(ModelScanner):
         policy = context.scan_policy
         doc_threshold = float(cfg.get("doc_threshold", cfg.get("inj_threshold", 0.5)))
         span_threshold = float(cfg.get("inj_threshold", 0.5))
-        tau_abstain_low = (
-            policy.tau_abstain_low
-            if policy is not None
-            else float(cfg.get("tau_abstain_low", 0.35))
-        )
-        abstain_enabled = (
-            policy.abstain_enabled if policy is not None else bool(cfg.get("abstain_enabled", True))
+        decision = DecisionPolicy(
+            mode=(
+                policy.decision_mode
+                if policy is not None
+                else DecisionMode(str(cfg.get("decision_mode", DecisionMode.DOC_OR_SPAN)))
+            ),
+            tau_doc=doc_threshold,
+            tau_span=span_threshold,
+            tau_doc_gate=(
+                policy.tau_doc_gate if policy is not None else float(cfg.get("tau_doc_gate", 0.3))
+            ),
+            tau_abstain_low=(
+                policy.tau_abstain_low
+                if policy is not None
+                else float(cfg.get("tau_abstain_low", 0.35))
+            ),
+            abstain_enabled=(
+                policy.abstain_enabled
+                if policy is not None
+                else bool(cfg.get("abstain_enabled", True))
+            ),
         )
         span_score = max_span_score(list(prediction.spans))
-
-        band = (
-            decide_ml_band(
-                doc_score=float(prediction.doc_score),
-                span_score=span_score,
-                tau_doc=doc_threshold,
-                tau_span=span_threshold,
-                tau_abstain_low=tau_abstain_low,
-            )
-            if abstain_enabled
-            else MlBand.BLOCK
-            if (float(prediction.doc_score) >= doc_threshold or span_score >= span_threshold)
-            else MlBand.ALLOW
+        band = decide_band(
+            doc_score=float(prediction.doc_score),
+            span_score=span_score,
+            policy=decision,
         )
 
         if band == MlBand.ALLOW:

@@ -5,7 +5,7 @@ from __future__ import annotations
 from unplug.api.enums import Action
 from unplug.api.types import Finding
 from unplug.config.policy import RedactionMode, ScanPolicy
-from unplug.core.ml_band import ML_ABSTAIN_SUBCATEGORY
+from unplug.core.decision import ML_ABSTAIN_SUBCATEGORY
 
 
 def merge_spans(spans: list[tuple[int, int]], *, merge: bool) -> list[tuple[int, int]]:

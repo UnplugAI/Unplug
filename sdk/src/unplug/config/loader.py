@@ -17,7 +17,7 @@ from unplug.config.cache import CacheConfig
 from unplug.config.guard import GuardConfig, PipelineConfig, ScannerConfig, ThresholdConfig
 from unplug.config.limits import LimitConfig
 from unplug.config.messages import MessageConfig
-from unplug.config.policy import ScanPolicy
+from unplug.config.policy import MlGateConfig, ScanPolicy
 from unplug.config.tools import ToolPolicyConfig
 
 
@@ -94,6 +94,10 @@ def _build_pipeline(data: dict[str, Any]) -> PipelineConfig:
         kwargs["policy"] = _build_policy(data["policy"])
     if "fail_closed" in data:
         kwargs["fail_closed"] = data["fail_closed"]
+    if "ml_gate" in data:
+        kwargs["ml_gate"] = MlGateConfig(
+            **{k: v for k, v in data["ml_gate"].items() if k in MlGateConfig.model_fields}
+        )
     return PipelineConfig(**kwargs)
 
 
