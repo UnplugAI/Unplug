@@ -18,6 +18,7 @@ def _register_builtins() -> None:
     from unplug.safeguards.injection import InjectionScanner
     from unplug.safeguards.leakage import LeakageScanner
     from unplug.safeguards.secrets import SecretsScanner
+    from unplug.safeguards.urls import MaliciousUrlScanner
 
     _FACTORIES.update(
         {
@@ -27,6 +28,7 @@ def _register_builtins() -> None:
             "harmful": HarmfulScanner,
             "financial": FinancialScanner,
             "secrets": SecretsScanner,
+            "urls": MaliciousUrlScanner,
         }
     )
     from unplug.safeguards.injection_ml import InjectionSpanScanner

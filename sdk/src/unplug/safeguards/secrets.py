@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Generator
 
+from unplug.core.canary import CANARY_NAME_PREFIX
 from unplug.core.config import ScannerConfig
 from unplug.core.context import ExecutionContext
 from unplug.core.stats import MetricsCollector
@@ -29,6 +30,18 @@ class SecretsScanner(BaseScanner):
             return
 
         for m in context.secrets_registry.contains(text.text):
+            if m.secret_name.startswith(CANARY_NAME_PREFIX):
+                yield Finding(
+                    category="leakage",
+                    subcategory="prompt_leak_canary",
+                    stage="canary",
+                    span_start=m.span_start,
+                    span_end=m.span_end,
+                    score=self._config.base_score,
+                    evidence=f"Canary token '{m.secret_name}' leaked into output",
+                    replacement="[REDACTED:canary]",
+                )
+                continue
             yield Finding(
                 category="secrets",
                 subcategory=f"registered_secret:{m.secret_name}",

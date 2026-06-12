@@ -62,7 +62,7 @@ class GuardConfig(BaseModel):
     """Top-level configuration for the Guard."""
 
     scanners: list[str] = Field(
-        default_factory=lambda: ["injection", "destructive", "leakage", "harmful"]
+        default_factory=lambda: ["injection", "destructive", "leakage", "harmful", "urls"]
     )
     mode: str = "local"
     server_url: str | None = None

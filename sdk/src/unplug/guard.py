@@ -14,6 +14,7 @@ from unplug.config.policy import ScanPolicy
 from unplug.core.approval import ApprovalProvider, NullApprovalProvider
 from unplug.core.boundaries import maybe_wrap_untrusted
 from unplug.core.cache import SafePrefixState, ScanCache, merge_suffix_result
+from unplug.core.canary import CanaryRegistry
 from unplug.core.context import ExecutionContext, ToolCall
 from unplug.core.encodings import EncodingClassifier, default_encoding_classifier
 from unplug.core.judge import JudgeProvider
@@ -125,6 +126,7 @@ class Guard:
         self._judge = judge
         self._metrics = MetricsCollector()
         self._secrets_registry = secrets_registry or SecretsRegistry()
+        self._canaries = CanaryRegistry()
         scan_cache = (
             ScanCache(max_chunk_entries=cfg.cache.max_chunk_entries) if cfg.cache.enabled else None
         )
@@ -225,6 +227,7 @@ class Guard:
             secrets_sanitizer=SecretsSanitizer(self._secrets_registry),
             leakage_scanner=self._registry.get("leakage"),
             secrets_scanner=self._registry.get("secrets"),
+            url_scanner=self._registry.get("urls"),
             config=cfg.pipeline,
             metrics=self._metrics,
             trajectory_config=cfg.trajectory,
@@ -252,6 +255,20 @@ class Guard:
     @property
     def secrets(self) -> SecretsRegistry:
         return self._secrets_registry
+
+    @property
+    def canaries(self) -> CanaryRegistry:
+        return self._canaries
+
+    def add_canary(self, prompt: str, *, label: str = "system_prompt") -> str:
+        """Plant a canary token in a prompt (Rebuff pattern).
+
+        Any reappearance of the token in scanned output raises a
+        leakage/prompt_leak_canary finding and gets redacted.
+        """
+        wrapped, record = self._canaries.add_canary(prompt, label=label)
+        self._secrets_registry.register(record.registry_name, record.token, source="canary")
+        return wrapped
 
     @property
     def limits(self) -> LimitConfig:

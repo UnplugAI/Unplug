@@ -1,7 +1,7 @@
 # Unplug configuration - copy to unplug.toml and customize
 
 [guard]
-scanners = ["injection", "destructive", "leakage", "harmful"]
+scanners = ["injection", "destructive", "leakage", "harmful", "urls"]
 # mode: "local" (default) | "server" (hosted API)
 mode = "local"
 fail_closed = true
@@ -16,6 +16,7 @@ require_ml = false
 
 [limits]
 max_input_chars = 50000
+# max_input_tokens = 8192   # estimated offline (max of words and chars/4); off by default
 max_tool_calls_per_session = 100
 blocked_tools = []
 

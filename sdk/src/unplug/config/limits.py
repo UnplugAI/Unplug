@@ -5,6 +5,18 @@ from __future__ import annotations
 from pydantic import BaseModel, Field
 
 
+def estimate_tokens(text: str) -> int:
+    """Offline token estimate: max of whitespace words and chars/4.
+
+    Whitespace splitting undercounts text without spaces (CJK, base64 blobs),
+    chars/4 undercounts whitespace-dense text; the max of both is a
+    conservative bound without pulling in a tokenizer dependency.
+    """
+    if not text:
+        return 0
+    return max(len(text.split()), len(text) // 4)
+
+
 class LimitConfig(BaseModel):
     """Configurable limits for input size and tool call frequency."""
 
@@ -31,6 +43,15 @@ class LimitConfig(BaseModel):
                 actual=len(text),
                 message=f"Input exceeds {self.max_input_chars} chars ({len(text)} provided)",
             )
+        if self.max_input_tokens is not None:
+            tokens = estimate_tokens(text)
+            if tokens > self.max_input_tokens:
+                return LimitViolation(
+                    kind="input_tokens_exceeded",
+                    limit=self.max_input_tokens,
+                    actual=tokens,
+                    message=(f"Input exceeds {self.max_input_tokens} tokens (~{tokens} estimated)"),
+                )
         return None
 
     def check_tool_call_count(self, count: int) -> LimitViolation | None:

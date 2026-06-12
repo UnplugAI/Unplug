@@ -25,6 +25,7 @@ class OutputPipeline(BasePipeline):
         secrets_sanitizer: SecretsSanitizer | None = None,
         leakage_scanner: BaseScanner | None = None,
         secrets_scanner: BaseScanner | None = None,
+        url_scanner: BaseScanner | None = None,
         config: PipelineConfig | None = None,
         metrics: MetricsCollector | None = None,
         trajectory_config: TrajectoryConfig | None = None,
@@ -40,6 +41,7 @@ class OutputPipeline(BasePipeline):
         self._sanitizer = secrets_sanitizer
         self._leakage = leakage_scanner
         self._secrets = secrets_scanner
+        self._urls = url_scanner
         self._boundary_config = boundary_config or BoundaryConfig()
 
     def run(
@@ -69,6 +71,8 @@ class OutputPipeline(BasePipeline):
             findings.extend(self._secrets.scan(input_data, context))
         if self._leakage:
             findings.extend(self._leakage.scan(input_data, context))
+        if self._urls:
+            findings.extend(self._urls.scan(input_data, context))
         return findings
 
     def _decide(
