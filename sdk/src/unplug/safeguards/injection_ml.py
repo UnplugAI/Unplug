@@ -107,7 +107,7 @@ class InjectionSpanScanner(ModelScanner):
             tau_doc=doc_threshold,
             tau_span=span_threshold,
             tau_doc_gate=(
-                policy.tau_doc_gate if policy is not None else float(cfg.get("tau_doc_gate", 0.3))
+                policy.tau_doc_gate if policy is not None else float(cfg.get("tau_doc_gate", 0.99))
             ),
             tau_abstain_low=(
                 policy.tau_abstain_low
