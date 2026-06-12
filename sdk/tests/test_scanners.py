@@ -336,7 +336,7 @@ class TestHarmfulScanner:
         assert any(f.subcategory == "illegal_activity" for f in findings)
 
     def test_detects_xss_payload(self):
-        text = _make_text('<script>alert(1)</script>', trust=TrustLevel.TOOL_OUTPUT)
+        text = _make_text("<script>alert(1)</script>", trust=TrustLevel.TOOL_OUTPUT)
         findings = self.scanner.scan(text, self.ctx)
         assert any(f.subcategory == "xss_payload" for f in findings)
 
