@@ -45,6 +45,8 @@ def merge_window_predictions(
     all_spans: list[CharSpan] = []
     doc_score = 0.0
     doc_source = "token_max"
+    disposition_label: str | None = None
+    disposition_probs: dict[str, float] | None = None
 
     for offset, pred in window_preds:
         all_spans.extend(
@@ -56,15 +58,24 @@ def merge_window_predictions(
             )
             for span in pred.spans
         )
+        # Worst window wins; it also supplies the document disposition.
         if pred.doc_score > doc_score:
             doc_score = pred.doc_score
             doc_source = pred.doc_score_source
+            if pred.disposition_probs is not None:
+                disposition_label = pred.disposition_label
+                disposition_probs = pred.disposition_probs
         elif pred.doc_score == doc_score and pred.doc_score_source == "doc_head":
             doc_source = "doc_head"
+        if disposition_probs is None and pred.disposition_probs is not None:
+            disposition_label = pred.disposition_label
+            disposition_probs = pred.disposition_probs
 
     return SpanPrediction(
         text_normalized=full_text,
         spans=merge_char_spans(all_spans),
         doc_score=doc_score,
         doc_score_source=doc_source,
+        disposition_label=disposition_label,
+        disposition_probs=disposition_probs,
     )

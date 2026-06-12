@@ -132,16 +132,25 @@ class InjectionSpanScanner(ModelScanner):
 
         # Doc-only signal (no span evidence) on harmful-looking text is the
         # harmful-not-injection contrast: leave it to the harmful scanner.
+        # v132 checkpoints carry a trained disposition head; the regex-based
+        # heuristic remains the fallback for older checkpoints.
         harmful_not_injection = False
         if not prediction.spans:
-            disposition = resolve_disposition(
-                doc_injection_score=float(prediction.doc_score),
-                harmful_score=harmful_signal(norm.text),
-                span_injection_score=span_score,
-                tau_injection=doc_threshold,
-                tau_span=span_threshold,
-            )
-            harmful_not_injection = disposition.label is DispositionLabel.HARMFUL_NOT_INJECTION
+            if prediction.disposition_probs is not None:
+                disposition_threshold = float(cfg.get("disposition_threshold", 0.5))
+                harmful_not_injection = (
+                    prediction.disposition_probs.get("harmful_not_injection", 0.0)
+                    >= disposition_threshold
+                )
+            else:
+                disposition = resolve_disposition(
+                    doc_injection_score=float(prediction.doc_score),
+                    harmful_score=harmful_signal(norm.text),
+                    span_injection_score=span_score,
+                    tau_injection=doc_threshold,
+                    tau_span=span_threshold,
+                )
+                harmful_not_injection = disposition.label is DispositionLabel.HARMFUL_NOT_INJECTION
 
         if band == MlBand.ABSTAIN:
             if harmful_not_injection:

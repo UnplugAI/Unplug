@@ -42,6 +42,8 @@ class SpanInferenceModel:
         self._is_dual_head = False
         self._doc_pos_index = 1
         self._max_length = max_length or 256
+        self._has_disposition = False
+        self._id2disposition: dict[int, str] = {}
 
     @property
     def checkpoint(self) -> Path:
@@ -106,6 +108,14 @@ class SpanInferenceModel:
 
         self._is_dual_head = bool(getattr(config, "dual_head", False))
         self._doc_pos_index = int(getattr(config, "doc_positive_index", 1))
+        # v132 ternary checkpoints record the disposition head in config.json.
+        self._has_disposition = bool(getattr(config, "disposition_head", False))
+        disposition2id = getattr(config, "disposition2id", None) or {
+            "benign": 0,
+            "injection": 1,
+            "harmful_not_injection": 2,
+        }
+        self._id2disposition = {int(v): str(k) for k, v in disposition2id.items()}
 
         if self._is_dual_head:
             from unplug.ml.dual_head_model import DebertaV2ForDualHead
@@ -134,6 +144,8 @@ class SpanInferenceModel:
         self._label2id = {}
         self._id2label = {}
         self._is_dual_head = False
+        self._has_disposition = False
+        self._id2disposition = {}
 
     def predict(self, text: str) -> SpanPrediction:
         return self.predict_batch([text], batch_size=1)[0]
@@ -185,6 +197,7 @@ class SpanInferenceModel:
                 logits = outputs.logits
                 probs = torch.softmax(logits, dim=-1)
                 doc_logits = getattr(outputs, "doc_logits", None)
+                disposition_logits = getattr(outputs, "disposition_logits", None)
 
             for i, body in enumerate(chunk):
                 offset_mapping = offset_mappings[i].tolist()
@@ -201,12 +214,17 @@ class SpanInferenceModel:
                     row_probs=row_probs,
                     doc_logits=doc_logits[i] if doc_logits is not None else None,
                 )
+                disposition_label, disposition_probs = self._disposition(
+                    disposition_logits[i] if disposition_logits is not None else None
+                )
                 out.append(
                     SpanPrediction(
                         text_normalized=body,
                         spans=merge_char_spans(spans),
                         doc_score=doc_prob,
                         doc_score_source=doc_source,
+                        disposition_label=disposition_label,
+                        disposition_probs=disposition_probs,
                     )
                 )
         return out
@@ -225,6 +243,8 @@ class SpanInferenceModel:
         all_spans: list[list[CharSpan]] = [[] for _ in range(sample_count)]
         doc_scores: list[float] = [0.0] * sample_count
         doc_sources: list[str] = ["token_max"] * sample_count
+        disposition_labels: list[str | None] = [None] * sample_count
+        disposition_probs: list[dict[str, float] | None] = [None] * sample_count
         overflow_map = encoding["overflow_to_sample_mapping"].tolist()
         batch_size = int(encoding["input_ids"].shape[0])
         skip_keys = frozenset(
@@ -244,6 +264,7 @@ class SpanInferenceModel:
                 logits = outputs.logits[0]
                 probs = torch.softmax(logits, dim=-1)
                 doc_logits = getattr(outputs, "doc_logits", None)
+                disposition_logits = getattr(outputs, "disposition_logits", None)
 
             spans = decode_bioes_spans(
                 offset_mapping,
@@ -258,6 +279,15 @@ class SpanInferenceModel:
                 row_probs=probs,
                 doc_logits=doc_logits[0] if doc_logits is not None else None,
             )
+            # Worst window wins: the chunk with the highest doc score also
+            # supplies the document's disposition.
+            if doc_prob >= doc_scores[sample_idx]:
+                disp_label, disp_probs = self._disposition(
+                    disposition_logits[0] if disposition_logits is not None else None
+                )
+                if disp_probs is not None:
+                    disposition_labels[sample_idx] = disp_label
+                    disposition_probs[sample_idx] = disp_probs
             if doc_source == "doc_head":
                 doc_scores[sample_idx] = max(doc_scores[sample_idx], doc_prob)
                 doc_sources[sample_idx] = "doc_head"
@@ -270,6 +300,8 @@ class SpanInferenceModel:
                 spans=merge_char_spans(all_spans[i]),
                 doc_score=doc_scores[i],
                 doc_score_source=doc_sources[i],
+                disposition_label=disposition_labels[i],
+                disposition_probs=disposition_probs[i],
             )
             for i in range(sample_count)
         ]
@@ -292,6 +324,22 @@ class SpanInferenceModel:
             label2id=self._label2id,
         )
         return token_max, "token_max"
+
+    def _disposition(
+        self, disposition_logits: object | None
+    ) -> tuple[str | None, dict[str, float] | None]:
+        """Softmax the ternary head for one row; (None, None) without the head."""
+        import torch
+
+        if not self._has_disposition or disposition_logits is None:
+            return None, None
+        disp = torch.softmax(disposition_logits, dim=-1)
+        probs = {
+            self._id2disposition.get(j, str(j)): float(disp[j].item())
+            for j in range(disp.shape[-1])
+        }
+        label = max(probs, key=probs.get)  # type: ignore[arg-type]
+        return label, probs
 
 
 def _token_max_inj_prob(

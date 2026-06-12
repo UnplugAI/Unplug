@@ -40,14 +40,20 @@ def merge_head_tail_predictions(
     merged_spans = merge_char_spans([*head.spans, *shifted_tail])
 
     doc_score = max(head.doc_score, tail.doc_score)
-    if head.doc_score >= tail.doc_score:
-        doc_source = head.doc_score_source
-    else:
-        doc_source = tail.doc_score_source
+    # The riskier window also supplies doc-score source and disposition.
+    winner = head if head.doc_score >= tail.doc_score else tail
+    disposition_label = winner.disposition_label
+    disposition_probs = winner.disposition_probs
+    if disposition_probs is None:
+        other = tail if winner is head else head
+        disposition_label = other.disposition_label
+        disposition_probs = other.disposition_probs
 
     return SpanPrediction(
         text_normalized=full_text,
         spans=merged_spans,
         doc_score=doc_score,
-        doc_score_source=doc_source,
+        doc_score_source=winner.doc_score_source,
+        disposition_label=disposition_label,
+        disposition_probs=disposition_probs,
     )

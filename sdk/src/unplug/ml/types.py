@@ -20,3 +20,8 @@ class SpanPrediction:
     # Document-level injection probability (dual-head doc head, or max token INJ prob).
     doc_score: float = 0.0
     doc_score_source: str = "token_max"
+    # v132 ternary checkpoints expose a disposition head
+    # (benign | injection | harmful_not_injection). None on older checkpoints,
+    # in which case the heuristic in core.disposition is the fallback.
+    disposition_label: str | None = None
+    disposition_probs: dict[str, float] | None = None

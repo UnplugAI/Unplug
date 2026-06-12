@@ -20,16 +20,24 @@ class DualHeadOutput(ModelOutput):
     loss: torch.FloatTensor | None = None
     logits: torch.FloatTensor | None = None
     doc_logits: torch.FloatTensor | None = None
+    disposition_logits: torch.FloatTensor | None = None
 
 
 class DebertaV2ForDualHead(DebertaV2PreTrainedModel):
-    """DeBERTa-v2 with joint token-classification + document-classification heads."""
+    """DeBERTa-v2 with joint token-classification + document-classification heads.
+
+    v132 checkpoints additionally carry a ternary disposition head
+    (benign | injection | harmful_not_injection), gated on config.disposition_head
+    so older dual-head checkpoints keep loading unchanged.
+    """
 
     def __init__(self, config) -> None:
         super().__init__(config)
         self.num_labels = int(config.num_labels)
         self.num_doc_labels = int(getattr(config, "num_doc_labels", 2))
         self.doc_loss_weight = float(getattr(config, "doc_loss_weight", 1.0))
+        self.has_disposition_head = bool(getattr(config, "disposition_head", False))
+        self.num_disposition_labels = int(getattr(config, "num_disposition_labels", 3))
 
         self.deberta = DebertaV2Model(config)
         drop = getattr(config, "cls_dropout", None)
@@ -38,6 +46,8 @@ class DebertaV2ForDualHead(DebertaV2PreTrainedModel):
         self.dropout = nn.Dropout(float(drop))
         self.token_classifier = nn.Linear(config.hidden_size, self.num_labels)
         self.doc_classifier = nn.Linear(config.hidden_size, self.num_doc_labels)
+        if self.has_disposition_head:
+            self.disposition_classifier = nn.Linear(config.hidden_size, self.num_disposition_labels)
 
         self.post_init()
 
@@ -68,6 +78,11 @@ class DebertaV2ForDualHead(DebertaV2PreTrainedModel):
         token_logits = self.token_classifier(self.dropout(sequence_output))
         doc_repr = sequence_output[:, 0, :]
         doc_logits = self.doc_classifier(self.dropout(doc_repr))
+        disposition_logits = (
+            self.disposition_classifier(self.dropout(doc_repr))
+            if self.has_disposition_head
+            else None
+        )
 
         loss = None
         if labels is not None:
@@ -81,4 +96,9 @@ class DebertaV2ForDualHead(DebertaV2PreTrainedModel):
                 doc_loss = loss_fct(doc_logits.view(-1, self.num_doc_labels), doc_labels.view(-1))
                 loss = token_loss + self.doc_loss_weight * doc_loss
 
-        return DualHeadOutput(loss=loss, logits=token_logits, doc_logits=doc_logits)
+        return DualHeadOutput(
+            loss=loss,
+            logits=token_logits,
+            doc_logits=doc_logits,
+            disposition_logits=disposition_logits,
+        )
