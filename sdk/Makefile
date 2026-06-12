@@ -65,9 +65,10 @@ docker-e2e:
 test:
 	uv run pytest -v
 
-# Coverage artifacts for CI PR comment (coverage.xml + pytest.xml)
+# Coverage artifacts for CI PR comment (coverage.xml + pytest.xml).
+# Timing-sensitive stress tests run in check-ci; skip them here to avoid flaky reruns.
 test-cov:
-	uv run pytest -q --cov=unplug --cov-report=xml:coverage.xml --cov-report=term --junitxml=pytest.xml
+	uv run pytest -q -m "not requires_docker and not slow" --cov=unplug --cov-report=xml:coverage.xml --cov-report=term --junitxml=pytest.xml
 
 test-security:
 	uv run pytest \

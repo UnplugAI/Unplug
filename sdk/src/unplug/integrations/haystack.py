@@ -108,7 +108,7 @@ class DocumentGuardReport:
     def record(self, index: int, outcome: DocumentScanOutcome) -> None:
         self.total += 1
         self.max_risk = max(self.max_risk, outcome.risk_score)
-        if outcome.action != DocumentAction.KEPT:
+        if outcome.action in (DocumentAction.REDACTED, DocumentAction.DROPPED):
             self.flagged_indices.append(index)
         if outcome.action == DocumentAction.KEPT:
             self.kept += 1
@@ -207,12 +207,14 @@ def scan_for_ingestion(
     """
     result = guard.scan(content, source=Source.RETRIEVED)
     blocked = block_on_injection and result.action == Action.BLOCK
-    meta_update = {
-        "unplug_ingest_scanned": True,
+    index_ok = not blocked
+    meta_update: dict[str, Any] = {
         "unplug_ingest_risk": round(result.risk_score, 4),
         "unplug_ingest_blocked": blocked,
     }
-    return IngestionDecision(index_ok=not blocked, scan=result, meta_update=meta_update)
+    if index_ok:
+        meta_update["unplug_ingest_scanned"] = True
+    return IngestionDecision(index_ok=index_ok, scan=result, meta_update=meta_update)
 
 
 def _require_haystack() -> Any:
@@ -275,9 +277,15 @@ def _build_component_class() -> type:
     return UnplugDocumentGuard
 
 
+_UnplugDocumentGuard: type | None = None
+
+
 def __getattr__(name: str) -> Any:
     # Lazily build the @component class on first access so importing this module
     # (e.g. for scan_document in tests) never requires Haystack to be installed.
+    global _UnplugDocumentGuard
     if name == "UnplugDocumentGuard":
-        return _build_component_class()
+        if _UnplugDocumentGuard is None:
+            _UnplugDocumentGuard = _build_component_class()
+        return _UnplugDocumentGuard
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

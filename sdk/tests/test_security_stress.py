@@ -30,6 +30,7 @@ class TestSecretsRegistryStress:
 
 
 class TestScanLatencyStress:
+    @pytest.mark.slow
     def test_ten_k_benign_lines_under_500ms(self, guard: Guard) -> None:
         line = "Please summarize the quarterly report for the finance team."
         # Stay under default LimitConfig max_input_length (50k chars).
@@ -40,6 +41,7 @@ class TestScanLatencyStress:
         assert result.safe is True
         assert elapsed_ms < 500.0
 
+    @pytest.mark.slow
     def test_repeated_scans_stable(self, guard: Guard) -> None:
         text = "What is the weather in Boston today?"
         start = time.perf_counter()

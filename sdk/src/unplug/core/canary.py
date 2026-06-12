@@ -7,6 +7,7 @@ leakage. Detection is exact-match and offline.
 
 from __future__ import annotations
 
+import hashlib
 import secrets
 import threading
 import time
@@ -31,7 +32,8 @@ class CanaryRecord(BaseModel):
     @property
     def registry_name(self) -> str:
         """Name for SecretsRegistry registration; excludes the full token value."""
-        return f"{CANARY_NAME_PREFIX}{self.label}:{self.token[:4]}"
+        digest = hashlib.sha256(self.token.encode()).hexdigest()[:12]
+        return f"{CANARY_NAME_PREFIX}{self.label}:{digest}"
 
 
 def mint_canary(label: str = "system_prompt") -> CanaryRecord:

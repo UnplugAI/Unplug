@@ -112,6 +112,7 @@ addopts = ["-m", "not requires_docker"]
 markers = [
     "requires_ml_weights: tests needing checkpoint weight files on disk",
     "requires_docker: tests needing docker daemon (sidecar E2E)",
+    "slow: timing-sensitive stress tests (skipped in coverage CI rerun)",
 ]
 filterwarnings = [
     "ignore:clean_up_tokenization_spaces:FutureWarning:transformers.tokenization_utils_base",

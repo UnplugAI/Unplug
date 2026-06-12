@@ -89,6 +89,7 @@ class TestIngestion:
         decision = scan_for_ingestion(Guard(), _INJECTION)
         assert decision.index_ok is False
         assert decision.meta_update["unplug_ingest_blocked"] is True
+        assert "unplug_ingest_scanned" not in decision.meta_update
 
     def test_injection_indexed_when_block_disabled(self):
         decision = scan_for_ingestion(Guard(), _INJECTION, block_on_injection=False)
@@ -137,6 +138,7 @@ class TestComponentLazyImport:
             assert "unplug-ai[haystack]" in str(exc)
         else:
             assert isinstance(cls, type)
+            assert hs.UnplugDocumentGuard is cls  # cached, not rebuilt each access
 
     def test_unknown_attribute_raises(self):
         import unplug.integrations.haystack as hs
