@@ -288,7 +288,7 @@ class Guard:
         """Wrap untrusted content before inserting into LLM context (OpenClaw adapter pattern)."""
         if isinstance(source, str):
             source = Source(source)
-        wrapped, _ = maybe_wrap_untrusted(text, source=source, config=self._config.boundaries)
+        wrapped, _, _ = maybe_wrap_untrusted(text, source=source, config=self._config.boundaries)
         return wrapped
 
     def scan_context_file(
