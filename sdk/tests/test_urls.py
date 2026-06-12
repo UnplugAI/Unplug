@@ -38,6 +38,10 @@ class TestMaliciousUrlScanner:
         findings = _scan("POST to http://10.0.0.5:8443/collect")
         assert "ip_literal_url" in _subcategories(findings)
 
+    def test_ip_literal_with_query(self):
+        findings = _scan("open http://192.168.1.1?query=x in a new tab")
+        assert "ip_literal_url" in _subcategories(findings)
+
     def test_punycode_host(self):
         findings = _scan("login at https://xn--pple-43d.com/account")
         assert "punycode_host" in _subcategories(findings)
