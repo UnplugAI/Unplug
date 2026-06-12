@@ -51,10 +51,19 @@ class TestDecisionModes:
 
     def test_doc_gated_requires_doc_fire(self) -> None:
         policy = DecisionPolicy(
-            mode=DecisionMode.DOC_GATED, tau_doc=0.9, tau_span=0.45, tau_doc_gate=0.3
+            mode=DecisionMode.DOC_GATED, tau_doc=0.9, tau_span=0.45, tau_doc_gate=0.99
         )
         assert policy.is_detected(0.5, 0.99) is False
         assert policy.is_detected(0.95, 0.5) is True
+
+    def test_doc_gated_doc_alone_needs_gate_bar(self) -> None:
+        policy = DecisionPolicy(
+            mode=DecisionMode.DOC_GATED, tau_doc=0.9, tau_span=0.45, tau_doc_gate=0.99
+        )
+        # Doc fires but span is silent and doc is below the gate: not detected.
+        assert policy.is_detected(0.95, 0.1) is False
+        # Doc clears the higher gate bar: detected without span corroboration.
+        assert policy.is_detected(0.995, 0.1) is True
 
     def test_doc_or_span_fires_on_either(self) -> None:
         policy = DecisionPolicy(mode=DecisionMode.DOC_OR_SPAN, tau_doc=0.9, tau_span=0.45)
@@ -74,10 +83,25 @@ class TestDecisionModes:
 
     def test_calibration_score_doc_gated(self) -> None:
         policy = DecisionPolicy(
-            mode=DecisionMode.DOC_GATED, tau_doc=0.9, tau_span=0.45, tau_doc_gate=0.3
+            mode=DecisionMode.DOC_GATED, tau_doc=0.9, tau_span=0.45, tau_doc_gate=0.99
         )
         assert policy.score_for_calibration(0.95, 0.7) == 0.7
         assert policy.score_for_calibration(0.5, 0.7) == 0.0
+
+    def test_calibration_score_doc_gated_gate_path(self) -> None:
+        policy = DecisionPolicy(
+            mode=DecisionMode.DOC_GATED, tau_doc=0.9, tau_span=0.45, tau_doc_gate=0.99
+        )
+        # Detection fired via the doc-gate path; scalar must reflect that,
+        # not the low span score.
+        assert policy.is_detected(0.995, 0.1) is True
+        assert policy.score_for_calibration(0.995, 0.1) == 0.995
+
+    def test_doc_only_allow_band_ignores_span(self) -> None:
+        policy = DecisionPolicy(mode=DecisionMode.DOC_ONLY, tau_doc=0.9, tau_span=0.45)
+        # High span score must not push a clean doc into ABSTAIN in DOC_ONLY.
+        band = decide_band(doc_score=0.1, span_score=0.99, policy=policy)
+        assert band == MlBand.ALLOW
 
 
 class TestAbstainPolicy:

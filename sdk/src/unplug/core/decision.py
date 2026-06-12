@@ -45,10 +45,13 @@ class DecisionPolicy(BaseModel):
     tau_doc: float = Field(default=0.95, ge=0.0, le=1.0)
     tau_span: float = Field(default=0.5, ge=0.0, le=1.0)
     tau_doc_gate: float = Field(
-        default=0.3,
+        default=0.99,
         ge=0.0,
         le=1.0,
-        description="DOC_GATED: doc score alone suffices at/above this once the doc head fires",
+        description=(
+            "DOC_GATED: doc score alone (no span corroboration) detects only at/above "
+            "this second, higher bar; values <= tau_doc make the gate a no-op"
+        ),
     )
     tau_abstain_low: float = Field(
         default=0.35,
@@ -78,7 +81,13 @@ class DecisionPolicy(BaseModel):
         if self.mode == DecisionMode.DOC_ONLY:
             return float(doc_score)
         if self.mode == DecisionMode.DOC_GATED:
-            return float(span_score) if self.doc_fires(doc_score) else 0.0
+            if not self.doc_fires(doc_score):
+                return 0.0
+            if float(doc_score) >= self.tau_doc_gate:
+                # Doc alone cleared the gate: the scalar must reflect the
+                # signal that fired, not a possibly-low span score.
+                return max(float(doc_score), float(span_score))
+            return float(span_score)
         return max(float(doc_score), float(span_score))
 
 
@@ -88,7 +97,10 @@ def decide_band(*, doc_score: float, span_score: float, policy: DecisionPolicy) 
         return MlBand.BLOCK
     if not policy.abstain_enabled:
         return MlBand.ALLOW
-    if doc_score < policy.tau_abstain_low and span_score < policy.tau_span:
+    # DOC_ONLY ignores the span head for detection, so it must not let a
+    # high span score push an otherwise-clean doc into the ABSTAIN band.
+    span_holds = policy.mode != DecisionMode.DOC_ONLY and policy.span_fires(span_score)
+    if doc_score < policy.tau_abstain_low and not span_holds:
         return MlBand.ALLOW
     return MlBand.ABSTAIN
 

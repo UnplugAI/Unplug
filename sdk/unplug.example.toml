@@ -63,8 +63,9 @@ review = 0.3
 # Hybrid regex-to-ML routing: skip ML when regex is already confident.
 [pipeline.ml_gate]
 # gray_high = 0.8        # skip ML at/above this regex risk (default: block threshold)
-gray_low = 0.0           # gray-band floor when always_below_high = false
 always_below_high = true # false = run ML only in the gray band or on a regex flag
+# When always_below_high = false, set a positive floor or the skip is a no-op:
+# gray_low = 0.3         # below this (and nothing flagged) ML is skipped
 
 # Per-scanner overrides
 [scanners.injection]
@@ -92,7 +93,9 @@ abstain_enabled = true
 tau_abstain_low = 0.35
 # decision_mode: how ML doc/span heads combine: doc_or_span | doc_only | doc_gated
 decision_mode = "doc_or_span"
-tau_doc_gate = 0.3
+# doc_gated only: doc alone (no span corroboration) detects at/above this bar.
+# Must be above the doc threshold (0.95) or the gate has no effect.
+tau_doc_gate = 0.99
 sensitive_context_enabled = true
 sensitive_context_boost = 0.2
 sensitive_context_block_delta = 0.15

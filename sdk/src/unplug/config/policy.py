@@ -35,6 +35,8 @@ class MlGateConfig(BaseModel):
 
     gray_high: float | None = Field(
         default=None,
+        ge=0.0,
+        le=1.0,
         description="Skip ML at/above this regex risk; None = pipeline block threshold",
     )
     gray_low: float = Field(
@@ -94,10 +96,13 @@ class ScanPolicy(BaseModel):
         description="How ML doc/span heads combine: doc_or_span | doc_only | doc_gated",
     )
     tau_doc_gate: float = Field(
-        default=0.3,
+        default=0.99,
         ge=0.0,
         le=1.0,
-        description="DOC_GATED only: doc score alone suffices at/above this once doc head fires",
+        description=(
+            "DOC_GATED only: doc score alone (no span corroboration) detects at/above "
+            "this second, higher bar; values <= tau_doc make the gate a no-op"
+        ),
     )
     sensitive_context_enabled: bool = Field(
         default=True,
