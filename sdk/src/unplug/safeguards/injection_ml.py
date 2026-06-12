@@ -6,6 +6,7 @@ from collections.abc import Generator
 
 from unplug.core.config import ScannerConfig
 from unplug.core.context import ExecutionContext
+from unplug.core.disposition import DispositionLabel, resolve_disposition
 from unplug.core.ml_band import ML_ABSTAIN_SUBCATEGORY, MlBand, decide_ml_band, max_span_score
 from unplug.core.models import ModelProvider
 from unplug.core.normalize import Normalizer
@@ -19,6 +20,7 @@ from unplug.ml.document_chunks import (
 from unplug.ml.head_tail import merge_head_tail_predictions, split_head_tail
 from unplug.models import Finding
 from unplug.safeguards.base import ModelScanner
+from unplug.safeguards.harmful import harmful_signal
 
 _DEFAULT_CONFIG = ScannerConfig(base_score=0.85, enabled=True, normalize=True)
 
@@ -116,7 +118,22 @@ class InjectionSpanScanner(ModelScanner):
         if band == MlBand.ALLOW:
             return
 
+        # Doc-only signal (no span evidence) on harmful-looking text is the
+        # harmful-not-injection contrast: leave it to the harmful scanner.
+        harmful_not_injection = False
+        if not prediction.spans:
+            disposition = resolve_disposition(
+                doc_injection_score=float(prediction.doc_score),
+                harmful_score=harmful_signal(norm.text),
+                span_injection_score=span_score,
+                tau_injection=doc_threshold,
+                tau_span=span_threshold,
+            )
+            harmful_not_injection = disposition.label is DispositionLabel.HARMFUL_NOT_INJECTION
+
         if band == MlBand.ABSTAIN:
+            if harmful_not_injection:
+                return
             yield Finding(
                 category="injection",
                 subcategory=ML_ABSTAIN_SUBCATEGORY,
@@ -160,6 +177,7 @@ class InjectionSpanScanner(ModelScanner):
 
         if (
             not prediction.spans
+            and not harmful_not_injection
             and prediction.doc_score >= doc_threshold
             and prediction.doc_score_source == "doc_head"
         ):

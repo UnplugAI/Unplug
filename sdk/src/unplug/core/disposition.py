@@ -42,11 +42,24 @@ def resolve_disposition(
     *,
     doc_injection_score: float,
     harmful_score: float,
+    span_injection_score: float = 0.0,
     tau_harmful: float = 0.7,
     tau_injection: float = 0.45,
+    tau_span: float = 0.5,
 ) -> DispositionPrediction:
-    """Heuristic placeholder until contrast head is trained."""
-    if harmful_score >= tau_harmful and doc_injection_score < tau_injection:
+    """Heuristic placeholder until the contrast head is trained.
+
+    Span hits are direct injection evidence and win outright. Without spans, a
+    high harmful signal is the better explanation for the doc head firing
+    (harmful-not-injection contrast), even when the doc score itself is high.
+    """
+    if span_injection_score >= tau_span:
+        return DispositionPrediction(
+            label=DispositionLabel.INJECTION,
+            score=span_injection_score,
+            evidence="Span-level injection evidence",
+        )
+    if harmful_score >= tau_harmful:
         return DispositionPrediction(
             label=DispositionLabel.HARMFUL_NOT_INJECTION,
             score=harmful_score,
@@ -56,7 +69,7 @@ def resolve_disposition(
         return DispositionPrediction(
             label=DispositionLabel.INJECTION,
             score=doc_injection_score,
-            evidence="Injection doc/span signal",
+            evidence="Injection doc signal",
         )
     return DispositionPrediction(
         label=DispositionLabel.BENIGN,

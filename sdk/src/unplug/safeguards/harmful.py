@@ -43,6 +43,18 @@ _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
 _DEFAULT_CONFIG = ScannerConfig(base_score=0.75)
 
 
+def harmful_signal(normalized_text: str) -> float:
+    """Max harmful-pattern score for already-normalized text.
+
+    Lightweight probe used by the ML injection scanner to resolve the
+    injection vs harmful-not-injection disposition without building findings.
+    """
+    for _, pattern in _PATTERNS:
+        if pattern.search(normalized_text):
+            return _DEFAULT_CONFIG.base_score
+    return 0.0
+
+
 class HarmfulScanner(RegexScanner):
     name = "harmful"
     _patterns = _PATTERNS

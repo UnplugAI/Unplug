@@ -115,9 +115,26 @@ def is_untrusted_source(source: Source | TrustLevel) -> bool:
     return source in _UNTRUSTED_TRUST
 
 
+_FULL_WRAP_RE = re.compile(
+    rf'\A{re.escape(_BEGIN_PREFIX)}\s+source="[a-z_]+"\s+id="([0-9a-f]{{16}})">>>\n'
+    rf"(.*)\n"
+    rf'{re.escape(_END_PREFIX)}\s+id="\1">>>\s*\Z',
+    re.DOTALL,
+)
+
+
 def already_wrapped(text: str) -> bool:
-    """True if text already contains our boundary markers."""
-    return _BEGIN_PREFIX in text
+    """True only for a single well-formed wrap covering the entire payload.
+
+    Markers merely embedded in the text are spoofed (we sanitize at wrap time,
+    so our own output never contains inner markers) and must not short-circuit
+    the sanitize-and-wrap path.
+    """
+    match = _FULL_WRAP_RE.match(text)
+    if match is None:
+        return False
+    inner = match.group(2)
+    return _BEGIN_PREFIX not in inner and _END_PREFIX not in inner
 
 
 def maybe_wrap_untrusted(
