@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write
 
 jobs:
   sdk:
@@ -34,3 +35,19 @@ jobs:
         env:
           RUN_DOCKER_E2E: ""
         run: make check-ci
+
+      - name: Coverage report
+        run: make test-cov
+
+      - name: Coverage comment
+        # Fork PRs get a read-only token, so the comment step would 403.
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: MishaKav/pytest-coverage-comment@v1.7.2
+        with:
+          pytest-xml-coverage-path: sdk/coverage.xml
+          junitxml-path: sdk/pytest.xml
+          title: SDK Coverage
+          badge-title: coverage
+          xml-skip-covered: true
+          report-only-changed-files: true
+          default-branch: main

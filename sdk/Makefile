@@ -1,4 +1,4 @@
-.PHONY: install lint format fix check check-ci test test-security test-ml smoke-ml docker-e2e audit audit-ml scenarios attack-gate examples
+.PHONY: install lint format fix check check-ci test test-cov test-security test-ml smoke-ml docker-e2e audit audit-ml scenarios attack-gate examples
 
 install:
 	uv sync --all-extras --dev
@@ -64,6 +64,10 @@ docker-e2e:
 
 test:
 	uv run pytest -v
+
+# Coverage artifacts for CI PR comment (coverage.xml + pytest.xml)
+test-cov:
+	uv run pytest -q --cov=unplug --cov-report=xml:coverage.xml --cov-report=term --junitxml=pytest.xml
 
 test-security:
 	uv run pytest \
