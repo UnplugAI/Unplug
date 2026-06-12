@@ -68,6 +68,10 @@ _PATTERNS: list[tuple[str, re.Pattern]] = [
             r"(?i)\b(eval\s*\(|exec\s*\(|__import__\s*\(|compile\s*\()",
         ),
     ),
+    (
+        "path_traversal",
+        re.compile(r"(?:\.\.(?:/|\\)){1,}"),
+    ),
 ]
 
 _DEFAULT_CONFIG = ScannerConfig(base_score=0.90)

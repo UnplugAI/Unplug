@@ -47,6 +47,23 @@ class InjectionScanner(RegexScanner):
                     replacement=self._get_replacement(subcategory),
                 )
 
+        evasion_stages = {"zero_width", "homoglyphs", "fullwidth", "enclosed"}
+        if evasion_stages.intersection(norm_result.stages_applied):
+            score = self._compute_score("invisible_text", text)
+            yield Finding(
+                category=self.name,
+                subcategory="invisible_text",
+                stage="normalize",
+                span_start=0,
+                span_end=len(text.text),
+                score=score,
+                evidence=(
+                    "Invisible or homoglyph evasion stripped during normalization: "
+                    f"{', '.join(sorted(evasion_stages.intersection(norm_result.stages_applied)))}"
+                ),
+                replacement=self._get_replacement("invisible_text"),
+            )
+
         if norm_result.reversed_text:
             for subcategory, pattern in self._patterns:
                 for _match in pattern.finditer(norm_result.reversed_text):

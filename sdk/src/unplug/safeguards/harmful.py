@@ -32,6 +32,12 @@ _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
             r"(?i)\b(hack\s+into|steal\s+(credentials?|passwords?)|phishing|ransomware)\b",
         ),
     ),
+    (
+        "xss_payload",
+        re.compile(
+            r"(?i)(<script\b|javascript:|onerror\s*=|onload\s*=|<iframe\b|data:text/html)",
+        ),
+    ),
 ]
 
 _DEFAULT_CONFIG = ScannerConfig(base_score=0.75)

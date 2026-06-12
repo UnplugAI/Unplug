@@ -3,12 +3,21 @@
 from __future__ import annotations
 
 from unplug.core.context import ExecutionContext, ToolCall
+from unplug.core.disposition import (
+    DispositionLabel,
+    DispositionPrediction,
+    DualHeadWithDisposition,
+    resolve_disposition,
+)
 from unplug.core.models import ModelProvider, ModelRegistry, ModelSpec
 from unplug.core.secrets import SecretsRegistry, SecretsSanitizer
 from unplug.core.stats import MetricsCollector
 from unplug.core.taint import Tagger, TaintedText, TrustLevel
 
 __all__ = [
+    "DispositionLabel",
+    "DispositionPrediction",
+    "DualHeadWithDisposition",
     "ExecutionContext",
     "MetricsCollector",
     "ModelProvider",
@@ -20,4 +29,5 @@ __all__ = [
     "TaintedText",
     "ToolCall",
     "TrustLevel",
+    "resolve_disposition",
 ]
