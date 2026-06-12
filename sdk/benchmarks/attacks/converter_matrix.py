@@ -86,6 +86,7 @@ CONVERTERS: dict[str, Callable[[str], str]] = {
     "fullwidth": lambda t: t.translate(_FULLWIDTH),
     "zero_width": _zero_width,
     "char_spacing": _char_spacing,
+    "dot_join": _dot_join,
     "reversed": lambda t: t[::-1],
     "morse": _morse,
     "unicode_tags": _unicode_tags,

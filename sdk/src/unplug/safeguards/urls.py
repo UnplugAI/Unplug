@@ -48,7 +48,7 @@ _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     (
         "ip_literal_url",
         re.compile(
-            r"(?i)\bhttps?://(?:\d{1,3}(?:\.\d{1,3}){3}|0x[0-9a-f]{6,8}|\d{8,10})(?::\d+)?(?=[/\s\"'<>)\]]|$)",
+            r"(?i)\bhttps?://(?:\d{1,3}(?:\.\d{1,3}){3}|0x[0-9a-f]{6,8}|\d{8,10})(?::\d+)?(?=[/\s\"'<>)\]?#]|$)",
         ),
     ),
     (
@@ -57,11 +57,11 @@ _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ),
     (
         "homoglyph_host",
-        re.compile(r"(?i)\bhttps?://[^/\s]*[^\x00-\x7f][^/\s]*"),
+        re.compile(r"(?i)\bhttps?://(?:[\w.-]*[^\x00-\x7f][\w.-]*)(?=[/:?\s\"'<>)\]]|$)"),
     ),
     (
         "url_shortener",
-        re.compile(rf"(?i)\bhttps?://(?:www\.)?(?:{_SHORTENER_RE})/[\w\-./]+"),
+        re.compile(rf"(?i)\bhttps?://(?:www\.)?(?:{_SHORTENER_RE})/[\w\-/]+"),
     ),
 ]
 
