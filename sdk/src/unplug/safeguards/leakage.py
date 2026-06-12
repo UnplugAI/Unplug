@@ -7,6 +7,7 @@ from collections.abc import Generator
 
 from unplug.core.config import ScannerConfig
 from unplug.core.context import ExecutionContext
+from unplug.core.luhn import luhn_valid
 from unplug.core.normalize import EVASION_ONLY_STAGES, Normalizer
 from unplug.core.stats import MetricsCollector
 from unplug.core.taint import TaintedText, TrustLevel
@@ -32,6 +33,15 @@ LEAKAGE_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     (
         "ssn",
         re.compile(r"\b(?!000|666|9\d{2})\d{3}[\s.-]?\d{2}[\s.-]?\d{4}\b"),
+    ),
+    (
+        "credit_card",
+        re.compile(
+            r"\b(?:"
+            r"(?:\d{4}[-\s]?){3}\d{4}|"
+            r"(?:\d{4}[-\s]?){2}\d{6}[-\s]?\d{5}"
+            r")\b"
+        ),
     ),
     (
         "system_prompt_leak",
@@ -65,6 +75,10 @@ class LeakageScanner(RegexScanner):
         seen: set[tuple[int, int, str]] = set()
         for subcategory, pattern in self._patterns:
             for match in pattern.finditer(normalized):
+                if subcategory == "credit_card":
+                    digits = re.sub(r"\D", "", match.group(0))
+                    if not luhn_valid(digits):
+                        continue
                 span_start, span_end = norm_result.to_original_span(match.start(), match.end())
                 key = (span_start, span_end, subcategory)
                 if key in seen:
