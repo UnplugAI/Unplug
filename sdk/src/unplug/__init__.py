@@ -68,4 +68,4 @@ try:
     # Single source of truth is pyproject.toml; avoids version drift.
     __version__ = _pkg_version("unplug-ai")
 except PackageNotFoundError:  # not installed (e.g. running from a source checkout)
-    __version__ = "0.2.2"
+    __version__ = "0.2.3"

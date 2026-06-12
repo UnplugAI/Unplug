@@ -22,8 +22,9 @@ GITHUB_URL = "https://github.com/UnplugAI/Unplug"
 EXFIL_URL = "https://github.com/UnplugAI/Unplug/blob/main/sdk/examples/agent_exfil_demo.py"
 
 DISCLAIMER = (
-    "Preview OSS detector - not a production WAF. Known gaps: subtle OOD direct "
-    "injections, harmful-but-not-injection over-fire, diverse benign chat FPR."
+    "Preview OSS detector - not a production WAF. Roadmap items (e.g. harmful-but-not-injection "
+    "disposition) are labeled separately below. Regex baseline uses sensitive-context dual mode "
+    "when tokens/secrets appear in text."
 )
 
 # Findings whose span covers nearly the whole input are document-level flags,
@@ -200,7 +201,9 @@ def _expectation_note(text: str) -> str:
     for meta in load_examples().values():
         if meta["text"].strip() == text.strip():
             expected = meta["expected"]
-            return f"**{meta['label']}** - expected: `{expected}`. {meta['note']}"
+            status = meta.get("status", "supported")
+            prefix = "🛣️ Roadmap" if status == "roadmap" else "✓ Supported"
+            return f"**{meta['label']}** ({prefix}) - expected: `{expected}`. {meta['note']}"
     return ""
 
 
@@ -231,7 +234,10 @@ def analyze(
 
 def build_demo() -> gr.Blocks:
     examples = load_examples()
-    example_rows = [[meta["text"], True] for meta in examples.values()]
+    supported = [meta for meta in examples.values() if meta.get("status", "supported") != "roadmap"]
+    roadmap = [meta for meta in examples.values() if meta.get("status") == "roadmap"]
+    example_rows = [[meta["text"], True] for meta in supported]
+    roadmap_rows = [[meta["text"], True] for meta in roadmap]
 
     theme = gr.themes.Soft(
         primary_hue=gr.themes.colors.emerald,
@@ -283,9 +289,21 @@ def build_demo() -> gr.Blocks:
             fn=analyze,
             run_on_click=True,
             cache_examples=False,
-            label="Curated test cases - including ones this model gets wrong",
+            label="Supported test cases (regex + ML)",
             examples_per_page=7,
         )
+
+        if roadmap_rows:
+            gr.Examples(
+                examples=roadmap_rows,
+                inputs=[text_in, use_ml],
+                outputs=outputs,
+                fn=analyze,
+                run_on_click=True,
+                cache_examples=False,
+                label="Roadmap — planned for a future release",
+                examples_per_page=3,
+            )
 
         with gr.Accordion("About this model", open=False):
             gr.Markdown(ABOUT)

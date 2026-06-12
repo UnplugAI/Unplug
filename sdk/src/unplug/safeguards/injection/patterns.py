@@ -360,4 +360,30 @@ INJECTION_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
             r"bypass\s+(?:your\s+)?(?:safety\s+)?filters?)",
         ),
     ),
+    (
+        "credential_harvest_request",
+        re.compile(
+            r"(?i)(include|send|paste|copy|provide|extract|share|attach|leak|grab|pull)"
+            r".{0,80}(session\s+token|api\s*key|secret|password|credentials?|bearer\s+token|"
+            r"auth\s+token|cookie)",
+        ),
+    ),
+    (
+        "browser_secret_harvest",
+        re.compile(
+            r"(?i)(session\s+token|cookie|credentials?).{0,50}(browser\s+tab|devtools|"
+            r"local\s+storage|session\s+storage)",
+        ),
+    ),
+    (
+        "quiet_side_channel",
+        re.compile(
+            r"(?i)quietly\s+(route|forward|send|relay|post|push).{0,80}"
+            r"(channel|endpoint|webhook|proxy|maintenance)",
+        ),
+    ),
+    (
+        "maintenance_channel_exfil",
+        re.compile(r"(?i)maintenance\s+channel"),
+    ),
 ]

@@ -53,3 +53,19 @@ class ScanPolicy(BaseModel):
         le=1.0,
         description="Doc score below this (and no span fire) -> ALLOW band",
     )
+    sensitive_context_enabled: bool = Field(
+        default=True,
+        description="Boost injection/leakage scores when tokens/secrets appear in text",
+    )
+    sensitive_context_boost: float = Field(
+        default=0.2,
+        ge=0.0,
+        le=0.5,
+        description="Score added to injection/leakage findings in sensitive context",
+    )
+    sensitive_context_block_delta: float = Field(
+        default=0.15,
+        ge=0.0,
+        le=0.5,
+        description="Lower block_threshold by this amount in sensitive context",
+    )

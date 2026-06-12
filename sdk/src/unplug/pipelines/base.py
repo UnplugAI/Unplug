@@ -14,6 +14,7 @@ from unplug.core.degradation import sync_degradation_from_trajectory
 from unplug.core.logging import get_logger
 from unplug.core.policy import decide_action
 from unplug.core.redaction import apply_span_redactions
+from unplug.core.sensitive_context import apply_sensitive_context_boost
 from unplug.core.stats import MetricsCollector
 from unplug.core.taint import Tagger, TaintedText, TrustLevel
 from unplug.core.trajectory import trajectory_findings
@@ -75,16 +76,28 @@ class BasePipeline(ABC):
             )
         latency_ms = (time.perf_counter() - start) * 1000
 
-        risk_score = max((f.score for f in findings), default=0.0)
         text = self._extract_text(input_data) or ""
         policy = self._resolve_policy(ctx)
-        action = self._decide(risk_score, findings, text_len=len(text), policy=policy)
+        findings, block_delta = apply_sensitive_context_boost(
+            findings,
+            text,
+            enabled=policy.sensitive_context_enabled,
+            score_boost=policy.sensitive_context_boost,
+            block_threshold_delta=policy.sensitive_context_block_delta,
+        )
+        effective_policy = policy
+        if block_delta > 0.0:
+            effective_policy = policy.model_copy(
+                update={"block_threshold": max(0.0, policy.block_threshold - block_delta)},
+            )
+        risk_score = max((f.score for f in findings), default=0.0)
+        action = self._decide(risk_score, findings, text_len=len(text), policy=effective_policy)
         stages = list(dict.fromkeys(f.category for f in findings))
         redacted = None
-        if findings and policy.redaction_mode != RedactionMode.NONE:
-            redacted = self._redact(input_data, findings, policy=policy)
+        if findings and effective_policy.redaction_mode != RedactionMode.NONE:
+            redacted = self._redact(input_data, findings, policy=effective_policy)
         if action == Action.ABSTAIN and redacted is None and findings:
-            redacted = self._redact(input_data, findings, policy=policy)
+            redacted = self._redact(input_data, findings, policy=effective_policy)
 
         result = ScanResult(
             safe=action in (Action.ALLOW, Action.ABSTAIN),
