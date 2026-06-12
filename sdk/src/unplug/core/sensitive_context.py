@@ -10,7 +10,7 @@ _SENSITIVE_MARKERS = re.compile(
     r"(?i)\b("
     r"session\s+token|api\s*[_-]?key|secret\s*[_-]?key|access\s+token|bearer\s+token|"
     r"auth\s+token|refresh\s+token|password|credentials?|private\s+key|"
-    r"signing\s+key|oauth\s+token|cookie|browser\s+tab"
+    r"signing\s+key|oauth\s+token|(?:session|auth)\s+cookie|session\s+token.*browser\s+tab"
     r")\b"
 )
 

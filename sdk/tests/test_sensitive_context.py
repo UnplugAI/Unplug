@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from unplug import Guard
+from unplug.api.enums import Action
 from unplug.core.sensitive_context import apply_sensitive_context_boost, has_sensitive_context
 from unplug.models import Finding
 
@@ -47,11 +48,10 @@ def test_deepset_style_injection_blocked() -> None:
     )
     result = Guard(scanners=["injection"]).scan(text)
     assert result.safe is False
-    assert result.action.value in ("block", "redact", "review")
+    assert result.action == Action.BLOCK
     subs = {f.subcategory for f in result.findings}
     assert subs & {
         "credential_harvest_request",
         "browser_secret_harvest",
         "quiet_side_channel",
-        "maintenance_channel_exfil",
     }

@@ -364,15 +364,15 @@ INJECTION_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
         "credential_harvest_request",
         re.compile(
             r"(?i)(include|send|paste|copy|provide|extract|share|attach|leak|grab|pull)"
-            r".{0,80}(session\s+token|api\s*key|secret|password|credentials?|bearer\s+token|"
-            r"auth\s+token|cookie)",
+            r".{0,80}(session\s+token|api\s*key|\bsecret(?:\s+key)?\b|password|credentials?|"
+            r"bearer\s+token|auth\s+token|(?:session|auth)\s+cookie)",
         ),
     ),
     (
         "browser_secret_harvest",
         re.compile(
-            r"(?i)(session\s+token|cookie|credentials?).{0,50}(browser\s+tab|devtools|"
-            r"local\s+storage|session\s+storage)",
+            r"(?i)(session\s+token|(?:session|auth)\s+cookie|credentials?).{0,50}"
+            r"(browser\s+tab|devtools|local\s+storage|session\s+storage)",
         ),
     ),
     (
@@ -381,9 +381,5 @@ INJECTION_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
             r"(?i)quietly\s+(route|forward|send|relay|post|push).{0,80}"
             r"(channel|endpoint|webhook|proxy|maintenance)",
         ),
-    ),
-    (
-        "maintenance_channel_exfil",
-        re.compile(r"(?i)maintenance\s+channel"),
     ),
 ]
