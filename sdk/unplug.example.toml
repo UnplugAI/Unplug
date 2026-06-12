@@ -84,6 +84,9 @@ base_score = 0.90
 [policy]
 abstain_enabled = true
 tau_abstain_low = 0.35
+sensitive_context_enabled = true
+sensitive_context_boost = 0.2
+sensitive_context_block_delta = 0.15
 
 [models.tiny.config]
 max_length = 512

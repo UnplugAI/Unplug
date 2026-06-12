@@ -35,9 +35,7 @@ class DualHeadWithDisposition(BaseModel):
             return False
         if self.disposition.label == DispositionLabel.BENIGN:
             return False
-        if self.disposition.label == DispositionLabel.INJECTION:
-            return True
-        return self.doc_injection_score >= tau_doc or self.span_injection_score >= tau_span
+        return self.disposition.label == DispositionLabel.INJECTION
 
 
 def resolve_disposition(
