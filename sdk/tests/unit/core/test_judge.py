@@ -112,6 +112,36 @@ class TestCallableJudge:
         result = await judge.judge("hello", JudgeContext())
         assert result.action == Action.ALLOW
 
+    @pytest.mark.asyncio
+    async def test_scanner_evidence_not_sent_to_llm(self):
+        captured: list[str] = []
+
+        async def capture_llm(prompt: str) -> str:
+            captured.append(prompt)
+            return json.dumps(
+                {
+                    "action": "review",
+                    "category": "injection",
+                    "score": 0.5,
+                    "reason": "borderline",
+                }
+            )
+
+        finding = Finding(
+            category="leakage",
+            subcategory="api_key",
+            stage="regex",
+            span_start=0,
+            span_end=20,
+            score=0.8,
+            evidence="sk-secret-should-not-leak",
+        )
+        judge = CallableJudge(capture_llm)
+        await judge.judge("hello", JudgeContext(scanner_findings=[finding]))
+        assert captured
+        assert "sk-secret-should-not-leak" not in captured[0]
+        assert "leakage" in captured[0]
+
     def test_implements_protocol(self):
         async def noop(prompt: str) -> str:
             return "{}"

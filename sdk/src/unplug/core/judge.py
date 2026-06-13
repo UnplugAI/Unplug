@@ -79,9 +79,10 @@ class CallableJudge:
         self._prompt_template = prompt_template
 
     async def judge(self, text: str, context: JudgeContext) -> JudgeResult:
+        safe_context = self._sanitize_context(context)
         prompt = self._prompt_template.format(
             text=text,
-            context=self._format_context(context),
+            context=self._format_context(safe_context),
         )
         try:
             raw = await asyncio.wait_for(self._fn(prompt), timeout=self._timeout)
@@ -102,6 +103,14 @@ class CallableJudge:
                 score=1.0,
                 reason=f"Judge failed: {type(exc).__name__}",
             )
+
+    def _sanitize_context(self, context: JudgeContext) -> JudgeContext:
+        if not context.scanner_findings:
+            return context
+        redacted = [
+            finding.model_copy(update={"evidence": ""}) for finding in context.scanner_findings
+        ]
+        return context.model_copy(update={"scanner_findings": redacted})
 
     def _format_context(self, context: JudgeContext) -> str:
         parts = []

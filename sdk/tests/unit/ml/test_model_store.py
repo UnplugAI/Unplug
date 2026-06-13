@@ -36,10 +36,54 @@ def test_store_manifest_roundtrip(tmp_path: Path) -> None:
     from unplug.ml.store import ModelManifest
 
     store.write_manifest(
-        ModelManifest(tier="tiny", repo_id="Unplug-AI/test", revision="main", path=str(ckpt))
+        ModelManifest(
+            tier="tiny",
+            repo_id="Unplug-AI/test",
+            revision=load_catalog().tiers["tiny"].revision,
+            path=str(ckpt),
+            config_digest="abc123",
+        )
     )
     resolved = store.resolve_local_path("tiny")
-    assert resolved == ckpt
+    assert resolved is None
+
+
+def test_store_rejects_stale_catalog_revision(tmp_path: Path) -> None:
+    store = ModelStore(cache_root=tmp_path)
+    ckpt = tmp_path / "tiny" / "checkpoint"
+    ckpt.mkdir(parents=True)
+    (ckpt / "config.json").write_text("{}", encoding="utf-8")
+    from unplug.ml.store import ModelManifest
+
+    store.write_manifest(
+        ModelManifest(
+            tier="tiny",
+            repo_id="Unplug-AI/test",
+            revision="stale-revision",
+            path=str(ckpt),
+        )
+    )
+    assert store.resolve_local_path("tiny") is None
+
+
+def test_store_accepts_matching_revision_and_digest(tmp_path: Path) -> None:
+    store = ModelStore(cache_root=tmp_path)
+    ckpt = tmp_path / "tiny" / "checkpoint"
+    ckpt.mkdir(parents=True)
+    (ckpt / "config.json").write_text('{"model": "test"}', encoding="utf-8")
+    from unplug.ml.store import ModelManifest, _config_digest
+
+    digest = _config_digest(ckpt)
+    store.write_manifest(
+        ModelManifest(
+            tier="tiny",
+            repo_id="Unplug-AI/test",
+            revision=load_catalog().tiers["tiny"].revision,
+            path=str(ckpt),
+            config_digest=digest,
+        )
+    )
+    assert store.resolve_local_path("tiny") == ckpt
 
 
 def test_env_path_overrides_cache(tmp_path: Path, monkeypatch) -> None:
