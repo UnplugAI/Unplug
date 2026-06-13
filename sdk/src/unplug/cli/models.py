@@ -1,4 +1,4 @@
-"""CLI: unplug-models — list, download, and upgrade cached checkpoints."""
+"""CLI: unplug-models: list, download, and upgrade cached checkpoints."""
 
 from __future__ import annotations
 

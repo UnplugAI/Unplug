@@ -1,4 +1,4 @@
-"""Tests for pipelines — input, output, tool call."""
+"""Tests for pipelines: input, output, tool call."""
 
 from unplug.core.context import ExecutionContext, ToolCall
 from unplug.core.privacy.secrets import SecretsRegistry, SecretsSanitizer

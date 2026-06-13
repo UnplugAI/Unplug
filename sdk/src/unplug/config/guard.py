@@ -21,6 +21,24 @@ from unplug.config.messages import MessageConfig
 from unplug.config.policy import MlGateConfig, ScanPolicy
 from unplug.config.tools import ToolPolicyConfig
 
+MANDATORY_INPUT_SCANNERS: frozenset[str] = frozenset({"injection", "destructive"})
+
+
+def resolve_input_scanners(requested: list[str] | None) -> list[str] | None:
+    """Union mandatory input scanners; never allow dropping injection/destructive."""
+    if requested is None:
+        return None
+    merged = list(dict.fromkeys([*requested, *sorted(MANDATORY_INPUT_SCANNERS)]))
+    omitted = MANDATORY_INPUT_SCANNERS - set(requested)
+    if omitted:
+        from unplug.core.runtime.logging import get_logger
+
+        get_logger("guard").warning(
+            "scan request omitted mandatory scanners %s; merged into allowlist",
+            sorted(omitted),
+        )
+    return merged
+
 
 class ThresholdConfig(BaseModel):
     """Action thresholds for deciding ALLOW/REVIEW/REDACT/BLOCK."""

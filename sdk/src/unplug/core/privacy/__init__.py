@@ -1,4 +1,4 @@
-"""Privacy subpackage — filter protocol, secrets registry, luhn."""
+"""Privacy subpackage: filter protocol, secrets registry, luhn."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""SecretsRegistry and SecretsSanitizer — exact-match secret detection and redaction."""
+"""SecretsRegistry and SecretsSanitizer: exact-match secret detection and redaction."""
 
 from __future__ import annotations
 

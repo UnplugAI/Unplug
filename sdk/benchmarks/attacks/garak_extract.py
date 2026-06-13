@@ -3,7 +3,7 @@
 garak (https://github.com/NVIDIA/garak, Apache-2.0) ships probe payload sets
 we use as a regression corpus: DAN-family jailbreaks, PromptInject goal
 hijacking / prompt leaking templates, and system-prompt extraction attacks.
-This is an adapter over a local clone — garak is never a dependency.
+This is an adapter over a local clone: garak is never a dependency.
 
 Usage:
     git clone --depth 1 https://github.com/NVIDIA/garak /tmp/garak-study

@@ -1,4 +1,4 @@
-"""Deterministic agent boundary probes — session taint, profiles, destructive gate."""
+"""Deterministic agent boundary probes: session taint, profiles, destructive gate."""
 
 from __future__ import annotations
 

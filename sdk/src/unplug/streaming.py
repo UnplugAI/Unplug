@@ -5,17 +5,19 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import TYPE_CHECKING
 
-from unplug.api.enums import Source
+from unplug.api.enums import Action, Source
 from unplug.api.types import ScanResult
+from unplug.core.runtime.cache import merge_suffix_result
 
 if TYPE_CHECKING:
     from unplug.guard import Guard
 
 _DEFAULT_SCAN_EVERY = 1024
+_DEFAULT_OVERLAP = 256
 
 
 class StreamScanner:
-    """Buffer streamed text and scan with full sliding-window ML coverage on flush."""
+    """Buffer streamed text and scan incrementally with overlap windows."""
 
     def __init__(
         self,
@@ -23,16 +25,19 @@ class StreamScanner:
         *,
         source: Source | str = Source.TOOL_OUTPUT,
         scan_every_chars: int = _DEFAULT_SCAN_EVERY,
+        overlap_chars: int = _DEFAULT_OVERLAP,
         document_id: str | None = None,
     ) -> None:
         self._guard = guard
         self._source = Source(source) if isinstance(source, str) else source
         self._scan_every = max(64, scan_every_chars)
+        self._overlap = max(0, overlap_chars)
         self._document_id = document_id
         self._buffer: list[str] = []
         self._buffer_len = 0
         self._last_result: ScanResult | None = None
         self._chars_since_scan = 0
+        self._safe_prefix_len = 0
 
     @property
     def text(self) -> str:
@@ -61,10 +66,27 @@ class StreamScanner:
 
     def _scan_accumulated(self) -> ScanResult:
         body = self.text
-        request = self._guard._build_scan_request(body, self._source)
+        prefix_len = 0
+        if (
+            self._safe_prefix_len > 0
+            and self._last_result is not None
+            and self._last_result.action in (Action.ALLOW, Action.REVIEW)
+            and self._last_result.safe
+        ):
+            prefix_len = max(0, self._safe_prefix_len - self._overlap)
+
+        scan_body = body[prefix_len:] if prefix_len else body
+        request = self._guard._build_scan_request(scan_body, self._source)
         if self._document_id is not None:
             request = request.model_copy(update={"document_id": self._document_id})
-        result = self._guard.scan_request(request, isolated=True)
+        suffix_result = self._guard.scan_request(request, isolated=True)
+        result = merge_suffix_result(suffix_result, prefix_len) if prefix_len else suffix_result
+
+        if result.action == Action.ALLOW and result.safe:
+            self._safe_prefix_len = len(body)
+        else:
+            self._safe_prefix_len = 0
+
         self._last_result = result
         return result
 

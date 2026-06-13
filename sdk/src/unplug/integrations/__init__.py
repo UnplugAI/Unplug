@@ -1,4 +1,4 @@
-"""Framework integration hooks — LangGraph, Agno, and generic agent loops."""
+"""Framework integration hooks: LangGraph, Agno, and generic agent loops."""
 
 from __future__ import annotations
 

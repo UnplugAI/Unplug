@@ -1,4 +1,4 @@
-# Agent-host tool intelligence — degradation, intent checks, kill-chain detection.
+# Agent-host tool intelligence: degradation, intent checks, kill-chain detection.
 
 [high_risk]
 patterns = [

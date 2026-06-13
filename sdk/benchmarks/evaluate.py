@@ -1,4 +1,4 @@
-"""Evaluation runner — measures scanner performance against labeled datasets."""
+"""Evaluation runner: measures scanner performance against labeled datasets."""
 
 from __future__ import annotations
 

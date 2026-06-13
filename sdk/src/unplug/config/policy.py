@@ -1,8 +1,9 @@
-"""Scan policy — span thresholds and document-level coverage gate."""
+"""Scan policy: span thresholds and document-level coverage gate."""
 
 from __future__ import annotations
 
 from enum import StrEnum
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -40,17 +41,21 @@ class MlGateConfig(BaseModel):
         description="Skip ML at/above this regex risk; None = pipeline block threshold",
     )
     gray_low: float = Field(
-        default=0.0,
+        default=0.3,
         ge=0.0,
         le=1.0,
         description="Gray-band floor: below this (and nothing flagged) ML is skipped",
     )
     always_below_high: bool = Field(
-        default=True,
+        default=False,
         description=(
             "True: second-pass every scan below gray_high (catches regex misses at risk 0). "
             "False: invoke ML only in the gray band or when regex flagged something."
         ),
+    )
+    preset: Literal["recall", "balanced", "latency"] | None = Field(
+        default=None,
+        description="Optional preset: recall=always_below_high, balanced/latency=gray-band only",
     )
 
 
@@ -119,4 +124,15 @@ class ScanPolicy(BaseModel):
         ge=0.0,
         le=0.5,
         description="Lower block_threshold by this amount in sensitive context",
+    )
+    abstain_is_safe: bool = Field(
+        default=False,
+        description=(
+            "When true, Action.ABSTAIN sets ScanResult.safe=True (legacy pass-through). "
+            "Default false: uncertain ML band is not safe for model context."
+        ),
+    )
+    scan_user_secrets: bool = Field(
+        default=True,
+        description="Scan USER-trust input for API keys and secret-shaped tokens only",
     )

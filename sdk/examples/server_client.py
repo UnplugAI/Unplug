@@ -1,4 +1,4 @@
-"""Use Unplug in server mode — call the FastAPI endpoint."""
+"""Use Unplug in server mode: call the FastAPI endpoint."""
 
 from unplug.client import UnplugClient
 

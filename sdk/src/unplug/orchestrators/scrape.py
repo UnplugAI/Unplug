@@ -33,7 +33,7 @@ class ScrapeOrchestrator:
         return run_coroutine_sync(self.run_async(url))
 
     async def run_async(self, url: str) -> ScrapeOutcome:
-        """Async scrape + filter — prefer in agent frameworks."""
+        """Async scrape + filter: prefer in agent frameworks."""
         scraped = await self._fetch_async(url)
         filter_result = self._filter.run(scraped.markdown)
         outcome = filter_result.outcome

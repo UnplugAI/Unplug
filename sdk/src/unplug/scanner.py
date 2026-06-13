@@ -1,4 +1,4 @@
-"""Scanner protocol — deprecated, use unplug.scanners.base instead."""
+"""Scanner protocol: deprecated, use unplug.scanners.base instead."""
 
 from __future__ import annotations
 

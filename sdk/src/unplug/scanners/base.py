@@ -1,4 +1,4 @@
-"""Safeguard base classes — regex and model-based scanners."""
+"""Safeguard base classes: regex and model-based scanners."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ _log = get_logger("safeguards")
 
 @runtime_checkable
 class Scanner(Protocol):
-    """Minimal protocol — anything with name + scan() works."""
+    """Minimal protocol: anything with name + scan() works."""
 
     name: str
 

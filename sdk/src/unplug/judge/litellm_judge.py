@@ -1,4 +1,4 @@
-"""Optional LiteLLM judge — BYOLLM for borderline cases and SDK smoke testing."""
+"""Optional LiteLLM judge: BYOLLM for borderline cases and SDK smoke testing."""
 
 from __future__ import annotations
 

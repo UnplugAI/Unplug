@@ -1,4 +1,4 @@
-"""Tests for core/taint.py — TaintedText, TrustLevel, Tagger."""
+"""Tests for core/taint.py: TaintedText, TrustLevel, Tagger."""
 
 from unplug.core.taint import Tagger, TaintedText, TrustLevel, trust_level_from_source
 from unplug.models import Source

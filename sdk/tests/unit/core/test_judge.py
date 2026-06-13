@@ -1,4 +1,4 @@
-"""Tests for core/judge.py — LLM judge protocol and CallableJudge."""
+"""Tests for core/judge.py: LLM judge protocol and CallableJudge."""
 
 from __future__ import annotations
 

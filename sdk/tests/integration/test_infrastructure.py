@@ -1,4 +1,4 @@
-"""Tests for core infrastructure — config, stats, models, registry, base classes."""
+"""Tests for core infrastructure: config, stats, models, registry, base classes."""
 
 import re
 

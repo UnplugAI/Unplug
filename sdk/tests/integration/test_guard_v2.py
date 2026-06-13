@@ -1,4 +1,4 @@
-"""Tests for Guard v2 — backward compatibility + new methods."""
+"""Tests for Guard v2: backward compatibility + new methods."""
 
 from unplug import Guard, ScanResult, TaintedText, TrustLevel
 from unplug.core.privacy.secrets import SecretsRegistry

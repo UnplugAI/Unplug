@@ -1,4 +1,4 @@
-"""Encoding probe battery — base64 extract → decode → classify."""
+"""Encoding probe battery: base64 extract → decode → classify."""
 
 from __future__ import annotations
 

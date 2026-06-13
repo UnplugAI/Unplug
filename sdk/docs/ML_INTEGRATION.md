@@ -98,9 +98,9 @@ python examples/agent_exfil_demo.py
 
 When `abstain_enabled` is true (default in `catalog.toml`), the ML scanner uses a three-way band:
 
-- **BLOCK** — doc or span score above threshold
-- **ALLOW** — scores below `tau_abstain_low` with no span fire
-- **ABSTAIN** — uncertain middle band → `Action.ABSTAIN` (safe with span redaction)
+- **BLOCK**: doc or span score above threshold
+- **ALLOW**: scores below `tau_abstain_low` with no span fire
+- **ABSTAIN**: uncertain middle band → `Action.ABSTAIN` (safe with span redaction)
 
 Optional `JudgeProvider` runs on ABSTAIN when `judge_enabled=true`.
 
@@ -115,6 +115,6 @@ Encoding blobs (Base64) use the same thresholds via decode-then-classify.
 
 ## Release artifacts
 
-- `BENCHMARKS.md` — auto-generated from the evaluation harness (no hand-typed numbers)
+- `BENCHMARKS.md`: auto-generated from the evaluation harness (no hand-typed numbers)
 - PyPI `unplug-ai` version bump after gate review
 - Hugging Face model repo: `Unplug-AI/unplug-tiny-v1`

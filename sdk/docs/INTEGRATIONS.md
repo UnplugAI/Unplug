@@ -1,6 +1,6 @@
 # Agent framework integrations
 
-Unplug ships **framework-agnostic hooks** first. LangGraph and Agno do not need to be installed to use the SDK - copy the patterns below or run the demos.
+Unplug ships **framework-agnostic hooks** first. LangGraph and Agno do not need to be installed to use the SDK: copy the patterns below or run the demos.
 
 ## Core: `AgentHooks`
 
@@ -74,7 +74,7 @@ python examples/agno_hooks_demo.py
 The retrieval path is the blind spot in most injection defenses: a poisoned
 document in the store carries its payload straight into the prompt. The
 `UnplugDocumentGuard` component sits between the retriever and the prompt
-builder — it scans each retrieved `Document`, drops or redacts on findings, and
+builder. It scans each retrieved `Document`, drops or redacts on findings, and
 boundary-wraps survivors so injected text cannot impersonate system
 instructions. See [`RAG_DEFENSE.md`](RAG_DEFENSE.md) for the threat model.
 

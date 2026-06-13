@@ -86,12 +86,20 @@ class ScannerRegistry:
         names: list[str],
         configs: dict[str, ScannerConfig] | None = None,
     ) -> list[BaseScanner]:
+        from unplug.exceptions import ConfigError
+
         scanners: list[BaseScanner] = []
+        missing: list[str] = []
         for name in names:
             cfg = (configs or {}).get(name)
             scanner = self.get(name, config=cfg)
-            if scanner is not None:
+            if scanner is None:
+                missing.append(name)
+            else:
                 scanners.append(scanner)
+        if missing:
+            msg = f"Unknown scanners: {', '.join(sorted(missing))}"
+            raise ConfigError(msg)
         return scanners
 
 

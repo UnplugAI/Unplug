@@ -1,4 +1,4 @@
-"""Span redaction — BLOCKED tags, strip, legacy REDACTED, or none."""
+"""Span redaction: BLOCKED tags, strip, legacy REDACTED, or none."""
 
 from __future__ import annotations
 

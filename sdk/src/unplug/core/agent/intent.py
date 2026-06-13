@@ -1,4 +1,4 @@
-"""Intent verification — side-effect tools vs benign user intent."""
+"""Intent verification: side-effect tools vs benign user intent."""
 
 from __future__ import annotations
 

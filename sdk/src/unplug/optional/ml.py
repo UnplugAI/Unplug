@@ -1,4 +1,4 @@
-"""Optional dependency — ML stack (lazy, logs install hint)."""
+"""Optional dependency: ML stack (lazy, logs install hint)."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Deprecated import path — use unplug.scanners instead."""
+"""Deprecated import path: use unplug.scanners instead."""
 
 from __future__ import annotations
 

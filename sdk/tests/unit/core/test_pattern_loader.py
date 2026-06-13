@@ -1,4 +1,4 @@
-"""Unit tests for pattern_loader — YAML/TOML validation and compile errors."""
+"""Unit tests for pattern_loader: YAML/TOML validation and compile errors."""
 
 from __future__ import annotations
 

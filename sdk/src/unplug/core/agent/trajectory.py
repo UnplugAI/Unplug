@@ -1,4 +1,4 @@
-"""Session risk trajectory — crescendo / escalation detection."""
+"""Session risk trajectory: crescendo / escalation detection."""
 
 from __future__ import annotations
 

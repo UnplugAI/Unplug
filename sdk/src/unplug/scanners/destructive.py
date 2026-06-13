@@ -1,4 +1,4 @@
-"""Destructive action scanner — prevents agents from dangerous operations."""
+"""Destructive action scanner: prevents agents from dangerous operations."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from collections.abc import Generator
 
 from unplug.core.config import ScannerConfig
 from unplug.core.context import ExecutionContext
-from unplug.core.normalize import Normalizer
+from unplug.core.normalize import Normalizer, cached_normalize
 from unplug.core.pattern_loader import load_compiled_patterns
 from unplug.core.runtime.stats import MetricsCollector
 from unplug.core.taint import TaintedText
@@ -33,7 +33,7 @@ class DestructiveScanner(RegexScanner):
         self._normalizer = Normalizer()
 
     def _scan(self, text: TaintedText, context: ExecutionContext) -> Generator[Finding, None, None]:
-        norm_result = self._normalizer.normalize(text.text)
+        norm_result = cached_normalize(context, self._normalizer, text.text, cache_key="full")
         normalized = norm_result.text
         for subcategory, pattern in self._patterns:
             for match in pattern.finditer(normalized):

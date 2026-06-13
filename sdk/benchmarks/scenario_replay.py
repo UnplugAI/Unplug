@@ -1,4 +1,4 @@
-"""YAML scenario replay — multi-step agent attack sequences for regression testing."""
+"""YAML scenario replay: multi-step agent attack sequences for regression testing."""
 
 from __future__ import annotations
 

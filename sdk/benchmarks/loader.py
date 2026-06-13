@@ -1,4 +1,4 @@
-"""Dataset loaders for evaluation — downloads and normalizes public datasets."""
+"""Dataset loaders for evaluation: downloads and normalizes public datasets."""
 
 from __future__ import annotations
 

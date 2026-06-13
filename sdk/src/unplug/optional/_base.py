@@ -1,4 +1,4 @@
-"""Optional dependency helpers — lazy import with install hints (Agno-style)."""
+"""Optional dependency helpers: lazy import with install hints (Agno-style)."""
 
 from __future__ import annotations
 

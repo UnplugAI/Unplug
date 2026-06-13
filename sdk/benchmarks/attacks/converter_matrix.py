@@ -1,4 +1,4 @@
-"""Converter bypass matrix — PyRIT-style encoding attacks against the normalizer.
+"""Converter bypass matrix: PyRIT-style encoding attacks against the normalizer.
 
 Encodes known-blocked payloads with each converter family (modeled on PyRIT's
 converters) and checks the Guard still detects them. Families that map to a

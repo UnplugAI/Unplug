@@ -1,4 +1,4 @@
-"""Scrape guard — Firecrawl fetch plus security filter."""
+"""Scrape guard: Firecrawl fetch plus security filter."""
 
 from __future__ import annotations
 
@@ -35,7 +35,7 @@ class ScrapeGuard(BaseGuardFacade):
         return self._orchestrator.run(url)
 
     async def scrape_async(self, url: str) -> ScrapeOutcome:
-        """Fetch URL and filter content — use inside async agents."""
+        """Fetch URL and filter content: use inside async agents."""
         return await self._orchestrator.run_async(url)
 
 

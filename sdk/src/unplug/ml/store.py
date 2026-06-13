@@ -1,4 +1,4 @@
-"""Local model cache — download once from Hugging Face, reuse forever."""
+"""Local model cache: download once from Hugging Face, reuse forever."""
 
 from __future__ import annotations
 

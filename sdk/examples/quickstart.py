@@ -1,4 +1,4 @@
-"""Quickstart — scan a prompt in 3 lines."""
+"""Quickstart: scan a prompt in 3 lines."""
 
 from unplug import Guard
 

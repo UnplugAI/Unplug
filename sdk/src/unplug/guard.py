@@ -1,4 +1,4 @@
-"""Guard — main entry point for Unplug."""
+"""Guard: main entry point for Unplug."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from typing import Any, ClassVar
 from unplug.api.enums import Action, Source
 from unplug.api.types import Finding, ScanRequest, ScanResult
 from unplug.client import UnplugClient
-from unplug.config.guard import GuardConfig
+from unplug.config.guard import GuardConfig, resolve_input_scanners
 from unplug.config.policy import ScanPolicy
 from unplug.core.agent.approval import ApprovalProvider, NullApprovalProvider
 from unplug.core.agent.boundaries import maybe_wrap_untrusted
@@ -85,7 +85,7 @@ def _limit_result(violation: LimitViolation, text_len: int = 0) -> ScanResult:
 
 
 class Guard:
-    """Entry point for Unplug — scans text, output, and tool calls."""
+    """Entry point for Unplug: scans text, output, and tool calls."""
 
     _instance: Guard | None = None
     _lock: ClassVar[threading.Lock] = threading.Lock()
@@ -109,6 +109,14 @@ class Guard:
         approval: ApprovalProvider | None = None,
     ) -> None:
         cfg = config or GuardConfig()
+        if fail_mode == "open":
+            import warnings
+
+            warnings.warn(
+                'fail_mode="open" is deprecated and ignored; errors always fail closed',
+                DeprecationWarning,
+                stacklevel=2,
+            )
         overrides: dict[str, Any] = {"mode": mode, "fail_closed": fail_mode == "closed"}
         if scanners is not None:
             overrides["scanners"] = scanners
@@ -147,9 +155,11 @@ class Guard:
 
         self._registry = ScannerRegistry(metrics=self._metrics)
         self._ml_provider = None
+        self._ml_degraded = False
         self._model_cache_version = MODEL_VERSION_LOCAL
 
         scanner_names = list(cfg.scanners)
+        self._validate_optional_scanners(scanner_names)
         if cfg.mode != "server" and cfg.active_model:
             spec = prepare_active_model_spec(cfg)
             if spec is not None:
@@ -175,6 +185,7 @@ class Guard:
                         type(exc).__name__,
                         cfg.active_model,
                     )
+                    self._ml_degraded = True
                 if provider is not None:
                     self._ml_provider = provider
                     self._model_cache_version = model_cache_version(spec)
@@ -191,6 +202,7 @@ class Guard:
                         cfg.active_model,
                         cfg.active_model,
                     )
+                    self._ml_degraded = True
 
         v2_scanners = self._registry.get_many(scanner_names, configs=cfg.scanner_configs)
         if self._ml_provider is not None:
@@ -548,6 +560,7 @@ class Guard:
         approved: bool | None = None,
     ) -> ScanResult:
         """Check a proposed tool call for destructive, taint, and financial risks."""
+        _ = approved  # resume-only via ApprovalProvider; caller flag is ignored
         if not self._limits.is_tool_allowed(tool_name):
             return _limit_result(
                 LimitViolation(
@@ -575,7 +588,7 @@ class Guard:
             tool_name=tool_name,
             arguments=arguments,
             taint_sources=taint_sources or [],
-            approved=approved,
+            approved=None,
         )
         try:
             with correlation_scope():
@@ -613,7 +626,7 @@ class Guard:
                     return self._server_client.scan_request(request)
                 ctx = self._request_context(request, isolated=isolated)
                 if request.scanners:
-                    ctx.allowed_scanners = list(request.scanners)
+                    ctx.allowed_scanners = resolve_input_scanners(list(request.scanners))
                 if not isolated:
                     self._capture_user_intent(request)
                 result = self._run_input_with_cache(request, ctx)
@@ -631,6 +644,32 @@ class Guard:
     @property
     def ml_model_loaded(self) -> bool:
         return self._ml_provider is not None and self._ml_provider.loaded
+
+    @property
+    def ml_degraded(self) -> bool:
+        """True when active_model is configured but ML failed to load."""
+        return self._ml_degraded
+
+    @staticmethod
+    def _validate_optional_scanners(names: list[str]) -> None:
+        from unplug.exceptions import ConfigError
+
+        if "pii" in names:
+            try:
+                from unplug.optional.presidio import get_analyzer_engine_class
+
+                get_analyzer_engine_class()
+            except ImportError as exc:
+                msg = 'pii scanner requires pip install "unplug-ai[presidio]"'
+                raise ConfigError(msg) from exc
+        if "yara" in names:
+            try:
+                from unplug.scanners.yara_loader import get_yara_rules
+
+                get_yara_rules()
+            except Exception as exc:
+                msg = 'yara scanner requires pip install "unplug-ai[yara]"'
+                raise ConfigError(msg) from exc
 
     @property
     def scanners_loaded(self) -> list[str]:

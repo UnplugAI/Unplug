@@ -1,4 +1,4 @@
-"""Adaptive degradation (homeostasis) — monotonic tightening after risk escalation."""
+"""Adaptive degradation (homeostasis): monotonic tightening after risk escalation."""
 
 from __future__ import annotations
 
@@ -8,9 +8,15 @@ from unplug.config.agent_policy import DegradationConfig
 from unplug.core.context import ExecutionContext, ToolCall
 from unplug.models import Finding
 
+_PATTERN_CACHE: dict[tuple[str, ...], list[re.Pattern[str]]] = {}
+
 
 def _compile(patterns: tuple[str, ...]) -> list[re.Pattern[str]]:
-    return [re.compile(p, re.IGNORECASE) for p in patterns]
+    cached = _PATTERN_CACHE.get(patterns)
+    if cached is None:
+        cached = [re.compile(p, re.IGNORECASE) for p in patterns]
+        _PATTERN_CACHE[patterns] = cached
+    return cached
 
 
 def is_high_risk_tool(tool_name: str, config: DegradationConfig) -> bool:

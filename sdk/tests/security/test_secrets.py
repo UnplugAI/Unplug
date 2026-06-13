@@ -1,4 +1,4 @@
-"""Tests for core/secrets.py — SecretsRegistry, SecretsSanitizer."""
+"""Tests for core/secrets.py: SecretsRegistry, SecretsSanitizer."""
 
 import os
 from unittest.mock import patch

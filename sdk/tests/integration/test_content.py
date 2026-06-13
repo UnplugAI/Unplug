@@ -1,4 +1,4 @@
-"""Tests for core/content.py — content provider protocol and models."""
+"""Tests for core/content.py: content provider protocol and models."""
 
 from __future__ import annotations
 

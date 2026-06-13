@@ -1,4 +1,4 @@
-"""Tests for scanners/secrets.py — SecretsScanner using registry."""
+"""Tests for scanners/secrets.py: SecretsScanner using registry."""
 
 from unplug.core.context import ExecutionContext
 from unplug.core.privacy.secrets import SecretsRegistry

@@ -1,4 +1,4 @@
-"""UnplugScrape — Firecrawl-compatible entry that adds security filtering."""
+"""UnplugScrape: Firecrawl-compatible entry that adds security filtering."""
 
 from __future__ import annotations
 

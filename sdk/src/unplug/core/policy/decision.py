@@ -1,4 +1,4 @@
-"""Unified ML decision policy — doc/span modes and abstain band."""
+"""Unified ML decision policy: doc/span modes and abstain band."""
 
 from __future__ import annotations
 

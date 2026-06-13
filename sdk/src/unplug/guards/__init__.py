@@ -1,4 +1,4 @@
-"""Typed guard facades — short API for common flows."""
+"""Typed guard facades: short API for common flows."""
 
 from __future__ import annotations
 

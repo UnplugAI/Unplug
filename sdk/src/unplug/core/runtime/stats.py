@@ -48,7 +48,7 @@ class MetricsCollector:
             return self._pipelines[name].model_copy()
 
     def snapshot(self) -> dict:
-        """Full metrics snapshot — safe to serialize."""
+        """Full metrics snapshot: safe to serialize."""
         with self._lock:
             uptime = time.monotonic() - self._start_time
             return {

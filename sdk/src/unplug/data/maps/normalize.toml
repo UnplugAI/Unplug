@@ -1,4 +1,4 @@
-# Text normalizer character maps — leet, homoglyphs, i18n override verbs.
+# Text normalizer character maps: leet, homoglyphs, i18n override verbs.
 
 [leet]
 "3" = "e"

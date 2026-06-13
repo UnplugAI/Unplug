@@ -1,4 +1,4 @@
-"""Tool call pipeline — destructive check, taint check, financial check, session policy."""
+"""Tool call pipeline: destructive check, taint check, financial check, session policy."""
 
 from __future__ import annotations
 
@@ -86,7 +86,7 @@ class ToolCallPipeline(BasePipeline):
         if self._destructive:
             findings.extend(self._destructive.scan(tainted, context))
 
-        findings.extend(self._check_taint(input_data, findings))
+        findings.extend(self._check_taint(input_data, findings, context))
         findings.extend(self._check_session_taint(input_data, context))
         findings.extend(
             check_intent_mismatch(
@@ -118,22 +118,6 @@ class ToolCallPipeline(BasePipeline):
             for item in obj:
                 values.extend(ToolCallPipeline._extract_string_values(item))
         return values
-
-    def _decide(
-        self,
-        risk_score: float,
-        findings: list[Finding],
-        *,
-        text_len: int = 0,
-        policy: object | None = None,
-    ) -> Action:
-        _ = text_len, policy
-        t = self._config.thresholds
-        if risk_score >= t.block:
-            return Action.BLOCK
-        if risk_score >= t.review:
-            return Action.REVIEW
-        return Action.ALLOW
 
     def _redact(
         self,
@@ -173,9 +157,36 @@ class ToolCallPipeline(BasePipeline):
             )
         ]
 
-    def _check_taint(self, tool_call: ToolCall, existing: list[Finding]) -> list[Finding]:
+    def _check_taint(
+        self,
+        tool_call: ToolCall,
+        existing: list[Finding],
+        context: ExecutionContext,
+    ) -> list[Finding]:
         findings: list[Finding] = []
         has_destructive = any(f.category == "destructive" for f in existing)
+
+        if (
+            self._tool_policy.session_taint_enabled
+            and context.is_session_tainted
+            and not tool_call.taint_sources
+            and tool_call.approved is not True
+            and has_destructive
+        ):
+            triggers = ", ".join(context.taint_triggers[:3]) or "unknown"
+            findings.append(
+                Finding(
+                    category="taint",
+                    subcategory="session_taint_destructive",
+                    stage="taint_check",
+                    span_start=0,
+                    span_end=0,
+                    score=0.90,
+                    evidence=(
+                        f"Destructive tool '{tool_call.tool_name}' in tainted session ({triggers})"
+                    ),
+                )
+            )
 
         for source in tool_call.taint_sources:
             if source.trust_level in (TrustLevel.EXTERNAL, TrustLevel.UNKNOWN):

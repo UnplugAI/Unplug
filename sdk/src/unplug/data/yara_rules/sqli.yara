@@ -1,6 +1,6 @@
 /*
  * Adapted from NVIDIA NeMo Guardrails (Apache-2.0).
- * Multi-token SQL injection heuristics — tightened to avoid natural-language FPs
+ * Multi-token SQL injection heuristics: tightened to avoid natural-language FPs
  * (e.g. contractions like "you're" must not match).
  */
 rule sql_injection

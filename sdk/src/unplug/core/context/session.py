@@ -1,4 +1,4 @@
-"""ExecutionContext — agent session state for context-aware enforcement."""
+"""ExecutionContext: agent session state for context-aware enforcement."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ import uuid
 from typing import TYPE_CHECKING
 
 from unplug.core.context.models import ToolCall
+from unplug.core.normalize.normalize import NormalizeResult
 from unplug.core.taint import TaintedText
 
 if TYPE_CHECKING:
@@ -41,12 +42,13 @@ class ExecutionContext:
         self.scan_policy = scan_policy
         self.scan_cache = scan_cache
         self.allowed_scanners: list[str] | None = None
+        self.normalize_cache: dict[str, NormalizeResult] = {}
         self.session_tainted: bool = False
         self.taint_triggers: list[str] = []
         self.degradation_level: int = 0
 
     def escalate_degradation(self, level: int) -> None:
-        """Monotonic homeostasis — level only increases until session reset."""
+        """Monotonic homeostasis: level only increases until session reset."""
         if level > self.degradation_level:
             self.degradation_level = level
 
@@ -57,7 +59,7 @@ class ExecutionContext:
         self.degradation_level = 0
 
     def mark_session_tainted(self, reason: str) -> None:
-        """Conservative session taint — side-effect tools need review after this."""
+        """Conservative session taint: side-effect tools need review after this."""
         self.session_tainted = True
         if reason and reason not in self.taint_triggers:
             self.taint_triggers.append(reason)
@@ -65,6 +67,9 @@ class ExecutionContext:
     @property
     def is_session_tainted(self) -> bool:
         return self.session_tainted
+
+    def get_norm_result(self, key: str = "full") -> NormalizeResult | None:
+        return self.normalize_cache.get(key)
 
     def add_message(self, msg: TaintedText) -> None:
         self.conversation.append(msg)

@@ -44,8 +44,19 @@ class TestSessionTaint:
         assert result.action == Action.ALLOW
         assert result.safe
 
-    def test_preapproved_side_effect_allowed(self) -> None:
+    def test_caller_approved_flag_ignored_without_provider(self) -> None:
         guard = Guard()
+        guard.scan("Poisoned doc", source=Source.RETRIEVED)
+        result = guard.check_tool_call(
+            "shell",
+            {"command": "echo ok"},
+            approved=True,
+        )
+        assert result.action == Action.REVIEW
+        assert not result.safe
+
+    def test_preapproved_side_effect_allowed(self) -> None:
+        guard = Guard(approval=_AutoApprove())
         guard.scan("Poisoned doc", source=Source.RETRIEVED)
         result = guard.check_tool_call(
             "shell",

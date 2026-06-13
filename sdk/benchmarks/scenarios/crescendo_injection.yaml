@@ -2,7 +2,7 @@ name: Crescendo Injection
 description: >
   PyRIT-style crescendo: benign opener, then steadily escalating prompts that
   build toward a full system-prompt extraction. Exercises the A5 risk-trajectory
-  wiring — once the rising slope lands in session history, the trajectory
+  wiring: once the rising slope lands in session history, the trajectory
   detector should raise a crescendo finding on top of the per-turn block.
 session_id: crescendo-injection
 

@@ -1,4 +1,4 @@
-"""LLM judge protocol — bring your own LLM for borderline case classification."""
+"""LLM judge protocol: bring your own LLM for borderline case classification."""
 
 from __future__ import annotations
 
@@ -57,7 +57,7 @@ class JudgeResult(BaseModel):
 class JudgeProvider(Protocol):
     """Protocol for LLM judge implementations.
 
-    Users implement this to bring any LLM — OpenAI, Anthropic, Ollama, etc.
+    Users implement this to bring any LLM: OpenAI, Anthropic, Ollama, etc.
     The SDK provides adapter classes for common providers.
     """
 

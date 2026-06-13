@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CLI: unplug-audit — security wiring and optional probe batteries."""
+"""CLI: unplug-audit: security wiring and optional probe batteries."""
 
 from __future__ import annotations
 
@@ -54,7 +54,7 @@ def main() -> None:
         )
         if report.get("ml_inactive_hint"):
             print(
-                "\nHint: checkpoint found but ML inactive — "
+                "\nHint: checkpoint found but ML inactive: "
                 'set active_model = "tiny" or UNPLUG_ACTIVE_MODEL=tiny'
             )
 

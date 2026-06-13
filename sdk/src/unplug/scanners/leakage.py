@@ -1,4 +1,4 @@
-"""Data leakage scanner — detects API keys, PII, and system prompt leakage."""
+"""Data leakage scanner: detects API keys, PII, and system prompt leakage."""
 
 from __future__ import annotations
 
@@ -8,18 +8,20 @@ from collections.abc import Generator
 from unplug.core.config import ScannerConfig
 from unplug.core.context import ExecutionContext
 from unplug.core.normalize import EVASION_ONLY_STAGES, Normalizer
+from unplug.core.pattern_loader import leakage_patterns, secret_only_patterns
 from unplug.core.privacy.luhn import luhn_valid
 from unplug.core.runtime.stats import MetricsCollector
-from unplug.core.secret_patterns import leakage_patterns
 from unplug.core.taint import TaintedText, TrustLevel
 from unplug.data.maps_loader import default_scanner_config
 from unplug.models import Finding
 from unplug.scanners.base import RegexScanner
 
-# Leet/base64 stages corrupt digit-heavy PII — use evasion stages only.
+# Leet/base64 stages corrupt digit-heavy PII: use evasion stages only.
 _LEAKAGE_NORMALIZE_STAGES = EVASION_ONLY_STAGES
 
 LEAKAGE_PATTERNS: list[tuple[str, re.Pattern[str]]] = leakage_patterns()
+_USER_SECRET_SUBCATEGORIES = frozenset(name for name, _ in secret_only_patterns())
+
 
 _DEFAULT_CONFIG = default_scanner_config("leakage")
 
@@ -36,14 +38,28 @@ class LeakageScanner(RegexScanner):
         super().__init__(config=config or _DEFAULT_CONFIG, metrics=metrics)
         self._normalizer = Normalizer(stages=_LEAKAGE_NORMALIZE_STAGES)
 
-    def _should_scan(self, text: TaintedText) -> bool:
-        return text.trust_level not in (TrustLevel.USER, TrustLevel.TRUSTED)
+    def scan(self, text: TaintedText, context: ExecutionContext) -> list[Finding]:
+        if not self._config.enabled:
+            return []
+        if text.trust_level == TrustLevel.TRUSTED:
+            return []
+        if text.trust_level == TrustLevel.USER:
+            policy = context.scan_policy
+            if policy is None or not policy.scan_user_secrets:
+                return []
+        return super().scan(text, context)
 
     def _scan(self, text: TaintedText, context: ExecutionContext) -> Generator[Finding, None, None]:
         norm_result = self._normalizer.normalize(text.text)
         normalized = norm_result.text
         seen: set[tuple[int, int, str]] = set()
         for subcategory, pattern in self._patterns:
+            skip_user = (
+                text.trust_level == TrustLevel.USER
+                and subcategory not in _USER_SECRET_SUBCATEGORIES
+            )
+            if skip_user:
+                continue
             for match in pattern.finditer(normalized):
                 if subcategory == "credit_card":
                     digits = re.sub(r"\D", "", match.group(0))

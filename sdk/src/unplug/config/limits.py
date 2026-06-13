@@ -1,4 +1,4 @@
-"""Token and input limits — guards against unbounded consumption (OWASP LLM10)."""
+"""Token and input limits: guards against unbounded consumption (OWASP LLM10)."""
 
 from __future__ import annotations
 

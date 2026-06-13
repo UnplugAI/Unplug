@@ -92,7 +92,12 @@ class TestIngestion:
         assert "unplug_ingest_scanned" not in decision.meta_update
 
     def test_injection_indexed_when_block_disabled(self):
-        decision = scan_for_ingestion(Guard(), _INJECTION, block_on_injection=False)
+        decision = scan_for_ingestion(
+            Guard(),
+            _INJECTION,
+            block_on_injection=False,
+            strict_ingest=False,
+        )
         assert decision.index_ok is True
         assert decision.scan.action == Action.BLOCK
 
@@ -128,7 +133,7 @@ class TestDocumentGuardReport:
 class TestComponentLazyImport:
     def test_component_requires_haystack_or_builds(self):
         # When haystack-ai is absent, accessing the component raises a helpful
-        # ImportError; when present, it builds a class. Either is acceptable —
+        # ImportError. When present, it builds a class. Either is acceptable;
         # we only assert the module import itself never hard-depends on haystack.
         import unplug.integrations.haystack as hs
 

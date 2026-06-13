@@ -1,4 +1,4 @@
-"""Attack-harness CI gate — fails the build on normalizer or corpus regressions.
+"""Attack-harness CI gate: fails the build on normalizer or corpus regressions.
 
 Combines two offline checks into one exit code:
   1. Converter bypass matrix: covered converter families must keep catching

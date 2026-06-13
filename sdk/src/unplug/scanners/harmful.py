@@ -1,4 +1,4 @@
-"""Harmful output scanner — detects toxic, dangerous, and policy-violating content."""
+"""Harmful output scanner: detects toxic, dangerous, and policy-violating content."""
 
 from __future__ import annotations
 

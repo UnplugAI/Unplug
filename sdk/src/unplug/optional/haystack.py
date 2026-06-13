@@ -1,4 +1,4 @@
-"""Optional dependency — haystack-ai (lazy, logs install hint)."""
+"""Optional dependency: haystack-ai (lazy, logs install hint)."""
 
 from __future__ import annotations
 

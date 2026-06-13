@@ -1,4 +1,4 @@
-"""Optional YARA scanner — multi-string code/SQL/template/XSS rules from NeMo corpus."""
+"""Optional YARA scanner: multi-string code/SQL/template/XSS rules from NeMo corpus."""
 
 from __future__ import annotations
 

@@ -24,25 +24,25 @@ flowchart TB
 
 | Layer | Role |
 |-------|------|
-| `guard.py` | Entry point — config, registry, scan API, session taint |
+| `guard.py` | Entry point: config, registry, scan API, session taint |
 | `pipelines/` | Input, output, tool-call orchestration; fail-closed wrapper |
-| `scanners/` | Detection — regex, YARA, Presidio PII, ML span |
-| `core/` | Engine primitives — taint, normalize, policy, agent hardening, privacy, runtime |
-| `data/` | Packaged patterns (YAML), maps (TOML), YARA rules — no Python logic |
+| `scanners/` | Detection: regex, YARA, Presidio PII, ML span |
+| `core/` | Engine primitives: taint, normalize, policy, agent hardening, privacy, runtime |
+| `data/` | Packaged patterns (YAML), maps (TOML), YARA rules: no Python logic |
 | `optional/` | Fail-loud import boundaries for extras |
 | `ml/` | Span models, HF catalog, checkpoint store |
 | `config/` | Pydantic GuardConfig, loader, policy, limits |
-| `api/` | Wire types — Finding, ScanResult, Action, Source |
+| `api/` | Wire types: Finding, ScanResult, Action, Source |
 
 ## Trust and taint
 
-`TaintedText` carries provenance (`TrustLevel`: USER, TRUSTED, TOOL_OUTPUT, RETRIEVED, EXTERNAL, UNKNOWN). Scanners gate on trust — e.g. leakage skips USER/TRUSTED; harmful scans tool output and retrieved content.
+`TaintedText` carries provenance (`TrustLevel`: USER, TRUSTED, TOOL_OUTPUT, RETRIEVED, EXTERNAL, UNKNOWN). Scanners gate on trust, e.g. leakage skips USER/TRUSTED; harmful scans tool output and retrieved content.
 
 Session taint tracks cross-turn contamination from fetch/RAG tools.
 
 ## Fail-closed
 
-Scanner or pipeline errors produce a full-span `Finding` with `stage="error"` and `score=1.0` — never allow silently.
+Scanner or pipeline errors produce a full-span `Finding` with `stage="error"` and `score=1.0` and never allow silently.
 
 ## Optional extras
 
@@ -55,14 +55,20 @@ Scanner or pipeline errors produce a full-span `Finding` with `stage="error"` an
 | `litellm` | `optional/litellm.py` | `judge/litellm_judge.py` |
 | `scrape` | `optional/scrape.py` | `providers/content/firecrawl.py` |
 
-If a scanner is listed in config but its extra is missing, `Guard.__init__` raises `ImportError` with an install hint.
+If a scanner is listed in config but its extra is missing, `Guard.__init__` raises `ConfigError` with an install hint (`pii`, `yara`).
+
+## Concurrency and session state
+
+Use **one `Guard` per request or agent session**. `ExecutionContext` tracks session taint, tool history, trajectory, and normalize cache — shared concurrent scans on the same instance can race.
+
+For server embeddings and streaming, prefer `scan_request(..., isolated=True)` or a fresh `ExecutionContext` per call so scan cache and policy overrides do not bleed across tenants.
 
 ## Public API
 
 Stable imports from `unplug`:
 
 ```python
-from unplug import Guard, Finding, ScanResult, TrustLevel, GuardConfig
+from unplug import Guard, Finding, ScanResult, TrustLevel, GuardConfig, ScanPolicy, ConfigError, ServerError
 ```
 
 Everything else: submodule imports (`from unplug.scanners.injection import InjectionScanner`).
@@ -77,5 +83,5 @@ Everything else: submodule imports (`from unplug.scanners.injection import Injec
 
 ## Related docs
 
-- [RESTRUCTURE_PLAN.md](RESTRUCTURE_PLAN.md) — migration checklist
-- [LOGIC_AUDIT.md](LOGIC_AUDIT.md) — correctness review backlog
+- [RESTRUCTURE_PLAN.md](RESTRUCTURE_PLAN.md): migration checklist
+- [LOGIC_AUDIT.md](LOGIC_AUDIT.md): correctness review backlog

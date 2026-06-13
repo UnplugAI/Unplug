@@ -1,4 +1,4 @@
-"""Secrets scanner — exact-match detection using SecretsRegistry."""
+"""Secrets scanner: exact-match detection using SecretsRegistry."""
 
 from __future__ import annotations
 

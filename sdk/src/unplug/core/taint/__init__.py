@@ -1,4 +1,4 @@
-"""Provenance tracking — TaintedText, TrustLevel, Tagger."""
+"""Provenance tracking: TaintedText, TrustLevel, Tagger."""
 
 from __future__ import annotations
 

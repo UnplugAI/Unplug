@@ -1,4 +1,4 @@
-"""Optional dependency — yara-python (lazy, logs install hint)."""
+"""Optional dependency: yara-python (lazy, logs install hint)."""
 
 from __future__ import annotations
 

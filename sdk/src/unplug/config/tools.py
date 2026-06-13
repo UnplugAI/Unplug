@@ -1,4 +1,4 @@
-"""Tool classification policy — side-effect vs read-only (CaMeL-style boundary)."""
+"""Tool classification policy: side-effect vs read-only (CaMeL-style boundary)."""
 
 from __future__ import annotations
 
@@ -84,7 +84,7 @@ class ToolPolicyConfig(BaseModel):
 
     enabled: bool = True
     session_taint_enabled: bool = True
-    tainted_side_effect_review_score: float = Field(default=0.75, ge=0.0, le=1.0)
+    tainted_side_effect_review_score: float = Field(default=0.35, ge=0.0, le=1.0)
 
     side_effect_patterns: tuple[str, ...] = DEFAULT_SIDE_EFFECT_PATTERNS
     side_effect_tools: tuple[str, ...] = Field(default_factory=tuple)

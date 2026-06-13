@@ -1,4 +1,4 @@
-"""Canary tokens — planted prompt markers that turn leakage into a detectable event.
+"""Canary tokens: planted prompt markers that turn leakage into a detectable event.
 
 Rebuff pattern: mint a random token, embed it invisibly in the system prompt,
 and treat any appearance of the token in model output as proof of prompt
@@ -41,7 +41,7 @@ def mint_canary(label: str = "system_prompt") -> CanaryRecord:
 
 
 def embed_canary(prompt: str, record: CanaryRecord) -> str:
-    """Prepend the canary as an HTML comment — invisible in rendered output."""
+    """Prepend the canary as an HTML comment: invisible in rendered output."""
     return f"<!-- canary {record.token} -->\n{prompt}"
 
 

@@ -1,4 +1,4 @@
-"""Tests for the benchmarks attack harness — converter matrix and CI gate."""
+"""Tests for the benchmarks attack harness: converter matrix and CI gate."""
 
 from __future__ import annotations
 

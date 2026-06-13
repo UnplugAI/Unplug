@@ -1,4 +1,4 @@
-"""Haystack integration — defend the RAG retrieval path.
+"""Haystack integration: defend the RAG retrieval path.
 
 Most prompt-injection defenses guard the user turn and miss the retrieval path:
 a poisoned document in the store carries its payload straight into the prompt.
@@ -198,6 +198,7 @@ def scan_for_ingestion(
     content: str,
     *,
     block_on_injection: bool = True,
+    strict_ingest: bool = True,
 ) -> IngestionDecision:
     """Scan a document before it enters the store (defense at ingestion).
 
@@ -206,8 +207,12 @@ def scan_for_ingestion(
     the recorded risk so retrieval-time scanning can trust the prior pass.
     """
     result = guard.scan(content, source=Source.RETRIEVED)
-    blocked = block_on_injection and result.action == Action.BLOCK
-    index_ok = not blocked
+    if strict_ingest:
+        index_ok = result.action == Action.ALLOW and result.safe
+        blocked = not index_ok
+    else:
+        blocked = block_on_injection and result.action == Action.BLOCK
+        index_ok = not blocked
     meta_update: dict[str, Any] = {
         "unplug_ingest_risk": round(result.risk_score, 4),
         "unplug_ingest_blocked": blocked,

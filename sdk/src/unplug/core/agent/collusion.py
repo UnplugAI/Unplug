@@ -1,4 +1,4 @@
-"""Multi-agent collusion detection — pair frequency and cross-agent exfil."""
+"""Multi-agent collusion detection: pair frequency and cross-agent exfil."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Financial scanner — catches crypto addresses, payment APIs, and transfer patterns."""
+"""Financial scanner: catches crypto addresses, payment APIs, and transfer patterns."""
 
 from __future__ import annotations
 

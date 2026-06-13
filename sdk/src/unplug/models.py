@@ -1,4 +1,4 @@
-"""Shared schemas — re-exported from unplug.api for backward compatibility."""
+"""Shared schemas: re-exported from unplug.api for backward compatibility."""
 
 from __future__ import annotations
 

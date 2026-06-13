@@ -66,6 +66,15 @@ _OVERRIDE_PATTERN = re.compile(
     r"\b(" + "|".join(re.escape(v) for v in _OVERRIDE_VERBS) + r")\b",
     re.IGNORECASE,
 )
+_COLLAPSE_SPACING_PATTERN = re.compile(r"\b([a-zA-Z])((?:\s[a-zA-Z]){2,})\b")
+_CROSS_LINE_PATTERN = re.compile(r"([a-z])\n([a-z])")
+_BASE64_BLOB_PATTERN = re.compile(r"[A-Za-z0-9+/]{20,}={0,2}")
+_DOTTED_LETTERS_PATTERN = re.compile(r"\b([a-zA-Z])([.\-_|])([a-zA-Z])(?:\2[a-zA-Z]){2,}\b")
+_PIPE_SPLIT_PATTERNS = (
+    re.compile(r"(?<=[a-zA-Z])\|(?=[a-zA-Z])"),
+    re.compile(r"(?<=[a-zA-Z])\|(?=\s)"),
+    re.compile(r"(?<=\s)\|(?=[a-zA-Z])"),
+)
 
 _ALL_STAGES = [
     "unicode_tags",
@@ -83,7 +92,7 @@ _ALL_STAGES = [
     "reversed",
 ]
 
-# Stages safe for digit-heavy content (PII, amounts) — excludes leet and base64.
+# Stages safe for digit-heavy content (PII, amounts): excludes leet and base64.
 EVASION_ONLY_STAGES = [
     "unicode_tags",
     "zero_width",
@@ -160,7 +169,7 @@ def _normalize_leet(text: str, offset_table: list[int]) -> tuple[str, list[int]]
 
 
 def _collapse_spacing(text: str, offset_table: list[int]) -> tuple[str, list[int]]:
-    pattern = re.compile(r"\b([a-zA-Z])((?:\s[a-zA-Z]){2,})\b")
+    pattern = _COLLAPSE_SPACING_PATTERN
     result_chars: list[str] = []
     result_offsets: list[int] = []
     i = 0
@@ -229,7 +238,7 @@ def _strip_zero_width(text: str, offset_table: list[int]) -> tuple[str, list[int
 
 
 def _join_cross_line(text: str, offset_table: list[int]) -> tuple[str, list[int]]:
-    pattern = re.compile(r"([a-z])\n([a-z])")
+    pattern = _CROSS_LINE_PATTERN
     result_chars: list[str] = []
     result_offsets: list[int] = []
     i = 0
@@ -321,7 +330,7 @@ def _normalize_fullwidth(text: str, offset_table: list[int]) -> tuple[str, list[
 
 
 def _decode_base64(text: str, offset_table: list[int]) -> tuple[str, list[int]]:
-    pattern = re.compile(r"[A-Za-z0-9+/]{20,}={0,2}")
+    pattern = _BASE64_BLOB_PATTERN
     result_chars: list[str] = []
     result_offsets: list[int] = []
     last_end = 0
@@ -369,7 +378,7 @@ def _normalize_enclosed(text: str, offset_table: list[int]) -> tuple[str, list[i
 
 
 def _strip_delimiters(text: str, offset_table: list[int]) -> tuple[str, list[int]]:
-    pattern = re.compile(r"\b([a-zA-Z])([.\-_|])([a-zA-Z])(?:\2[a-zA-Z]){2,}\b")
+    pattern = _DOTTED_LETTERS_PATTERN
     current_text, current_offsets = text, offset_table
     while True:
         result_chars: list[str] = []
@@ -399,12 +408,7 @@ def _strip_delimiters(text: str, offset_table: list[int]) -> tuple[str, list[int
             break
         current_text, current_offsets = new_text, result_offsets
 
-    pipe_evasion = (
-        re.compile(r"(?<=[a-zA-Z])\|(?=[a-zA-Z])"),
-        re.compile(r"(?<=[a-zA-Z])\|(?=\s)"),
-        re.compile(r"(?<=\s)\|(?=[a-zA-Z])"),
-    )
-    for pattern in pipe_evasion:
+    for pattern in _PIPE_SPLIT_PATTERNS:
         if not pattern.search(current_text):
             continue
         result_chars = []

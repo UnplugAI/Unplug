@@ -1,4 +1,4 @@
-"""Sensitive-context dual mode — tighten policy when secrets/tokens are in play."""
+"""Sensitive-context dual mode: tighten policy when secrets/tokens are in play."""
 
 from __future__ import annotations
 

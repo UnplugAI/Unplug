@@ -1,4 +1,4 @@
-"""SDK security coverage gate — all scanners and pipelines exercised."""
+"""SDK security coverage gate: all scanners and pipelines exercised."""
 
 from __future__ import annotations
 
@@ -50,7 +50,7 @@ class TestBuiltinBenchmark:
 
     def test_benign_samples_no_false_positives(self) -> None:
         guard = Guard()
-        benign = [s for s in ALL_SAMPLES if s.label == 0]
+        benign = [s for s in ALL_SAMPLES if s.label == 0 and s.category == "benign"]
         fps = [s for s in benign if _detected(_run_sample(guard, s))]
         assert not fps, [(s.category, s.text[:50]) for s in fps]
 

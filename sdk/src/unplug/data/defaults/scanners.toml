@@ -1,4 +1,4 @@
-# Default per-scanner settings — override in unplug.toml [scanners.<name>].
+# Default per-scanner settings: override in unplug.toml [scanners.<name>].
 
 [injection]
 base_score = 0.85

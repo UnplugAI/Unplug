@@ -1,4 +1,4 @@
-"""Tests for core/limits.py — input limits and tool permissions."""
+"""Tests for core/limits.py: input limits and tool permissions."""
 
 from __future__ import annotations
 

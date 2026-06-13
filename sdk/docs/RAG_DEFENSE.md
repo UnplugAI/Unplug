@@ -1,8 +1,8 @@
 # RAG defense threat model
 
 Most teams that "handle prompt injection" only guard the user turn. The
-retrieval-augmented path is the gap: a document in your store — or one fetched
-live from the web — is rendered into the prompt as if it were trusted, so an
+retrieval-augmented path is the gap: a document in your store, or one fetched
+live from the web, is rendered into the prompt as if it were trusted, so an
 attacker who can influence a single indexed document can inject instructions
 into every query that retrieves it.
 
@@ -22,7 +22,7 @@ flowchart LR
 Two independent choke points, because either alone is insufficient:
 
 - **Ingestion-time** (`scan_for_ingestion`): the cheapest place to stop a
-  poisoned document — it never reaches the store, and clean documents are
+  poisoned document. It never reaches the store, and clean documents are
   stamped `unplug_ingest_scanned=True`. But it cannot protect against documents
   indexed before the guard existed, or stores you do not control.
 - **Retrieval-time** (`UnplugDocumentGuard`): the backstop that runs on every
@@ -58,8 +58,8 @@ pass.
 
 ## What this does not do
 
-- It does not vouch for factual accuracy or relevance — that is the retriever's
+- It does not vouch for factual accuracy or relevance. That is the retriever's
   job, not a security control.
 - It does not decrypt or introspect binary attachments; scan extracted text.
 - Boundary wrapping is a defense-in-depth signal to the model, not a hard
-  guarantee — pair it with a system prompt that treats wrapped content as data.
+  guarantee. Pair it with a system prompt that treats wrapped content as data.

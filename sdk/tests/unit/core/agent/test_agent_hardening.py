@@ -1,4 +1,4 @@
-"""Agent hardening — OpenClaw boundaries, Hermes Agent patterns, crescendo, intent."""
+"""Agent hardening: OpenClaw boundaries, Hermes Agent patterns, crescendo, intent."""
 
 from __future__ import annotations
 
@@ -175,7 +175,7 @@ class TestHomeostasisDegradation:
                 enabled=True,
                 review_at_level=1,
                 block_at_level=3,
-                review_score=0.75,
+                review_score=0.4,
             )
         )
         guard = Guard(config=cfg)

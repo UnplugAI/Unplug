@@ -123,19 +123,21 @@ class CompositeEncodingClassifier:
 
 
 def default_encoding_classifier(model: ModelProvider | None = None) -> EncodingClassifier:
-    """Preferred backend: span model on decoded blobs when ML is available."""
+    """Preferred backend: regex heuristic first, then span model on decoded blobs."""
     heuristic = HeuristicEncodingClassifier()
     if model is None:
         return heuristic
     return CompositeEncodingClassifier(
-        SpanModelEncodingClassifier(model),
         heuristic,
+        SpanModelEncodingClassifier(model),
     )
 
 
-def iter_base64_blobs(text: str) -> list[EncodingBlob]:
+def iter_base64_blobs(text: str, *, max_blobs: int = 5) -> list[EncodingBlob]:
     blobs: list[EncodingBlob] = []
     for match in BASE64_BLOB_PATTERN.finditer(text):
+        if len(blobs) >= max_blobs:
+            break
         raw = match.group(0)
         if not _is_probable_base64_blob(text, match.start(), raw):
             continue

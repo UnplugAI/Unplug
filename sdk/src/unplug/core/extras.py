@@ -1,4 +1,4 @@
-"""Optional dependency helpers — re-export from unplug.optional._base."""
+"""Optional dependency helpers: re-export from unplug.optional._base."""
 
 from __future__ import annotations
 

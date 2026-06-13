@@ -28,7 +28,7 @@ DISCLAIMER = (
 )
 
 # Findings whose span covers nearly the whole input are document-level flags,
-# not localized spans - surfaced in the verdict banner instead of painting everything.
+# not localized spans: surfaced in the verdict banner instead of painting everything.
 _DOC_LEVEL_COVERAGE = 0.9
 _DOC_LEVEL_MIN_CHARS = 120
 
@@ -301,7 +301,7 @@ def build_demo() -> gr.Blocks:
                 fn=analyze,
                 run_on_click=True,
                 cache_examples=False,
-                label="Roadmap — planned for a future release",
+                label="Roadmap: planned for a future release",
                 examples_per_page=3,
             )
 

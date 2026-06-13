@@ -1,4 +1,4 @@
-"""Shared secret-token and PII regex patterns — loaded from packaged YAML."""
+"""Shared secret-token and PII regex patterns: loaded from packaged YAML."""
 
 from __future__ import annotations
 

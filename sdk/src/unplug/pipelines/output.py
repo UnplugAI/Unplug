@@ -1,4 +1,4 @@
-"""Output pipeline — secrets scan, leakage scan, sanitize."""
+"""Output pipeline: secrets scan, leakage scan, sanitize."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from unplug.core.context import ExecutionContext
 from unplug.core.privacy.secrets import SecretsSanitizer
 from unplug.core.runtime.stats import MetricsCollector
 from unplug.core.taint import TaintedText, TrustLevel
-from unplug.models import Action, Finding, ScanResult
+from unplug.models import Finding, ScanResult
 from unplug.pipelines.base import BasePipeline
 from unplug.scanners.base import BaseScanner
 
@@ -69,30 +69,23 @@ class OutputPipeline(BasePipeline):
 
     def _execute(self, input_data: TaintedText, context: ExecutionContext) -> list[Finding]:
         findings: list[Finding] = []
+        secret_spans: set[tuple[int, int]] = set()
         if self._secrets:
-            findings.extend(self._secrets.scan(input_data, context))
+            secret_findings = list(self._secrets.scan(input_data, context))
+            for finding in secret_findings:
+                secret_spans.add((finding.span_start, finding.span_end))
+            findings.extend(secret_findings)
         if self._leakage:
-            findings.extend(self._leakage.scan(input_data, context))
+            for finding in self._leakage.scan(input_data, context):
+                span = (finding.span_start, finding.span_end)
+                if span in secret_spans:
+                    continue
+                findings.append(finding)
         if self._urls:
             findings.extend(self._urls.scan(input_data, context))
         if self._pii:
             findings.extend(self._pii.scan(input_data, context))
         return findings
-
-    def _decide(
-        self,
-        risk_score: float,
-        findings: list[Finding],
-        *,
-        text_len: int = 0,
-        policy: ScanPolicy | None = None,
-    ) -> Action:
-        _ = text_len, policy
-        if risk_score >= self._config.thresholds.block:
-            return Action.BLOCK
-        if risk_score >= self._config.thresholds.redact:
-            return Action.REDACT
-        return Action.ALLOW
 
     def _redact(
         self,

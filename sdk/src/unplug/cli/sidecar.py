@@ -1,4 +1,4 @@
-"""CLI: unplug-sidecar — verify and configure local unplug-server sidecar."""
+"""CLI: unplug-sidecar: verify and configure local unplug-server sidecar."""
 
 from __future__ import annotations
 
@@ -49,7 +49,7 @@ def _cmd_doctor(args: argparse.Namespace) -> int:
         return 1
     print("\nSDK env (no API key for local sidecar):")
     print(f"  export UNPLUG_SERVER_URL={url}")
-    print('  # Guard(mode="server") — see examples/local_sidecar_client.py')
+    print('  # Guard(mode="server"). See examples/local_sidecar_client.py')
     return 0
 
 

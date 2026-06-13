@@ -1,4 +1,4 @@
-"""S6: Security stress tests — registry limits, ReDoS guards, scan latency."""
+"""S6: Security stress tests: registry limits, ReDoS guards, scan latency."""
 
 from __future__ import annotations
 

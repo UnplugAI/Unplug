@@ -4,7 +4,7 @@ Unplug has **one HTTP API** (`unplug-server`) and **one SDK** (`unplug-ai`). Who
 
 ```mermaid
 flowchart TB
-  subgraph hosted [Hosted - Unplug operates]
+  subgraph hosted [Hosted: Unplug operates]
     VM[unplug-server on VM]
     Keys[API keys per customer]
     VM --> Keys
@@ -12,14 +12,14 @@ flowchart TB
     CustSDK1 -->|Bearer token| VM
   end
 
-  subgraph embedded [Local embedded - customer operates]
+  subgraph embedded [Local embedded: customer operates]
     Agent[Agent process]
     Guard1[Guard mode=local]
     ML1[injection_ml in-process]
     Agent --> Guard1 --> ML1
   end
 
-  subgraph sidecar [Local sidecar - customer operates]
+  subgraph sidecar [Local sidecar: customer operates]
     Sidecar[unplug-server localhost]
     Agent2[Agent process]
     Guard2[Guard mode=server]
@@ -47,7 +47,7 @@ guard = Guard(mode="server")  # UNPLUG_SERVER_URL + UNPLUG_API_KEY
 
 They never clone `unplug-server`, never download checkpoints, and never need a GPU.
 
-Tool enforcement (`check_tool_call`, toolchain, collusion) **always runs in the SDK** today - hosted mode covers text scan/output only.
+Tool enforcement (`check_tool_call`, toolchain, collusion) **always runs in the SDK** today: hosted mode covers text scan/output only.
 
 ### Local embedded (simplest offline ML)
 
@@ -72,7 +72,7 @@ When customers want **local ML** but also want:
 - non-Python clients calling the same scan API
 - identical wire format as hosted (easy env switch)
 
-They run **the same `unplug-server` binary** you operate in prod - just locally, without auth:
+They run **the same `unplug-server` binary** you operate in prod: just locally, without auth:
 
 ```bash
 # From unplug-server repo (or docker-compose.sidecar.yml)
@@ -115,10 +115,10 @@ Use `unplug-sidecar doctor` to verify the sidecar is reachable before starting a
 
 - Hosted VM provisioning (internal ops)
 - API key dashboard (product surface, separate repo)
-- A second "local server" product - sidecar **is** `unplug-server` with a dev profile
+- A second "local server" product: sidecar **is** `unplug-server` with a dev profile
 
 ## Related
 
-- [`examples/hosted_client.py`](../examples/hosted_client.py) - hosted API key flow
-- [`examples/local_sidecar_client.py`](../examples/local_sidecar_client.py) - localhost server flow
-- [`repos/unplug-server`](../../../repos/unplug-server) - server source and `docker-compose.sidecar.yml`
+- [`examples/hosted_client.py`](../examples/hosted_client.py): hosted API key flow
+- [`examples/local_sidecar_client.py`](../examples/local_sidecar_client.py): localhost server flow
+- [`repos/unplug-server`](../../../repos/unplug-server): server source and `docker-compose.sidecar.yml`

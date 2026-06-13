@@ -1,4 +1,4 @@
-"""Tests for core/logging.py — correlation IDs and logger setup."""
+"""Tests for core/logging.py: correlation IDs and logger setup."""
 
 from __future__ import annotations
 

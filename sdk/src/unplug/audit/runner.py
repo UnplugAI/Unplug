@@ -1,4 +1,4 @@
-"""Unplug security audit — wiring, ML, probes, session policy."""
+"""Unplug security audit: wiring, ML, probes, session policy."""
 
 from __future__ import annotations
 
@@ -70,8 +70,8 @@ def run_audit(
             os.environ["UNPLUG_MODEL_PATH"] = str(ckpt)
     elif require_ml:
         checks.append(_check("ml_checkpoint", False, "checkpoint missing or invalid"))
-        checks.append(_check("ml_configured", False, "cannot verify — checkpoint missing"))
-        checks.append(_check("ml_active", False, "cannot verify — checkpoint missing"))
+        checks.append(_check("ml_configured", False, "cannot verify: checkpoint missing"))
+        checks.append(_check("ml_active", False, "cannot verify: checkpoint missing"))
         return {
             "workspace_root": str(workspace),
             "checks_passed": 0,
@@ -103,7 +103,7 @@ def run_audit(
             _check(
                 "ml_configured",
                 False,
-                "not set — set active_model or UNPLUG_ACTIVE_MODEL",
+                "not set: set active_model or UNPLUG_ACTIVE_MODEL",
             )
         )
 

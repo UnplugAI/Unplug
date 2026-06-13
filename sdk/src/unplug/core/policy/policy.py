@@ -80,3 +80,8 @@ def decide_action(
     if risk_score >= policy.review_threshold:
         return Action.REVIEW
     return Action.ALLOW
+
+
+def is_result_safe(action: Action, policy: ScanPolicy) -> bool:
+    """Whether scan output is safe for downstream model/tool use."""
+    return action == Action.ALLOW or (action == Action.ABSTAIN and policy.abstain_is_safe)

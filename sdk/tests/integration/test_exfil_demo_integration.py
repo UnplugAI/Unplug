@@ -1,6 +1,6 @@
 """Integration gate: the webpage-exfil scenario must be blocked end-to-end.
 
-This is the killer-demo gate from the plan — an agent summarizes a webpage with a
+This is the killer-demo gate from the plan. An agent summarizes a webpage with a
 hidden exfil instruction, and Unplug must block or flag the resulting tool call.
 CI runs this on every PR; if it ever passes the exfil through, the build fails.
 """

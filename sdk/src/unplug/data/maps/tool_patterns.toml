@@ -1,4 +1,4 @@
-# Tool classification regexes — side-effect vs taint-source vs access profiles.
+# Tool classification regexes: side-effect vs taint-source vs access profiles.
 # Override at runtime via unplug.toml [tools] side_effect_patterns / taint_source_patterns.
 
 [side_effect]

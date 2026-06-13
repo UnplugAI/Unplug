@@ -1,1 +1,1 @@
-"""Packaged static assets (YAML/TOML/YARA) — no runtime logic."""
+"""Packaged static assets (YAML/TOML/YARA): no runtime logic."""

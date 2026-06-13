@@ -175,8 +175,15 @@ class TestShouldInvokeMl:
             is False
         )
 
-    def test_default_always_runs_below_high(self) -> None:
+    def test_default_skips_ml_on_clean_text(self) -> None:
         gate = MlGateConfig()
+        assert (
+            should_invoke_ml(regex_risk=0.0, regex_flagged=False, gate=gate, block_threshold=0.8)
+            is False
+        )
+
+    def test_recall_preset_runs_below_high(self) -> None:
+        gate = MlGateConfig(always_below_high=True, gray_low=0.0)
         assert (
             should_invoke_ml(regex_risk=0.0, regex_flagged=False, gate=gate, block_threshold=0.8)
             is True
@@ -244,8 +251,15 @@ class TestPipelineMlGate:
         )
         assert ml.calls == 0
 
-    def test_clean_text_runs_ml_by_default(self) -> None:
+    def test_clean_text_skips_ml_by_default(self) -> None:
         ml = self._run("What is the weather in Tokyo tomorrow?", gate=MlGateConfig())
+        assert ml.calls == 0
+
+    def test_clean_text_runs_ml_with_recall_preset(self) -> None:
+        ml = self._run(
+            "What is the weather in Tokyo tomorrow?",
+            gate=MlGateConfig(always_below_high=True, gray_low=0.0),
+        )
         assert ml.calls == 1
 
     def test_confident_regex_block_skips_ml(self) -> None:

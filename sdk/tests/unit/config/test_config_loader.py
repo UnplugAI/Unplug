@@ -1,4 +1,4 @@
-"""Tests for core/config_loader.py — TOML loading, env overrides, merging."""
+"""Tests for core/config_loader.py: TOML loading, env overrides, merging."""
 
 from __future__ import annotations
 
@@ -140,6 +140,29 @@ class TestLoad:
         cfg = load(file_path=toml_file)
         assert cfg.scanners == ["injection", "destructive"]
         assert cfg.pipeline.thresholds.block == 0.9
+        assert cfg.pipeline.policy.block_threshold == 0.9
+
+    def test_toolchain_and_collusion_from_example(self) -> None:
+        example = Path(__file__).resolve().parents[2] / "unplug.example.toml"
+        if not example.exists():
+            pytest.skip("unplug.example.toml not found")
+        cfg = load(file_path=example)
+        assert cfg.toolchain.enabled is True
+        assert cfg.toolchain.history_size == 20
+        assert cfg.collusion.enabled is True
+        assert cfg.collusion.window_seconds == 60.0
+        assert cfg.collusion.pair_message_threshold == 10
+
+    def test_fail_closed_false_warns(self) -> None:
+        import warnings
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            build_config({"guard": {"fail_closed": False}})
+        assert any(
+            issubclass(w.category, DeprecationWarning) and "fail_closed" in str(w.message)
+            for w in caught
+        )
 
     def test_env_override(self, toml_file: Path):
         with patch.dict(os.environ, {"UNPLUG_GUARD__MODE": "server"}):

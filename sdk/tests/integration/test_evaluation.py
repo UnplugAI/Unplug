@@ -1,4 +1,4 @@
-"""Tests for the evaluation framework — loader and evaluator."""
+"""Tests for the evaluation framework: loader and evaluator."""
 
 from __future__ import annotations
 
@@ -89,8 +89,10 @@ class TestEvaluate:
 
     def test_no_false_positives_on_benign(self):
         benign = [s for s in ALL_SAMPLES if s.label == 0]
-        guard = Guard(scanners=["injection"])
-        result = evaluate(benign, guard=guard)
+        result = evaluate(
+            benign,
+            guard_factory=lambda: Guard(scanners=["injection"]),
+        )
         assert result.overall.false_positives == 0
 
     def test_result_to_dict(self):

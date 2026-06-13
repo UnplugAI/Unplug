@@ -1,4 +1,4 @@
-"""Pytest hooks — suppress third-party noise from optional ML stack imports."""
+"""Pytest hooks: suppress third-party noise from optional ML stack imports."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Agent session context — ExecutionContext and ToolCall."""
+"""Agent session context: ExecutionContext and ToolCall."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Tests for scanners/financial.py — crypto, payment, and transfer detection."""
+"""Tests for scanners/financial.py: crypto, payment, and transfer detection."""
 
 from unplug.core.context import ExecutionContext
 from unplug.core.taint import TaintedText, TrustLevel

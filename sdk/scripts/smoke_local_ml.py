@@ -34,7 +34,7 @@ def main() -> None:
     if ckpt is None:
         ckpt = resolve_validation_checkpoint(require_weights=args.require_weights)
     if ckpt is None or not ckpt.is_dir():
-        print("checkpoint not found — set UNPLUG_MODEL_PATH or install weights", file=sys.stderr)
+        print("checkpoint not found: set UNPLUG_MODEL_PATH or install weights", file=sys.stderr)
         sys.exit(1)
 
     os.environ.setdefault("UNPLUG_ACTIVE_MODEL", "tiny")

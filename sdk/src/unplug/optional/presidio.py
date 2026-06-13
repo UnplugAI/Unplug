@@ -1,4 +1,4 @@
-"""Optional dependency — presidio-analyzer (lazy, logs install hint)."""
+"""Optional dependency: presidio-analyzer (lazy, logs install hint)."""
 
 from __future__ import annotations
 

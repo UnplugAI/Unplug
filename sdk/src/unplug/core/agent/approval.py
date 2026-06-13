@@ -37,7 +37,7 @@ def build_approval_request(
 
 @runtime_checkable
 class ApprovalProvider(Protocol):
-    """Host integration — approve or deny REVIEW tool calls."""
+    """Host integration: approve or deny REVIEW tool calls."""
 
     def request_approval(self, request: ApprovalRequest) -> bool:
         """Return True if the operator approved the tool call."""

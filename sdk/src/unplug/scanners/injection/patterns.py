@@ -1,4 +1,4 @@
-"""Injection and jailbreak regex patterns — loaded from packaged YAML."""
+"""Injection and jailbreak regex patterns: loaded from packaged YAML."""
 
 from __future__ import annotations
 

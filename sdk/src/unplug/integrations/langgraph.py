@@ -1,4 +1,4 @@
-"""LangGraph integration — Guard hooks as node wrappers."""
+"""LangGraph integration: Guard hooks as node wrappers."""
 
 from __future__ import annotations
 

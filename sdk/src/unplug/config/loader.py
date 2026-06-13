@@ -1,4 +1,4 @@
-"""Config file loading — TOML (stdlib) with env var overrides."""
+"""Config file loading: TOML (stdlib) with env var overrides."""
 
 from __future__ import annotations
 
@@ -9,8 +9,10 @@ from typing import Any
 
 from unplug.config.agent_policy import (
     BoundaryConfig,
+    CollusionConfig,
     DegradationConfig,
     IntentConfig,
+    ToolChainConfig,
     TrajectoryConfig,
 )
 from unplug.config.cache import CacheConfig
@@ -86,6 +88,17 @@ def _build_policy(data: dict[str, Any]) -> ScanPolicy:
     return ScanPolicy(**{k: v for k, v in data.items() if k in ScanPolicy.model_fields})
 
 
+def _apply_ml_gate_preset(data: dict[str, Any]) -> dict[str, Any]:
+    preset = data.get("preset")
+    if preset == "recall":
+        return {**data, "always_below_high": True, "gray_low": 0.0}
+    if preset == "balanced":
+        return {**data, "always_below_high": False, "gray_low": 0.3}
+    if preset == "latency":
+        return {**data, "always_below_high": False, "gray_low": 0.5}
+    return data
+
+
 def _build_pipeline(data: dict[str, Any]) -> PipelineConfig:
     kwargs: dict[str, Any] = {}
     if "thresholds" in data:
@@ -95,10 +108,25 @@ def _build_pipeline(data: dict[str, Any]) -> PipelineConfig:
     if "fail_closed" in data:
         kwargs["fail_closed"] = data["fail_closed"]
     if "ml_gate" in data:
+        ml_gate_data = _apply_ml_gate_preset(data["ml_gate"])
         kwargs["ml_gate"] = MlGateConfig(
-            **{k: v for k, v in data["ml_gate"].items() if k in MlGateConfig.model_fields}
+            **{k: v for k, v in ml_gate_data.items() if k in MlGateConfig.model_fields}
         )
-    return PipelineConfig(**kwargs)
+    pipeline = PipelineConfig(**kwargs)
+    if "thresholds" in data:
+        t = pipeline.thresholds
+        pipeline = pipeline.model_copy(
+            update={
+                "policy": pipeline.policy.model_copy(
+                    update={
+                        "block_threshold": t.block,
+                        "redact_threshold": t.redact,
+                        "review_threshold": t.review,
+                    }
+                )
+            }
+        )
+    return pipeline
 
 
 def _build_limits(data: dict[str, Any]) -> LimitConfig:
@@ -164,6 +192,14 @@ def _build_degradation(data: dict[str, Any]) -> DegradationConfig:
     if "high_risk_tools" in kwargs and isinstance(kwargs["high_risk_tools"], list):
         kwargs["high_risk_tools"] = tuple(kwargs["high_risk_tools"])
     return DegradationConfig(**kwargs)
+
+
+def _build_toolchain(data: dict[str, Any]) -> ToolChainConfig:
+    return ToolChainConfig(**{k: v for k, v in data.items() if k in ToolChainConfig.model_fields})
+
+
+def _build_collusion(data: dict[str, Any]) -> CollusionConfig:
+    return CollusionConfig(**{k: v for k, v in data.items() if k in CollusionConfig.model_fields})
 
 
 def build_config(data: dict[str, Any]) -> GuardConfig:
@@ -246,6 +282,23 @@ def build_config(data: dict[str, Any]) -> GuardConfig:
     degradation_data = guard_data.get("degradation", data.get("degradation", {}))
     if degradation_data:
         kwargs["degradation"] = _build_degradation(degradation_data)
+
+    toolchain_data = data.get("toolchain", guard_data.get("toolchain", {}))
+    if toolchain_data:
+        kwargs["toolchain"] = _build_toolchain(toolchain_data)
+
+    collusion_data = data.get("collusion", guard_data.get("collusion", {}))
+    if collusion_data:
+        kwargs["collusion"] = _build_collusion(collusion_data)
+
+    if guard_data.get("fail_closed") is False or data.get("guard", {}).get("fail_closed") is False:
+        import warnings
+
+        warnings.warn(
+            "fail_closed=false is deprecated and ignored; scanner/pipeline errors always block",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
     return GuardConfig(**kwargs)
 

@@ -1,4 +1,4 @@
-"""Input pipeline — taint, normalize, scan, decide."""
+"""Input pipeline: taint, normalize, scan, decide."""
 
 from __future__ import annotations
 
@@ -111,6 +111,14 @@ class InputPipeline(BasePipeline):
                 ml_scanners.append(scanner)
             else:
                 regex_scanners.append(scanner)
+
+        if any(
+            getattr(scanner.config, "normalize", False)
+            for scanner in (*regex_scanners, *ml_scanners)
+        ):
+            from unplug.core.normalize import cached_normalize
+
+            cached_normalize(context, self._normalizer, input_data.text, cache_key="full")
 
         for scanner in regex_scanners:
             findings.extend(scanner.scan(input_data, context))

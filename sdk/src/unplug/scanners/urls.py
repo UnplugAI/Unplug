@@ -1,4 +1,4 @@
-"""Malicious URL scanner — offline heuristics for hostile links.
+"""Malicious URL scanner: offline heuristics for hostile links.
 
 Covers the LLM Guard MaliciousURLs gap without a model or network calls:
 data: URI payloads, credentials-in-URL, IP-literal hosts, punycode and

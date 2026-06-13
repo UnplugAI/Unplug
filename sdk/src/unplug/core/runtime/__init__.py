@@ -1,4 +1,4 @@
-"""Runtime utilities — cache, stats, logging, asyncio, model runtime, versions."""
+"""Runtime utilities: cache, stats, logging, asyncio, model runtime, versions."""
 
 from __future__ import annotations
 

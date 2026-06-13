@@ -1,4 +1,4 @@
-# Agent flow security - Hermes Agent, OpenClaw, and Unplug SDK
+# Agent flow security: Hermes Agent, OpenClaw, and Unplug SDK
 
 **Updated:** 2026-06-01  
 **Scope:** Techniques for securing LLM agent *flows* (not host sandboxing). Maps external patterns to SDK hooks.
@@ -11,13 +11,13 @@
 
 | Term | Meaning |
 |------|---------|
-| **Hermes Agent** | [NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent) - skills, context files, cron, terminal tools. Uses `threat_patterns.py` + `skills_guard`. |
+| **Hermes Agent** | [NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent): skills, context files, cron, terminal tools. Uses `threat_patterns.py` + `skills_guard`. |
 | **OpenClaw** | Open-source agent runtime (gateway + tools). See [OpenClaw security docs](https://docs.openclaw.ai/gateway/security). |
-| **Adaptive degradation** | SDK `[degradation]` - tighten high-risk tools after crescendo (OpenClaw blast-radius idea). |
+| **Adaptive degradation** | SDK `[degradation]`: tighten high-risk tools after crescendo (OpenClaw blast-radius idea). |
 
 ---
 
-## OpenClaw - techniques that apply to the SDK
+## OpenClaw: techniques that apply to the SDK
 
 OpenClaw separates **where tools run** (Docker sandbox), **which tools exist** (allow/deny), and **who can talk to the agent** (pairing). Only the middle layer is fully expressible inside Unplug; the rest is host responsibility.
 
@@ -30,11 +30,11 @@ OpenClaw separates **where tools run** (Docker sandbox), **which tools exist** (
 | Crescendo / multi-turn escalation | Operational guidance + monitoring | `TrajectoryConfig` + `risk_trajectory` |
 | Channel trust | DM pairing, allowlists | **Host** (not SDK) |
 | Container isolation | `sandbox.mode: all` | **Host** (Docker) |
-| Elevated exec on host | `tools.elevated` bypasses sandbox | **Host** - SDK can still REVIEW/BLOCK tool names |
+| Elevated exec on host | `tools.elevated` bypasses sandbox | **Host**: SDK can still REVIEW/BLOCK tool names |
 
 ---
 
-## Hermes Agent - techniques
+## Hermes Agent: techniques
 
 | Technique | Hermes | Unplug SDK |
 |-----------|--------|------------|

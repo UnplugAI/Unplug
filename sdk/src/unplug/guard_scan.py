@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from unplug.api.enums import Action
 from unplug.api.types import Finding, ScanResult
 from unplug.config.policy import ScanPolicy
-from unplug.core.policy import decide_action
+from unplug.core.policy import decide_action, is_result_safe
 
 
 def refresh_scan_result(
@@ -24,7 +23,7 @@ def refresh_scan_result(
     )
     stages = list(dict.fromkeys([*baseline.stages_run, *(f.stage for f in findings)]))
     return ScanResult(
-        safe=action == Action.ALLOW,
+        safe=is_result_safe(action, policy),
         action=action,
         risk_score=risk_score,
         findings=findings,

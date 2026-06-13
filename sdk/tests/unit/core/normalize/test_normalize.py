@@ -1,4 +1,4 @@
-"""Tests for core/normalize.py — 12-stage normalizer with span mapping."""
+"""Tests for core/normalize.py: 12-stage normalizer with span mapping."""
 
 import base64
 

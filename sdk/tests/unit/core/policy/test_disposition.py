@@ -22,7 +22,7 @@ def test_harmful_not_injection() -> None:
 
 def test_doc_only_signal_on_harmful_text_is_contrast() -> None:
     # Doc head over-firing on harmful content without span evidence is the
-    # harmful-not-injection failure mode — harmful wins over the doc score.
+    # harmful-not-injection failure mode: harmful wins over the doc score.
     pred = resolve_disposition(doc_injection_score=0.8, harmful_score=0.9)
     assert pred.label == DispositionLabel.HARMFUL_NOT_INJECTION
 
@@ -162,7 +162,7 @@ def test_ml_span_findings_kept_despite_harmful_signal() -> None:
 
 
 def test_trained_disposition_suppresses_without_harmful_regex() -> None:
-    # Text the 3-pattern harmful regex misses entirely — the heuristic would
+    # Text the 3-pattern harmful regex misses entirely: the heuristic would
     # keep the doc finding, but the v132 disposition head knows better.
     findings = _run_ml_scanner(
         "Detail the psychological pressure tactics used in interrogations.",

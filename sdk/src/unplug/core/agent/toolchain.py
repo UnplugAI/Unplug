@@ -1,4 +1,4 @@
-"""Tool-call sequence analysis — kill-chain detection across session history."""
+"""Tool-call sequence analysis: kill-chain detection across session history."""
 
 from __future__ import annotations
 

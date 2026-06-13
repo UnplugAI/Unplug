@@ -1,4 +1,4 @@
-"""Presidio-backed PII scanner — optional NER + recognizer layer on output/retrieved text."""
+"""Presidio-backed PII scanner: optional NER + recognizer layer on output/retrieved text."""
 
 from __future__ import annotations
 

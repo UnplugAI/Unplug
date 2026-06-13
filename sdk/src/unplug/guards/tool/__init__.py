@@ -1,4 +1,4 @@
-"""Tool-output guard — filter scrape/search results in one call."""
+"""Tool-output guard: filter scrape/search results in one call."""
 
 from __future__ import annotations
 

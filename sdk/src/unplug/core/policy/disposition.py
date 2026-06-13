@@ -1,4 +1,4 @@
-"""Disposition head — separate injection from harmful-not-injection (v132 follow-up)."""
+"""Disposition head: separate injection from harmful-not-injection (v132 follow-up)."""
 
 from __future__ import annotations
 

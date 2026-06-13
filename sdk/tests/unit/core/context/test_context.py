@@ -1,4 +1,4 @@
-"""Tests for core/context.py — ExecutionContext, ToolCall."""
+"""Tests for core/context.py: ExecutionContext, ToolCall."""
 
 from unplug.core.context import ExecutionContext, ToolCall
 from unplug.core.taint import TaintedText, TrustLevel

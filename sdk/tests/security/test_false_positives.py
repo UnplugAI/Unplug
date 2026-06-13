@@ -1,4 +1,4 @@
-"""False positive tests — legitimate content that must pass through."""
+"""False positive tests: legitimate content that must pass through."""
 
 from __future__ import annotations
 

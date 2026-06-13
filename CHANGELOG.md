@@ -6,6 +6,25 @@ All notable changes to the `unplug-ai` SDK.
 
 ### Changed
 
+- **ABSTAIN semantics:** `ScanResult.safe` is `False` for `Action.ABSTAIN` by default; set `policy.abstain_is_safe = true` for legacy pass-through
+- **ML gate default:** `always_below_high = false` and `gray_low = 0.3` — use `preset = "recall"` or `always_below_high = true` for max recall
+- **Unified thresholds:** input, output, and tool-call pipelines share `ScanPolicy` via `decide_action()`
+- **Tool approval:** caller `approved=True` is ignored; use `ApprovalProvider` to clear `REVIEW`
+- **Hooks:** non-`ALLOW` actions block; retrieved content returns redacted text, not raw wrapped input
+- **Haystack ingest:** `strict_ingest=true` (default) requires `action == ALLOW` and `safe`
+- **Config:** `[toolchain]` and `[collusion]` TOML sections load into `GuardConfig`; unknown scanner names fail at init
+- **`fail_closed` / `fail_mode="open"`:** deprecated — errors always fail closed
+
+### Added
+
+- `scan_user_secrets` on `ScanPolicy` — USER input scanned for secret-shaped leakage patterns
+- `Guard.ml_degraded` when `active_model` is set but ML failed to load
+- Pipeline-level normalization cache (one normalize pass per input scan)
+- `ServerError`, `ScanPolicy`, `ConfigError` exported from top-level `unplug`
+- `src/unplug/py.typed` for PEP 561
+
+### Changed (prior)
+
 - **Tagline:** "Unplug the bad AI" (README, pyproject, package docstring)
 - **Canonical namespace:** `unplug.scanners.*` replaces `unplug.safeguards.*`
 - **Core layout:** `core/` split into subpackages (`taint/`, `normalize/`, `policy/`, `agent/`, `privacy/`, `runtime/`, `redaction/`) with flat shims until v1.0

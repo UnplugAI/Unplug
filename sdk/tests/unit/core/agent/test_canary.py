@@ -1,4 +1,4 @@
-"""Tests for canary tokens — prompt leakage tripwires (Rebuff pattern)."""
+"""Tests for canary tokens: prompt leakage tripwires (Rebuff pattern)."""
 
 from __future__ import annotations
 

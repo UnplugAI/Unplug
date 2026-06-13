@@ -1,4 +1,4 @@
-"""Core enforcement layer — flat public imports via this package."""
+"""Core enforcement layer: flat public imports via this package."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-# Unplug configuration - copy to unplug.toml and customize
+# Unplug configuration: copy to unplug.toml and customize
 
 [guard]
 scanners = ["injection", "destructive", "leakage", "harmful", "urls"]
@@ -6,12 +6,13 @@ scanners = ["injection", "destructive", "leakage", "harmful", "urls"]
 # scanners = ["injection", "destructive", "leakage", "harmful", "urls", "pii"]
 # mode: "local" (default) | "server" (hosted API)
 mode = "local"
+# fail_closed is deprecated — scanner/pipeline errors always block (fail-closed)
 fail_closed = true
 judge_enabled = false
 # server_url = "https://api.unplug.example"
 # server_api_key = "up_live_xxxxxxxx"
 
-# Local ML - downloads Unplug-AI/unplug-tiny-v1 on first use (pip install unplug-ai[ml])
+# Local ML: downloads Unplug-AI/unplug-tiny-v1 on first use (pip install unplug-ai[ml])
 active_model = "tiny"
 auto_download_model = true
 require_ml = false
@@ -25,7 +26,7 @@ blocked_tools = []
 [tools]
 enabled = true
 session_taint_enabled = true
-tainted_side_effect_review_score = 0.75
+tainted_side_effect_review_score = 0.35
 # profile = "readonly"   # readonly | messaging | full
 
 [toolchain]
@@ -52,7 +53,7 @@ block_slope = 0.15
 
 [intent]
 enabled = true
-review_score = 0.72
+review_score = 0.4
 
 [messages]
 blocked_template = "Content was not safe. Threat: {category} (risk {risk_score:.2f})."
@@ -105,6 +106,7 @@ tau_doc_gate = 0.99
 sensitive_context_enabled = true
 sensitive_context_boost = 0.2
 sensitive_context_block_delta = 0.15
+# abstain_is_safe = false  # default; set true for legacy ABSTAIN pass-through to model
 
 [models.tiny.config]
 max_length = 512

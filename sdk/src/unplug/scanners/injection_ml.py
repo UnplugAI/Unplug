@@ -1,4 +1,4 @@
-"""ML span injection scanner — BIOES checkpoint on normalized text."""
+"""ML span injection scanner: BIOES checkpoint on normalized text."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from collections.abc import Generator
 from unplug.core.config import ScannerConfig
 from unplug.core.context import ExecutionContext
 from unplug.core.models import ModelProvider
-from unplug.core.normalize import Normalizer
+from unplug.core.normalize import Normalizer, cached_normalize
 from unplug.core.policy.decision import (
     ML_ABSTAIN_SUBCATEGORY,
     DecisionMode,
@@ -32,13 +32,13 @@ from unplug.scanners.harmful import harmful_signal
 
 _DEFAULT_CONFIG = default_scanner_config("injection_ml")
 
-# Defaults — override via ModelSpec.config (head_tail_enabled, head_tail_threshold_chars, …).
+# Defaults: override via ModelSpec.config (head_tail_enabled, head_tail_threshold_chars, …).
 _DEFAULT_HEAD_TAIL_THRESHOLD = 8192
 _DEFAULT_HEAD_TAIL_CHUNK = 2048
 
 
 class InjectionSpanScanner(ModelScanner):
-    """Fine-tuned span model — runs after regex when pipeline risk is below block threshold."""
+    """Fine-tuned span model: runs after regex when pipeline risk is below block threshold."""
 
     name = "injection_ml"
 
@@ -93,7 +93,7 @@ class InjectionSpanScanner(ModelScanner):
         if self._model.loaded is False:
             self._model.load()
 
-        norm = self._normalizer.normalize(text.text)
+        norm = cached_normalize(context, self._normalizer, text.text, cache_key="full")
         prediction = self._predict(norm.text)
         cfg = self._model.spec.config
         policy = context.scan_policy

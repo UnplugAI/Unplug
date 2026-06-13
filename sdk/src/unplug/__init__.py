@@ -1,4 +1,4 @@
-"""Unplug — Unplug the bad AI."""
+"""Unplug: Unplug the bad AI."""
 
 from __future__ import annotations
 
@@ -15,12 +15,14 @@ from unplug.config import (
     load as load_config,
 )
 from unplug.config.limits import LimitConfig
+from unplug.config.policy import ScanPolicy
 from unplug.core.context import ExecutionContext, ToolCall
 from unplug.core.models import ModelProvider, ModelRegistry, ModelSpec
 from unplug.core.privacy.secrets import SecretsRegistry
 from unplug.core.runtime.logging import correlation_scope, get_correlation_id
 from unplug.core.runtime.stats import MetricsCollector
 from unplug.core.taint import Tagger, TaintedText, TrustLevel
+from unplug.exceptions import ConfigError, ServerError
 from unplug.guard import Guard
 from unplug.models import Action, Finding, ScanResult, Source
 from unplug.scanners import ScannerRegistry
@@ -30,6 +32,7 @@ __all__ = [
     "Action",
     "BaseScanner",
     "BlockedContent",
+    "ConfigError",
     "ContentOutcome",
     "ExecutionContext",
     "Finding",
@@ -46,10 +49,12 @@ __all__ = [
     "RegexScanner",
     "SafeContent",
     "SafeguardRegistry",
+    "ScanPolicy",
     "ScanResult",
     "ScannerConfig",
     "ScannerRegistry",
     "SecretsRegistry",
+    "ServerError",
     "Source",
     "Tagger",
     "TaintedText",

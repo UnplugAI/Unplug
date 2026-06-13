@@ -1,4 +1,4 @@
-"""Privacy Filter protocol — implementation ships with unplug-safeguard model only."""
+"""Privacy Filter protocol: implementation ships with unplug-safeguard model only."""
 
 from __future__ import annotations
 

@@ -72,7 +72,7 @@ def resolve_thresholds_path() -> Path | None:
 
 
 def catalog_config_from_manifest() -> dict[str, Any]:
-    """Inference thresholds for the manifest tier — sourced from data/catalog.toml."""
+    """Inference thresholds for the manifest tier: sourced from data/catalog.toml."""
     manifest = load_ml_validation_manifest()
     tier = str(manifest.get("tier", "tiny"))
     try:

@@ -1,4 +1,4 @@
-"""Optional dependency — firecrawl scrape extra (lazy, logs install hint)."""
+"""Optional dependency: firecrawl scrape extra (lazy, logs install hint)."""
 
 from __future__ import annotations
 

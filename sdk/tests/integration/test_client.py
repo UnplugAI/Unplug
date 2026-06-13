@@ -1,4 +1,4 @@
-"""Tests for client.py — UnplugClient HTTP client."""
+"""Tests for client.py: UnplugClient HTTP client."""
 
 from __future__ import annotations
 
@@ -80,3 +80,19 @@ class TestUnplugClient:
             client = UnplugClient()
             client.close()
             mock_close.assert_called_once()
+
+    def test_http_error_raises_server_error(self):
+        from unplug.exceptions import ServerError
+
+        with patch.object(
+            httpx.Client,
+            "post",
+            side_effect=httpx.HTTPStatusError(
+                "500",
+                request=httpx.Request("POST", "http://test/v1/scan"),
+                response=httpx.Response(500),
+            ),
+        ):
+            client = UnplugClient(base_url="http://test:8000")
+            with pytest.raises(ServerError, match="Unplug server request failed"):
+                client.scan("hello")

@@ -1,4 +1,4 @@
-"""Agno integration — Guard hooks for Agno Agent pre/post hooks."""
+"""Agno integration: Guard hooks for Agno Agent pre/post hooks."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ def agno_pre_run_hook(hooks: AgentHooks | None = None) -> Callable[..., None]:
         agent = Agent(pre_hooks=[agno_pre_run_hook(hooks)])
 
     The hook accepts ``(agent, user_message, **kwargs)`` or ``(user_message,)`` depending
-    on Agno version — we read the first string argument.
+    on Agno version. We read the first string argument.
     """
     h = hooks or AgentHooks()
 
