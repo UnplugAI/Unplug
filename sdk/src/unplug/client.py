@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import json
 import os
 import warnings
 from typing import Self
 from urllib.parse import urlparse
 
 import httpx
+from pydantic import ValidationError
 
 from unplug.api.enums import Source
 from unplug.api.types import BatchScanRequest, ScanRequest, ScanResult
@@ -53,9 +55,20 @@ class UnplugClient:
         try:
             response = self._client.post(path, json=payload)
             response.raise_for_status()
-            return response.json()
+            try:
+                return response.json()
+            except json.JSONDecodeError as exc:
+                msg = f"Unplug server returned malformed JSON: {exc}"
+                raise ServerError(msg) from exc
         except httpx.HTTPError as exc:
             msg = f"Unplug server request failed: {type(exc).__name__}: {exc}"
+            raise ServerError(msg) from exc
+
+    def _parse_scan_result(self, data: object) -> ScanResult:
+        try:
+            return ScanResult.model_validate(data)
+        except ValidationError as exc:
+            msg = f"Unplug server returned invalid scan response: {exc}"
             raise ServerError(msg) from exc
 
     def _get_json(self, path: str) -> dict:
@@ -79,12 +92,8 @@ class UnplugClient:
         return self.scan_request(request)
 
     def scan_request(self, request: ScanRequest) -> ScanResult:
-        try:
-            data = self._post_json("/v1/scan", request.model_dump(mode="json"))
-            return ScanResult.model_validate(data)
-        except ValueError as exc:
-            msg = f"Unplug server returned invalid JSON: {exc}"
-            raise ServerError(msg) from exc
+        data = self._post_json("/v1/scan", request.model_dump(mode="json"))
+        return self._parse_scan_result(data)
 
     def scan_output(
         self,
@@ -103,12 +112,12 @@ class UnplugClient:
 
     def scan_output_request(self, request: ScanRequest) -> ScanResult:
         data = self._post_json("/v1/scan/output", request.model_dump(mode="json"))
-        return ScanResult.model_validate(data)
+        return self._parse_scan_result(data)
 
     def batch_scan(self, items: list[ScanRequest]) -> list[ScanResult]:
         request = BatchScanRequest(items=items)
         data = self._post_json("/v1/batch", request.model_dump(mode="json"))
-        return [ScanResult.model_validate(r) for r in data["results"]]
+        return [self._parse_scan_result(r) for r in data["results"]]
 
     def health(self) -> dict[str, object]:
         return self._get_json("/v1/health")

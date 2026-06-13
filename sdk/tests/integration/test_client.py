@@ -97,7 +97,7 @@ class TestUnplugClient:
             with pytest.raises(ServerError, match="Unplug server request failed"):
                 client.scan("hello")
 
-    def test_malformed_json_raises_server_error(self):
+    def test_invalid_scan_response_raises_server_error(self):
         from unplug.exceptions import ServerError
 
         mock_resp = MagicMock()
@@ -106,5 +106,19 @@ class TestUnplugClient:
 
         with patch.object(httpx.Client, "post", return_value=mock_resp):
             client = UnplugClient(base_url="http://localhost:8000")
-            with pytest.raises(ServerError, match="invalid JSON"):
+            with pytest.raises(ServerError, match="invalid scan response"):
+                client.scan("hello")
+
+    def test_malformed_json_raises_server_error(self):
+        import json
+
+        from unplug.exceptions import ServerError
+
+        mock_resp = MagicMock()
+        mock_resp.json.side_effect = json.JSONDecodeError("Expecting value", "", 0)
+        mock_resp.raise_for_status = MagicMock()
+
+        with patch.object(httpx.Client, "post", return_value=mock_resp):
+            client = UnplugClient(base_url="http://localhost:8000")
+            with pytest.raises(ServerError, match="malformed JSON"):
                 client.scan("hello")

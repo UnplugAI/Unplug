@@ -33,6 +33,7 @@ from unplug.core.runtime.model_runtime import (
 from unplug.core.runtime.stats import MetricsCollector
 from unplug.core.runtime.versions import MODEL_VERSION_LOCAL, NORMALIZER_VERSION
 from unplug.core.taint import TaintedText, TrustLevel
+from unplug.exceptions import ConfigError
 from unplug.pipelines.input import InputPipeline
 from unplug.pipelines.output import OutputPipeline
 from unplug.pipelines.toolcall import ToolCallPipeline
@@ -636,6 +637,8 @@ class Guard:
                 if not isolated:
                     self._maybe_mark_session_tainted_from_scan(request.source)
                 return result
+        except ConfigError:
+            raise
         except Exception as exc:
             _log.error("guard.scan_request failed: %s", exc)
             return _fail_closed(exc)
