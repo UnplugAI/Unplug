@@ -4,6 +4,29 @@ All notable changes to the `unplug-ai` SDK.
 
 ## [Unreleased]
 
+## [0.3.1] — 2026-06-13
+
+### Added
+
+- `unplug-scan-pr` CLI — scan changed agent/MCP config files in PRs (regex-only Guard)
+- GitHub composite action `.github/actions/unplug-scan` and reusable `workflow_call` workflow
+- `strict_scanner_allowlist` config — raise `ConfigError` when mandatory input scanners are omitted
+- Model cache revision + `config.json` digest verification in `ModelStore`
+- Judge sanitization — strip scanner finding evidence before BYOLLM prompts
+
+### Fixed
+
+- `ScanPolicy()` default when `context.scan_policy` is None — USER secret scanning no longer silently disabled
+- `ConfigError` from strict allowlist propagates from `Guard.scan_request` (not swallowed by fail-closed)
+- `UnplugClient.batch_scan` raises `ServerError` on missing or invalid `results` key
+- URL scanner evasion normalize with homoglyph/punycode patterns on raw text
+
+### Changed
+
+- Patch release bundling audit remediation (#27–#29) and Phase B distribution work (#30)
+
+## [0.3.0] — 2026-06-01
+
 ### Changed
 
 - **ABSTAIN semantics:** `ScanResult.safe` is `False` for `Action.ABSTAIN` by default; set `policy.abstain_is_safe = true` for legacy pass-through
@@ -44,8 +67,5 @@ All notable changes to the `unplug-ai` SDK.
 - `sdk/docs/ARCHITECTURE.md`, `RESTRUCTURE_PLAN.md`, `LOGIC_AUDIT.md`
 - Runtime dependency: `pyyaml`
 - `tests/unit/core/test_pattern_loader.py`
-
-## [0.3.0] — 2026-06-01
-
 - Dev branch workflow; PyPI publish from `main`
 - Safeguard registry, ML span model preview, agent hardening suite

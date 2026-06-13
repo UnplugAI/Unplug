@@ -21,7 +21,7 @@ inputs:
   unplug-version:
     description: PyPI version constraint when install-mode is pypi
     required: false
-    default: ">=0.3.0"
+    default: ">=0.3.1"
 
 runs:
   using: composite
@@ -56,5 +56,5 @@ runs:
           cd "${{ inputs.working-directory }}"
           uv run unplug-scan-pr --base-ref "${{ inputs.base-ref }}" --repo-root "$(git rev-parse --show-toplevel)"
         else
-          unplug-scan-pr --base-ref "${{ inputs.base-ref }}" --repo-root "$(git rev-parse --show-toplevel)"
+          python -m unplug.cli.scan_pr --base-ref "${{ inputs.base-ref }}" --repo-root "$(git rev-parse --show-toplevel)"
         fi

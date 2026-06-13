@@ -17,7 +17,7 @@ on:
         description: PyPI version when install-mode is pypi
         required: false
         type: string
-        default: ">=0.3.0"
+        default: ">=0.3.1"
 
 permissions:
   contents: read

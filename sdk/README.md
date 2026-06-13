@@ -155,6 +155,7 @@ Verify your wiring anytime:
 unplug-audit                   # wiring + ML status
 unplug-audit --probes          # FP + encoding + boundary batteries
 unplug-audit --require-ml      # fail if checkpoint / config / ML not active
+unplug-scan-pr --base-ref main # scan changed agent/MCP files in a PR (CI)
 ```
 
 | Check | Meaning |

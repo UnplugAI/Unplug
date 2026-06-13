@@ -93,6 +93,7 @@ make check-ci    # lint + tests + exfil demo + security regression
 ## Related repos
 
 - [unplug-mcp](https://github.com/UnplugAI/unplug-mcp): MCP server for Claude Code / Cursor
+- [unplug-scan-action](https://github.com/UnplugAI/unplug-scan-action): GitHub Action / Marketplace — PR agent-file scan
 - [unplug-server](https://github.com/UnplugAI/unplug-server): self-hosted API (premium tiers, later)
 
 ## License
