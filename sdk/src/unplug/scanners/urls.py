@@ -12,6 +12,7 @@ from collections.abc import Generator
 
 from unplug.core.config import ScannerConfig
 from unplug.core.context import ExecutionContext
+from unplug.core.normalize import EVASION_ONLY_STAGES, Normalizer
 from unplug.core.pattern_loader import load_compiled_patterns
 from unplug.core.runtime.stats import MetricsCollector
 from unplug.core.taint import TaintedText, TrustLevel
@@ -31,6 +32,7 @@ _SCORES: dict[str, float] = {
 }
 
 _DEFAULT_CONFIG = default_scanner_config("urls")
+_RAW_TEXT_SUBCATEGORIES = frozenset({"homoglyph_host", "punycode_host"})
 
 
 class MaliciousUrlScanner(RegexScanner):
@@ -45,6 +47,7 @@ class MaliciousUrlScanner(RegexScanner):
         metrics: MetricsCollector | None = None,
     ) -> None:
         super().__init__(config=config or _DEFAULT_CONFIG, metrics=metrics)
+        self._normalizer = Normalizer(stages=EVASION_ONLY_STAGES)
 
     def _should_scan(self, text: TaintedText) -> bool:
         # URLs typed by the user are routine; hostile links arrive through
@@ -57,10 +60,17 @@ class MaliciousUrlScanner(RegexScanner):
         )
 
     def _scan(self, text: TaintedText, context: ExecutionContext) -> Generator[Finding, None, None]:
+        norm_result = self._normalizer.normalize(text.text)
+        normalized = norm_result.text
         seen: set[tuple[int, int]] = set()
         for subcategory, pattern in self._patterns:
-            for match in pattern.finditer(text.text):
-                span = (match.start(), match.end())
+            corpus = text.text if subcategory in _RAW_TEXT_SUBCATEGORIES else normalized
+            for match in pattern.finditer(corpus):
+                if subcategory in _RAW_TEXT_SUBCATEGORIES:
+                    span_start, span_end = match.start(), match.end()
+                else:
+                    span_start, span_end = norm_result.to_original_span(match.start(), match.end())
+                span = (span_start, span_end)
                 if span in seen:
                     continue
                 seen.add(span)

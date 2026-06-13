@@ -24,12 +24,21 @@ from unplug.config.tools import ToolPolicyConfig
 MANDATORY_INPUT_SCANNERS: frozenset[str] = frozenset({"injection", "destructive"})
 
 
-def resolve_input_scanners(requested: list[str] | None) -> list[str] | None:
+def resolve_input_scanners(
+    requested: list[str] | None,
+    *,
+    strict: bool = False,
+) -> list[str] | None:
     """Union mandatory input scanners; never allow dropping injection/destructive."""
     if requested is None:
         return None
-    merged = list(dict.fromkeys([*requested, *sorted(MANDATORY_INPUT_SCANNERS)]))
     omitted = MANDATORY_INPUT_SCANNERS - set(requested)
+    if omitted and strict:
+        from unplug.exceptions import ConfigError
+
+        msg = f"scan request omitted mandatory scanners: {', '.join(sorted(omitted))}"
+        raise ConfigError(msg)
+    merged = list(dict.fromkeys([*requested, *sorted(MANDATORY_INPUT_SCANNERS)]))
     if omitted:
         from unplug.core.runtime.logging import get_logger
 
@@ -81,6 +90,10 @@ class GuardConfig(BaseModel):
 
     scanners: list[str] = Field(
         default_factory=lambda: ["injection", "destructive", "leakage", "harmful", "urls"]
+    )
+    strict_scanner_allowlist: bool = Field(
+        default=False,
+        description="Raise ConfigError when scan_request omits mandatory input scanners",
     )
     mode: str = "local"
     server_url: str | None = None

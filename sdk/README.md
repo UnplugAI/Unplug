@@ -211,6 +211,8 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for layering and optional extra
 
 ## Development
 
+Supported Python versions: **3.11, 3.12, and 3.13** (CI matrix). On 3.13, the `ml` and `litellm` extras are skipped in CI until `tokenizers` publishes cp313 wheels; regex-only core and optional `presidio`/`yara`/`haystack` tests still run. Mark optional tests with `@pytest.mark.requires_ml`, `requires_presidio`, or `requires_yara`.
+
 ```bash
 cd sdk && uv sync --all-extras --dev
 

@@ -148,8 +148,17 @@ class InputPipeline(BasePipeline):
         if not has_abstain and (risk < self._judge_low or risk >= self._judge_high):
             return []
         judge_ctx = JudgeContext(scanner_findings=findings)
+        policy = context.scan_policy or self._config.policy
+        judge_text = input_data.text
+        if findings:
+            from unplug.core.redaction import apply_span_redactions
+
+            judge_policy = policy.model_copy(update={"redact_threshold": 0.0})
+            redacted = apply_span_redactions(input_data.text, findings, judge_policy)
+            if redacted is not None:
+                judge_text = redacted
         try:
-            result = run_coroutine_sync(self._judge.judge(input_data.text, judge_ctx))
+            result = run_coroutine_sync(self._judge.judge(judge_text, judge_ctx))
         except Exception as exc:
             _log.error("input pipeline judge failed: %s", exc)
             return [

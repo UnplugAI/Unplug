@@ -79,8 +79,12 @@ class UnplugClient:
         return self.scan_request(request)
 
     def scan_request(self, request: ScanRequest) -> ScanResult:
-        data = self._post_json("/v1/scan", request.model_dump(mode="json"))
-        return ScanResult.model_validate(data)
+        try:
+            data = self._post_json("/v1/scan", request.model_dump(mode="json"))
+            return ScanResult.model_validate(data)
+        except ValueError as exc:
+            msg = f"Unplug server returned invalid JSON: {exc}"
+            raise ServerError(msg) from exc
 
     def scan_output(
         self,
