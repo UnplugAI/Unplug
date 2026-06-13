@@ -65,7 +65,10 @@ def scan_paths(repo_root: Path, paths: list[Path]) -> list[tuple[Path, str]]:
         for chunk in _chunks(path.read_text(encoding="utf-8", errors="replace")):
             result = guard.scan(chunk, source="user")
             if result.action == Action.BLOCK or not result.safe:
-                rel = path.relative_to(repo_root)
+                try:
+                    rel = path.relative_to(repo_root)
+                except ValueError:
+                    rel = path
                 msg = f"Unplug flagged {result.action.value} (risk={result.risk_score:.2f})"
                 blocked.append((rel, msg))
                 break
