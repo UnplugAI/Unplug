@@ -1,0 +1,60 @@
+name: Unplug PR agent scan
+description: Scan changed agent/MCP config files with unplug-ai (regex-only Guard)
+
+inputs:
+  base-ref:
+    description: Base branch name for git diff (e.g. dev or main)
+    required: false
+    default: dev
+  python-version:
+    description: Python version for the scan job
+    required: false
+    default: "3.12"
+  working-directory:
+    description: Directory containing pyproject.toml for unplug-ai (sdk/ in this repo)
+    required: false
+    default: sdk
+  install-mode:
+    description: "local = uv sync in working-directory; pypi = pip install unplug-ai"
+    required: false
+    default: local
+  unplug-version:
+    description: PyPI version constraint when install-mode is pypi
+    required: false
+    default: ">=0.3.0"
+
+runs:
+  using: composite
+  steps:
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v7
+      with:
+        enable-cache: true
+        version: "0.6.14"
+
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install unplug-ai (local dev tree)
+      if: inputs.install-mode == 'local'
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: uv sync --all-extras --dev
+
+    - name: Install unplug-ai (PyPI)
+      if: inputs.install-mode == 'pypi'
+      shell: bash
+      run: uv pip install --system "unplug-ai${{ inputs.unplug-version }}"
+
+    - name: Scan changed agent files
+      shell: bash
+      run: |
+        set -euo pipefail
+        if [ "${{ inputs.install-mode }}" = "local" ]; then
+          cd "${{ inputs.working-directory }}"
+          uv run unplug-scan-pr --base-ref "${{ inputs.base-ref }}" --repo-root "$(git rev-parse --show-toplevel)"
+        else
+          unplug-scan-pr --base-ref "${{ inputs.base-ref }}" --repo-root "$(git rev-parse --show-toplevel)"
+        fi

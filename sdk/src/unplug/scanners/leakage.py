@@ -44,8 +44,10 @@ class LeakageScanner(RegexScanner):
         if text.trust_level == TrustLevel.TRUSTED:
             return []
         if text.trust_level == TrustLevel.USER:
-            policy = context.scan_policy
-            if policy is None or not policy.scan_user_secrets:
+            from unplug.config.policy import ScanPolicy
+
+            policy = context.scan_policy or ScanPolicy()
+            if not policy.scan_user_secrets:
                 return []
         return super().scan(text, context)
 

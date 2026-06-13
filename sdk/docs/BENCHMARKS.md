@@ -37,4 +37,12 @@ Per-holdout metrics for `unplug-tiny-v1` live on the [model card](https://huggin
 
 ## CI
 
-PRs run `.github/workflows/pr-scan.yml` (regex scan on changed agent-related files).
+PRs to `dev` run:
+
+| Workflow | Purpose |
+|----------|---------|
+| [`ci.yml`](../../.github/workflows/ci.yml) | Lint + pytest matrix (3.11–3.13) |
+| [`pr-scan.yml`](../../.github/workflows/pr-scan.yml) | Regex scan on changed agent/MCP config files |
+| [`reusable-agent-scan.yml`](../../.github/workflows/reusable-agent-scan.yml) | `workflow_call` entry for other repos |
+
+Other repositories can reuse the scan via the composite action [`.github/actions/unplug-scan`](../../.github/actions/unplug-scan/) or `unplug-scan-pr` CLI from PyPI.

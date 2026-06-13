@@ -114,10 +114,20 @@ class UnplugClient:
         data = self._post_json("/v1/scan/output", request.model_dump(mode="json"))
         return self._parse_scan_result(data)
 
+    def _parse_batch_results(self, data: dict[str, object]) -> list[ScanResult]:
+        raw = data.get("results")
+        if raw is None:
+            msg = "Unplug server returned invalid batch response: missing 'results' key"
+            raise ServerError(msg)
+        if not isinstance(raw, list):
+            msg = "Unplug server returned invalid batch response: 'results' must be a list"
+            raise ServerError(msg)
+        return [self._parse_scan_result(item) for item in raw]
+
     def batch_scan(self, items: list[ScanRequest]) -> list[ScanResult]:
         request = BatchScanRequest(items=items)
         data = self._post_json("/v1/batch", request.model_dump(mode="json"))
-        return [self._parse_scan_result(r) for r in data["results"]]
+        return self._parse_batch_results(data)
 
     def health(self) -> dict[str, object]:
         return self._get_json("/v1/health")

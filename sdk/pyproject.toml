@@ -140,6 +140,7 @@ filterwarnings = [
 unplug-audit = "unplug.cli.audit:main"
 unplug-models = "unplug.cli.models:main"
 unplug-sidecar = "unplug.cli.sidecar:main"
+unplug-scan-pr = "unplug.cli.scan_pr:main"
 
 [dependency-groups]
 dev = [

@@ -122,3 +122,15 @@ class TestUnplugClient:
             client = UnplugClient(base_url="http://localhost:8000")
             with pytest.raises(ServerError, match="malformed JSON"):
                 client.scan("hello")
+
+    def test_batch_missing_results_raises_server_error(self):
+        from unplug.exceptions import ServerError
+
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {"error": "bad batch"}
+        mock_resp.raise_for_status = MagicMock()
+
+        with patch.object(httpx.Client, "post", return_value=mock_resp):
+            client = UnplugClient(base_url="http://localhost:8000")
+            with pytest.raises(ServerError, match="missing 'results'"):
+                client.batch_scan([ScanRequest(text="a")])

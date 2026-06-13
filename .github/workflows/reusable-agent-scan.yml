@@ -1,0 +1,37 @@
+name: Reusable agent scan
+
+on:
+  workflow_call:
+    inputs:
+      base-ref:
+        description: Base branch for git diff
+        required: false
+        type: string
+        default: dev
+      install-mode:
+        description: local (monorepo SDK) or pypi
+        required: false
+        type: string
+        default: pypi
+      unplug-version:
+        description: PyPI version when install-mode is pypi
+        required: false
+        type: string
+        default: ">=0.3.0"
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: ./.github/actions/unplug-scan
+        with:
+          base-ref: ${{ inputs.base-ref }}
+          install-mode: ${{ inputs.install-mode }}
+          unplug-version: ${{ inputs.unplug-version }}

@@ -3,32 +3,38 @@ name: PR agent scan
 on:
   pull_request:
     branches: [dev]
+  workflow_dispatch:
+    inputs:
+      base-ref:
+        description: Base branch for diff
+        required: false
+        default: dev
 
 permissions:
   contents: read
+  pull-requests: write
 
 jobs:
   scan:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: sdk
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - uses: astral-sh/setup-uv@v7
+      - name: Run Unplug agent file scan
+        uses: ./.github/actions/unplug-scan
         with:
-          enable-cache: true
-          version: "0.6.14"
+          base-ref: ${{ github.event_name == 'workflow_dispatch' && inputs.base-ref || github.base_ref }}
+          install-mode: local
 
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
-
-      - name: Install SDK
-        run: uv sync --all-extras --dev
-
-      - name: Scan changed files
-        run: uv run python scripts/scan_pr_files.py --base-ref "${{ github.base_ref }}"
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "### Unplug PR agent scan"
+            echo ""
+            echo "- Base ref: \`${{ github.event_name == 'workflow_dispatch' && inputs.base-ref || github.base_ref }}\`"
+            echo "- Mode: regex-only Guard (no ML download)"
+            echo "- Scanned paths: AGENTS.md, .cursor/, MCP configs"
+          } >> "$GITHUB_STEP_SUMMARY"
