@@ -1,8 +1,8 @@
-gradio>=5.0
+gradio>=6.19.0
 --extra-index-url https://download.pytorch.org/whl/cpu
 torch>=2.0
-transformers>=4.44,<4.45
+transformers>=4.44,<5.13
 huggingface_hub>=0.23
 sentencepiece>=0.2
 numpy>=1.26
-unplug-ai==0.2.3
+unplug-ai==0.3.1
