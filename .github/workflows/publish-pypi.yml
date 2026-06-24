@@ -1,8 +1,8 @@
 name: Publish to PyPI
 
 # Releases run the full CI gate before building.
-# Auth: PyPI OIDC Trusted Publishing (no long-lived token). Configure the
-# trusted publisher for project "unplug-ai" in the PyPI project settings.
+# Auth: GitHub Environment "pypi" secret PYPI_TOKEN (uv publish).
+# Optional: configure PyPI Trusted Publishing for OIDC — see PUBLISH.md.
 
 on:
   release:
@@ -16,9 +16,6 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     environment: pypi
-    permissions:
-      contents: read
-      id-token: write # required for PyPI OIDC Trusted Publishing
     defaults:
       run:
         working-directory: sdk
@@ -46,6 +43,6 @@ jobs:
         run: uv build
 
       - name: Publish unplug-ai
-        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0
-        with:
-          packages-dir: sdk/dist
+        env:
+          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        run: uv publish --check-url https://pypi.org/pypi/unplug-ai/json
