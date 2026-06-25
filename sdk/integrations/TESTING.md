@@ -102,6 +102,13 @@ uv run pytest -q -m requires_integrations tests/optional/live/
 > Unplug guard's decision (block on injection / destructive tool, allow benign), so they stay
 > hermetic and need no API keys.
 
+**Tolerated skips.** Each leg installs its framework, so a test that runs and fails is a real
+regression. But some optional frameworks ship releases that are unimportable under our pinned
+core deps (e.g. a `semantic-kernel` build that imports `Url` from `pydantic.networks`, removed
+in Pydantic v2). When that happens the module `importorskip`s, pytest exits `5` ("no tests
+ran"), and the job emits a non-blocking `::warning::` rather than failing — that is an upstream
+conflict, not an Unplug bug. Genuine test failures (exit `1`) still fail the job.
+
 ## CI markers
 
 | Marker | When |
