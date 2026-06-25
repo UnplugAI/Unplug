@@ -7,8 +7,9 @@ Unplug ships **framework-agnostic hooks first**. You do not need LangGraph, Crew
 ```bash
 pip install unplug-ai                    # core Guard (regex scanners, no agent deps)
 pip install "unplug-ai[langgraph]"       # + LangGraph when you wire graph nodes
-pip install "unplug-ai[integrations]"    # all documented agent/RAG extras
-pip install "unplug-ai[all]"             # integrations + ML + presidio + yara + …
+pip install "unplug-ai[integrations]"    # all documented agent/RAG framework extras
+pip install "unplug-ai[all]"             # capability extras (ML, presidio, yara, scrape…)
+pip install "unplug-ai[all,integrations]"  # everything: capabilities + every framework
 ```
 
 Every integration module lives under `unplug.integrations.*` and uses the same five hook points:

@@ -79,7 +79,12 @@ mcp = [
 integrations = [
     "unplug-ai[langgraph,agno,crewai,autogen,llama-index,pydantic-ai,semantic-kernel,haystack,mcp]",
 ]
-all = ["unplug-ai[ml,scrape,litellm,yara,haystack,presidio,integrations]"]
+# `all` = capability extras only. Agent-framework adapters install via the
+# `integrations` meta-extra (or one framework at a time) so the default CI
+# matrix and `uv sync --all-extras` don't drag in every agent SDK and couple
+# unrelated dependency trees. Live framework coverage runs in the dedicated
+# `integrations-live` CI job (see integrations/TESTING.md).
+all = ["unplug-ai[ml,scrape,litellm,yara,haystack,presidio]"]
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",

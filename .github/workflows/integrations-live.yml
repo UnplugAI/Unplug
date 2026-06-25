@@ -1,0 +1,65 @@
+name: Integrations (live)
+
+# Live agent-framework coverage. Each matrix leg installs ONE framework extra in an
+# isolated env and runs that framework's live test, so a single SDK's dependency tree
+# can't mask or break another. Kept off the default PR gate (the core CI matrix no
+# longer installs agent frameworks — see `all` extra in pyproject.toml); runs on PRs
+# that touch the integration surface, nightly, and on demand.
+
+on:
+  pull_request:
+    branches: [dev]
+    paths:
+      - "sdk/src/unplug/integrations/**"
+      - "sdk/tests/optional/live/**"
+      - "sdk/pyproject.toml"
+      - ".github/workflows/integrations-live.yml"
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - extra: langgraph
+            test: tests/optional/live/test_langgraph_live.py
+          - extra: agno
+            test: tests/optional/live/test_agno_live.py
+          - extra: crewai
+            test: tests/optional/live/test_crewai_live.py
+          - extra: autogen
+            test: tests/optional/live/test_autogen_live.py
+          - extra: llama-index
+            test: tests/optional/live/test_llama_index_live.py
+          - extra: pydantic-ai
+            test: tests/optional/live/test_pydantic_ai_live.py
+          - extra: semantic-kernel
+            test: tests/optional/live/test_semantic_kernel_live.py
+    name: live (${{ matrix.extra }})
+    defaults:
+      run:
+        working-directory: sdk
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          enable-cache: true
+          version: "0.6.14"
+
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: "3.12"
+
+      - name: Install (one framework extra in isolation)
+        run: uv sync --extra dev --extra ${{ matrix.extra }}
+
+      - name: Live integration test
+        run: uv run pytest -q -m requires_integrations ${{ matrix.test }}

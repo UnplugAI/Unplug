@@ -6434,23 +6434,15 @@ agno = [
     { name = "agno" },
 ]
 all = [
-    { name = "agno" },
-    { name = "autogen-agentchat" },
     { name = "click" },
-    { name = "crewai" },
     { name = "firecrawl-py" },
     { name = "haystack-ai" },
     { name = "huggingface-hub" },
-    { name = "langgraph" },
     { name = "litellm" },
-    { name = "llama-index-core" },
-    { name = "mcp" },
     { name = "numpy" },
     { name = "onnxruntime" },
     { name = "presidio-analyzer" },
-    { name = "pydantic-ai" },
     { name = "python-dotenv" },
-    { name = "semantic-kernel" },
     { name = "sentencepiece" },
     { name = "torch" },
     { name = "transformers" },
@@ -6559,7 +6551,7 @@ requires-dist = [
     { name = "torch", marker = "extra == 'ml'", specifier = ">=2.0" },
     { name = "transformers", marker = "extra == 'ml'", specifier = ">=4.44,<4.45" },
     { name = "unplug-ai", extras = ["langgraph", "agno", "crewai", "autogen", "llama-index", "pydantic-ai", "semantic-kernel", "haystack", "mcp"], marker = "extra == 'integrations'" },
-    { name = "unplug-ai", extras = ["ml", "scrape", "litellm", "yara", "haystack", "presidio", "integrations"], marker = "extra == 'all'" },
+    { name = "unplug-ai", extras = ["ml", "scrape", "litellm", "yara", "haystack", "presidio"], marker = "extra == 'all'" },
     { name = "yara-python", marker = "extra == 'yara'", specifier = ">=4.5" },
 ]
 provides-extras = ["ml", "litellm", "yara", "scrape", "haystack", "presidio", "langgraph", "agno", "crewai", "autogen", "llama-index", "pydantic-ai", "semantic-kernel", "mcp", "integrations", "all", "dev"]
