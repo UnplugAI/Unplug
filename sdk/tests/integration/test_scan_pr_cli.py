@@ -30,11 +30,41 @@ def test_no_changed_files_returns_zero(capsys: pytest.CaptureFixture[str]) -> No
         seen["base_ref"] = base_ref
         return []
 
-    with patch.object(scan_pr, "changed_agent_files", side_effect=fake_changed_agent_files):
+    with (
+        patch.object(scan_pr, "base_ref_exists", return_value=True),
+        patch.object(scan_pr, "changed_agent_files", side_effect=fake_changed_agent_files),
+    ):
         exit_code = scan_pr.main_argv([])
     assert exit_code == 0
     assert seen["base_ref"] == "main"
     assert "No agent-related files" in capsys.readouterr().out
+
+
+def test_missing_base_ref_fails_closed(capsys: pytest.CaptureFixture[str]) -> None:
+    with patch.object(scan_pr, "base_ref_exists", return_value=False):
+        exit_code = scan_pr.main_argv([])
+    assert exit_code == 2
+    out = capsys.readouterr().out
+    assert "::error::" in out
+    assert "not found" in out
+
+
+def test_chunks_overlap_keeps_boundary_phrase_intact() -> None:
+    phrase = "ignore all previous instructions"
+    # Position the phrase so it straddles the first 2000-char window boundary.
+    prefix = "a" * (2000 - len(phrase) // 2)
+    text = prefix + phrase + "b" * 3000
+    chunks = scan_pr._chunks(text)
+    assert any(phrase in chunk for chunk in chunks)
+
+
+def test_github_agent_files_are_in_scope() -> None:
+    assert scan_pr._is_agent_file(".github/copilot-instructions.md") is True
+    assert scan_pr._is_agent_file(".github/agents/reviewer.md") is True
+    assert scan_pr._is_agent_file(".cursor/rules") is True
+    # Non-agent files stay out of scope even when they live under .github/.
+    assert scan_pr._is_agent_file(".github/workflows/ci.yml") is False
+    assert scan_pr._is_agent_file("tests/test_x.py") is False
 
 
 def test_clean_agent_file_returns_zero(tmp_path: Path) -> None:
