@@ -215,7 +215,7 @@ Copy `unplug.example.toml` to `unplug.toml` to customize scanners, tool profiles
 
 ## Integrations
 
-Framework hooks for LangGraph and Agno, plus framework-agnostic patterns: [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md).
+Framework hooks for LangGraph, CrewAI, AutoGen, Haystack, and more: [`integrations/README.md`](integrations/README.md) (guides) · [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md) (API reference).
 
 Threat scanners live under `unplug.scanners` (canonical). The older `unplug.safeguards` path still works but emits deprecation warnings:
 
@@ -243,7 +243,8 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for layering and optional extra
 | [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Hosted vs embedded vs sidecar architecture |
 | [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md) | Regex vs regex + ML eval results (neuralchemy, microsoft) |
 | [`docs/ML_INTEGRATION.md`](docs/ML_INTEGRATION.md) | Checkpoint layout, thresholds, long-text and streaming config |
-| [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md) | LangGraph, Agno, framework-agnostic hooks |
+| [`integrations/README.md`](integrations/README.md) | Per-framework guides, extras, security matrix |
+| [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md) | LangGraph, Agno, CrewAI, hooks API |
 | [`docs/AGENT_FLOW_SECURITY.md`](docs/AGENT_FLOW_SECURITY.md) | End-to-end agent hardening flow |
 | [`docs/HERMES_AGENT_SECURITY.md`](docs/HERMES_AGENT_SECURITY.md) | Context-file scanning for agent frameworks |
 

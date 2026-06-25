@@ -4,6 +4,20 @@ All notable changes to the `unplug-ai` SDK.
 
 ## [Unreleased]
 
+## [0.4.1] — 2026-06-25
+
+### Added
+
+- Agent-framework integration hub (`unplug.integrations.*`): framework-agnostic `AgentHooks` plus adapters for LangGraph, Agno, CrewAI, AutoGen, LlamaIndex, Pydantic AI, Semantic Kernel, and a custom-loop guide
+- Per-framework optional extras (`unplug-ai[langgraph]`, `[agno]`, `[crewai]`, `[autogen]`, `[llama-index]`, `[pydantic-ai]`, `[semantic-kernel]`, `[mcp]`) and an `integrations` meta-extra that installs them all
+- 40-angle agent security matrix (`tests/security/test_agent_integration_matrix.py`)
+- Live per-framework integration tests (`tests/optional/live/`) behind a dedicated `Integrations (live)` CI job (per-framework matrix, `requires_integrations` marker), with exit-5 tolerance for frameworks that are unimportable under our pinned deps
+- Integrations documentation hub under `integrations/` (per-framework guides + `TESTING.md`)
+
+### Changed
+
+- `all` extra now installs capability extras only (`ml,scrape,litellm,yara,haystack,presidio`); agent-framework adapters install via the `integrations` extra (or one at a time) so the core dependency tree and default CI matrix stay lean
+
 ## [0.4.0] — 2026-06-24
 
 ### Added

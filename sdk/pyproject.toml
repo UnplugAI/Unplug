@@ -1,6 +1,6 @@
 [project]
 name = "unplug-ai"
-version = "0.4.0"
+version = "0.4.1"
 description = "Unplug the bad AI. Fast prompt injection detection and redaction for LLM apps, agents, and RAG pipelines."
 readme = "README.md"
 license = "Apache-2.0"
@@ -52,6 +52,38 @@ presidio = [
     "presidio-analyzer>=2.2",
     "click>=8.0",
 ]
+langgraph = [
+    "langgraph>=0.2",
+]
+agno = [
+    "agno>=1.0",
+]
+crewai = [
+    "crewai>=0.80",
+]
+autogen = [
+    "autogen-agentchat>=0.4",
+]
+llama-index = [
+    "llama-index-core>=0.11",
+]
+pydantic-ai = [
+    "pydantic-ai>=0.0.14",
+]
+semantic-kernel = [
+    "semantic-kernel>=1.0",
+]
+mcp = [
+    "mcp>=1.0,<2",
+]
+integrations = [
+    "unplug-ai[langgraph,agno,crewai,autogen,llama-index,pydantic-ai,semantic-kernel,haystack,mcp]",
+]
+# `all` = capability extras only. Agent-framework adapters install via the
+# `integrations` meta-extra (or one framework at a time) so the default CI
+# matrix and `uv sync --all-extras` don't drag in every agent SDK and couple
+# unrelated dependency trees. Live framework coverage runs in the dedicated
+# `integrations-live` CI job (see integrations/TESTING.md).
 all = ["unplug-ai[ml,scrape,litellm,yara,haystack,presidio]"]
 dev = [
     "pytest>=8.0",
@@ -184,6 +216,7 @@ markers = [
     "requires_presidio: tests needing presidio-analyzer extra",
     "requires_yara: tests needing yara-python extra",
     "requires_ml: tests needing ML stack extra",
+    "requires_integrations: tests needing agent framework extras",
     "slow: timing-sensitive stress tests (skipped in coverage CI rerun)",
 ]
 filterwarnings = [
