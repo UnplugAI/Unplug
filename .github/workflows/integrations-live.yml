@@ -78,22 +78,28 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install (one framework extra in isolation)
-        run: uv sync --extra dev --extra ${{ matrix.extra }}
+      - name: Install (fresh per-framework resolution — matches `pip install "unplug-ai[extra]"`)
+        # Deliberately NOT `uv sync` from the unified lock: that lock co-resolves
+        # every extra together and pins some frameworks down to old, broken
+        # releases (e.g. semantic-kernel 1.15, which imports `Url` from
+        # `pydantic.networks` — gone in Pydantic v2). A user never installs all
+        # frameworks at once; they run `pip install "unplug-ai[langgraph]"`, which
+        # resolves that one framework freshly. We mirror that here.
+        run: |
+          uv venv
+          uv pip install -e ".[dev,${{ matrix.extra }}]"
 
       - name: Live integration test
         run: |
           set +e
-          uv run pytest -q -m requires_integrations ${{ matrix.test }}
+          .venv/bin/python -m pytest -q -m requires_integrations ${{ matrix.test }}
           rc=$?
           set -e
-          # Exit 5 = pytest collected nothing because the module self-skipped:
-          # the framework installed but is unimportable under our pinned deps
-          # (e.g. an upstream release incompatible with our Pydantic v2). That is
-          # an upstream conflict, not an Unplug regression — surface it loudly but
-          # don't block. Real test failures (exit 1) still fail the job.
+          # Exit 5 = the module self-skipped: the framework is unimportable even
+          # under a fresh resolution (a genuine upstream break). Surface it loudly
+          # but don't block the release. Real test failures (exit 1) still fail.
           if [ "$rc" -eq 5 ]; then
-            echo "::warning title=Live integration skipped::${{ matrix.extra }} installed but its live tests were skipped (framework unimportable under current deps). Tolerated; not blocking."
+            echo "::warning title=Live integration skipped::${{ matrix.extra }} installed but its live tests were skipped (framework unimportable under a fresh resolution). Tolerated; not blocking."
             exit 0
           fi
           exit $rc

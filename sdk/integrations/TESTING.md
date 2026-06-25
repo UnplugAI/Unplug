@@ -115,31 +115,36 @@ These run in the dedicated **`Integrations (live)`** workflow
 nightly (06:00 UTC), and via manual dispatch — keeping the everyday PR gate fast while
 still catching framework drift.
 
-Run one framework locally (installs just that extra):
+**Fresh resolution, on purpose.** Each leg runs `uv pip install -e ".[dev,<extra>]"`, *not*
+`uv sync`. The unified `uv.lock` co-resolves every extra together and pins some frameworks to
+old releases (e.g. `semantic-kernel` 1.15, which imports `Url` from `pydantic.networks` —
+removed in Pydantic v2). No user installs every framework at once; they run
+`pip install "unplug-ai[semantic-kernel]"`, which resolves that one framework freshly (→ 1.36,
+which works). We mirror the user path. The `-e` (editable) keeps the source tree on `sys.path`
+so test-only assets like `configs/ml_validation.json` resolve.
+
+Run one framework locally the same way CI does (latest compatible version of that extra):
 
 ```bash
 cd sdk
-uv sync --extra dev --extra langgraph
-uv run pytest -q -m requires_integrations tests/optional/live/test_langgraph_live.py
-```
-
-Run every live test you have frameworks for (installs all agent SDKs):
-
-```bash
-uv sync --extra dev --extra integrations
-uv run pytest -q -m requires_integrations tests/optional/live/
+uv venv /tmp/unplug-lg && uv pip install --python /tmp/unplug-lg -e ".[dev,langgraph]"
+/tmp/unplug-lg/bin/python -m pytest -q -m requires_integrations tests/optional/live/test_langgraph_live.py
 ```
 
 > Live tests never call an LLM. They build the smallest real framework object and assert the
 > Unplug guard's decision (block on injection / destructive tool, allow benign), so they stay
 > hermetic and need no API keys.
 
-**Tolerated skips.** Each leg installs its framework, so a test that runs and fails is a real
-regression. But some optional frameworks ship releases that are unimportable under our pinned
-core deps (e.g. a `semantic-kernel` build that imports `Url` from `pydantic.networks`, removed
-in Pydantic v2). When that happens the module `importorskip`s, pytest exits `5` ("no tests
-ran"), and the job emits a non-blocking `::warning::` rather than failing — that is an upstream
-conflict, not an Unplug bug. Genuine test failures (exit `1`) still fail the job.
+**Verified compatible (2026-06-25)** against latest releases: LangGraph 1.2.6, Agno 2.6.19,
+CrewAI 1.14.7, AutoGen-AgentChat 0.7.5, LlamaIndex-core 0.14.23, Pydantic AI 2.0.0,
+Semantic Kernel 1.36.0. (Most adapters are framework-agnostic — they wrap `AgentHooks` and
+never import the framework — so they are robust across major version bumps.)
+
+**Tolerated skips (safety net).** Each leg installs its framework, so a test that runs and
+fails is a real regression. If a future upstream release becomes genuinely unimportable even
+under a fresh resolution, the module `importorskip`s, pytest exits `5` ("no tests ran"), and
+the job emits a non-blocking `::warning::` rather than failing. Genuine failures (exit `1`)
+still fail the job.
 
 ## CI markers
 
