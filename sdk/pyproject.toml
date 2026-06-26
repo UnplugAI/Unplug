@@ -85,11 +85,20 @@ google-adk = [
 smolagents = [
     "smolagents>=1.0",
 ]
+dspy = [
+    "dspy>=2.5",
+]
+strands = [
+    "strands-agents>=1.0",
+]
+letta = [
+    "letta-client>=0.1",
+]
 mcp = [
     "mcp>=1.0,<2",
 ]
 integrations = [
-    "unplug-ai[langgraph,agno,crewai,autogen,llama-index,pydantic-ai,semantic-kernel,openai-agents,langchain,google-adk,smolagents,haystack,mcp]",
+    "unplug-ai[langgraph,agno,crewai,autogen,llama-index,pydantic-ai,semantic-kernel,openai-agents,langchain,google-adk,smolagents,dspy,strands,letta,haystack,mcp]",
 ]
 # `all` = capability extras only. Agent-framework adapters install via the
 # `integrations` meta-extra (or one framework at a time) so the default CI

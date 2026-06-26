@@ -1,6 +1,6 @@
 # Integration security matrix
 
-Unplug integration tests cover **52 attack angles** across hook points and framework adapters. The matrix lives in:
+Unplug integration tests cover **62 attack angles** across hook points and framework adapters. The matrix lives in:
 
 ```
 tests/security/test_agent_integration_matrix.py
@@ -19,7 +19,7 @@ Run the full hook + adapter suite:
 uv run pytest tests/integration/test_integrations.py tests/unit/integrations/ -v
 ```
 
-## Matrix (52 angles)
+## Matrix (62 angles)
 
 | # | Category | Scenario | Expected |
 |---|----------|----------|----------|
@@ -75,12 +75,22 @@ uv run pytest tests/integration/test_integrations.py tests/unit/integrations/ -v
 | 50 | smolagents | Task gate injection | RuntimeError |
 | 51 | smolagents | `final_answer_checks` secret leak | RuntimeError |
 | 52 | smolagents | Tool guard destructive shell | Not allowed |
+| 53 | DSPy | Input guard injection | RuntimeError |
+| 54 | DSPy | Output guard secret leak | RuntimeError |
+| 55 | DSPy | Tool guard destructive shell | Not allowed |
+| 56 | DSPy | `dspy_guard_tool` wrap destructive call | RuntimeError |
+| 57 | Strands | Input guard injection | RuntimeError |
+| 58 | Strands | Tool guard destructive shell | Not allowed |
+| 59 | Strands | `HookProvider` cancels destructive tool | `cancel_tool` set |
+| 60 | Letta | Input guard injection | RuntimeError |
+| 61 | Letta | Tool guard destructive shell | Not allowed |
+| 62 | Letta | `scan_letta_response` secret leak | Block / redact |
 
 ## Two layers of coverage
 
 | Layer | What it proves | Frameworks installed? |
 |-------|----------------|-----------------------|
-| **Matrix** (`tests/security/test_agent_integration_matrix.py`) | The 52 attack angles + our adapter callables behave correctly | No — regex core only |
+| **Matrix** (`tests/security/test_agent_integration_matrix.py`) | The 62 attack angles + our adapter callables behave correctly | No — regex core only |
 | **Live** (`tests/optional/live/test_<framework>_live.py`) | Each adapter works against the *real* installed framework (e.g. a compiled LangGraph graph, a real LlamaIndex `TextNode`, a real SK `Kernel`) | Yes — one extra per run |
 
 The matrix is framework-agnostic and always runs. The live tests `importorskip` their

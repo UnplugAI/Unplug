@@ -16,6 +16,12 @@ from unplug.integrations.crewai import (
     crewai_output_guard,
     crewai_task_input_guard,
 )
+from unplug.integrations.dspy import (
+    dspy_guard_tool,
+    dspy_input_guard,
+    dspy_prediction_text,
+    dspy_tool_guard,
+)
 from unplug.integrations.google_adk import (
     adk_extract_user_text,
     unplug_before_model_callback,
@@ -28,6 +34,12 @@ from unplug.integrations.langchain import (
     langchain_tool_guard,
 )
 from unplug.integrations.langgraph import langgraph_input_node, langgraph_tool_guard
+from unplug.integrations.letta import (
+    letta_extract_assistant_text,
+    letta_input_guard,
+    letta_tool_guard,
+    scan_letta_response,
+)
 from unplug.integrations.llama_index import UnplugNodePostprocessor
 from unplug.integrations.openai_agents import (
     evaluate_input,
@@ -44,6 +56,11 @@ from unplug.integrations.smolagents import (
     smolagents_final_answer_check,
     smolagents_task_guard,
     smolagents_tool_guard,
+)
+from unplug.integrations.strands import (
+    UnplugHookProvider,
+    strands_input_guard,
+    strands_tool_guard,
 )
 
 
@@ -178,3 +195,74 @@ class TestSmolagentsHelpers:
     def test_tool_guard_blocks_shell(self) -> None:
         decision = smolagents_tool_guard(AgentHooks(Guard()))("shell", {"command": "rm -rf /"})
         assert decision.allowed is False
+
+
+class TestDspyHelpers:
+    def test_input_guard_benign(self) -> None:
+        assert dspy_input_guard(AgentHooks(Guard()))("Summarize this article.") == (
+            "Summarize this article."
+        )
+
+    def test_tool_guard_benign(self) -> None:
+        assert dspy_tool_guard(AgentHooks(Guard()))("search", {"q": "x"}).allowed is True
+
+    def test_guard_tool_runs_benign(self) -> None:
+        def search(query: str) -> str:
+            return f"hits:{query}"
+
+        wrapped = dspy_guard_tool(search, AgentHooks(Guard()))
+        assert wrapped(query="paris") == "hits:paris"
+
+    def test_guard_tool_preserves_name(self) -> None:
+        def my_tool(x: str) -> str:
+            return x
+
+        assert dspy_guard_tool(my_tool, AgentHooks(Guard())).__name__ == "my_tool"
+
+    def test_prediction_text_falls_back_to_str(self) -> None:
+        assert dspy_prediction_text(SimpleNamespace(output="hello")) == "hello"
+
+
+class TestStrandsHelpers:
+    def test_input_guard_benign(self) -> None:
+        assert strands_input_guard(AgentHooks(Guard()))("Hello") == "Hello"
+
+    def test_tool_guard_blocks_sql(self) -> None:
+        d = strands_tool_guard(AgentHooks(Guard()))("sql_exec", {"query": "DROP TABLE users;"})
+        assert d.allowed is False
+
+    def test_hook_provider_allows_benign(self) -> None:
+        event = SimpleNamespace(tool_use={"name": "search", "input": {"q": "x"}}, cancel_tool=None)
+        UnplugHookProvider(AgentHooks(Guard())).on_before_tool_call(event)
+        assert event.cancel_tool is None
+
+    def test_hook_provider_cancels_destructive(self) -> None:
+        event = SimpleNamespace(
+            tool_use={"name": "shell", "input": {"command": "rm -rf /"}}, cancel_tool=None
+        )
+        UnplugHookProvider(AgentHooks(Guard())).on_before_tool_call(event)
+        assert event.cancel_tool
+
+
+class TestLettaHelpers:
+    def test_input_guard_benign(self) -> None:
+        assert letta_input_guard(AgentHooks(Guard()))("Hello") == "Hello"
+
+    def test_tool_guard_benign(self) -> None:
+        assert letta_tool_guard(AgentHooks(Guard()))("search", {"q": "x"}).allowed is True
+
+    def test_extract_assistant_text_joins(self) -> None:
+        response = SimpleNamespace(
+            messages=[
+                SimpleNamespace(message_type="assistant_message", content="one"),
+                SimpleNamespace(message_type="tool_call_message"),
+                SimpleNamespace(message_type="assistant_message", content="two"),
+            ]
+        )
+        assert letta_extract_assistant_text(response) == "one\ntwo"
+
+    def test_scan_response_benign(self) -> None:
+        response = SimpleNamespace(
+            messages=[SimpleNamespace(message_type="assistant_message", content="Paris.")]
+        )
+        assert scan_letta_response(AgentHooks(Guard()), response).allowed is True

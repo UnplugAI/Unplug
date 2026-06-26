@@ -42,6 +42,9 @@ if not decision.allowed:
 | **LangChain** | `langchain` | [langchain](langchain/README.md) | `langchain.py` |
 | **Google ADK** | `google-adk` | [google-adk](google-adk/README.md) | `google_adk.py` |
 | **smolagents** | `smolagents` | [smolagents](smolagents/README.md) | `smolagents.py` |
+| **DSPy** | `dspy` | [dspy](dspy/README.md) | `dspy.py` |
+| **Strands Agents** | `strands` | [strands](strands/README.md) | `strands.py` |
+| **Letta** | `letta` | [letta](letta/README.md) | `letta.py` |
 | **Agno** | `agno` | [agno](agno/README.md) | `agno.py` |
 | **Haystack** | `haystack` | [haystack](haystack/README.md) | `haystack.py` |
 | **LlamaIndex** | `llama-index` | [llama-index](llama-index/README.md) | `llama_index.py` |
@@ -61,6 +64,9 @@ python examples/openai_agents_hooks_demo.py
 python examples/langchain_hooks_demo.py
 python examples/google_adk_hooks_demo.py
 python examples/smolagents_hooks_demo.py
+python examples/dspy_hooks_demo.py
+python examples/strands_hooks_demo.py
+python examples/letta_hooks_demo.py
 ```
 
 ## Deployment modes
@@ -75,7 +81,7 @@ See [`docs/DEPLOYMENT.md`](../docs/DEPLOYMENT.md).
 
 ## Security testing
 
-We maintain a **52-angle integration security matrix** exercised in CI. See [TESTING.md](TESTING.md) for the full list and how to run it locally:
+We maintain a **62-angle integration security matrix** exercised in CI. See [TESTING.md](TESTING.md) for the full list and how to run it locally:
 
 ```bash
 cd sdk

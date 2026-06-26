@@ -1,4 +1,4 @@
-"""52-angle agent integration security matrix (regex Guard, no framework installs)."""
+"""62-angle agent integration security matrix (regex Guard, no framework installs)."""
 
 from __future__ import annotations
 
@@ -19,6 +19,13 @@ from unplug.integrations.crewai import (
     crewai_task_input_guard,
     crewai_tool_guard,
 )
+from unplug.integrations.dspy import (
+    dspy_guard_tool,
+    dspy_input_guard,
+    dspy_output_guard,
+    dspy_prediction_text,
+    dspy_tool_guard,
+)
 from unplug.integrations.google_adk import (
     adk_extract_user_text,
     adk_scan_request,
@@ -32,6 +39,12 @@ from unplug.integrations.langchain import (
     langchain_tool_guard,
 )
 from unplug.integrations.langgraph import langgraph_input_node, langgraph_tool_guard
+from unplug.integrations.letta import (
+    letta_extract_assistant_text,
+    letta_input_guard,
+    letta_tool_guard,
+    scan_letta_response,
+)
 from unplug.integrations.llama_index import UnplugNodePostprocessor
 from unplug.integrations.openai_agents import (
     evaluate_input,
@@ -47,6 +60,11 @@ from unplug.integrations.smolagents import (
     smolagents_final_answer_check,
     smolagents_task_guard,
     smolagents_tool_guard,
+)
+from unplug.integrations.strands import (
+    UnplugHookProvider,
+    strands_input_guard,
+    strands_tool_guard,
 )
 
 _BENIGN = "What is the capital of France?"
@@ -309,6 +327,57 @@ class TestSmolagentsMatrix:
         assert smolagents_tool_guard(hooks)(_SHELL[0], _SHELL[1]).allowed is False
 
 
+class TestDspyMatrix:
+    def test_53_input_guard_blocks(self, hooks: AgentHooks) -> None:
+        with pytest.raises(RuntimeError):
+            dspy_input_guard(hooks)(_INJECT)
+
+    def test_54_output_guard_blocks_leak(self, hooks: AgentHooks) -> None:
+        with pytest.raises(RuntimeError):
+            dspy_output_guard(hooks)(_API_KEY_OUT)
+
+    def test_55_tool_guard_blocks_shell(self, hooks: AgentHooks) -> None:
+        assert dspy_tool_guard(hooks)(_SHELL[0], _SHELL[1]).allowed is False
+
+    def test_56_guard_tool_wrap_blocks_destructive(self, hooks: AgentHooks) -> None:
+        def shell_exec(command: str) -> str:
+            return "ran"
+
+        wrapped = dspy_guard_tool(shell_exec, hooks)
+        with pytest.raises(RuntimeError):
+            wrapped(command="rm -rf /")
+
+
+class TestStrandsMatrix:
+    def test_57_input_guard_blocks(self, hooks: AgentHooks) -> None:
+        with pytest.raises(RuntimeError):
+            strands_input_guard(hooks)(_INJECT)
+
+    def test_58_tool_guard_blocks_shell(self, hooks: AgentHooks) -> None:
+        assert strands_tool_guard(hooks)(_SHELL[0], _SHELL[1]).allowed is False
+
+    def test_59_hook_provider_cancels_destructive(self, hooks: AgentHooks) -> None:
+        event = SimpleNamespace(tool_use={"name": _SHELL[0], "input": _SHELL[1]}, cancel_tool=None)
+        UnplugHookProvider(hooks).on_before_tool_call(event)
+        assert event.cancel_tool
+
+
+class TestLettaMatrix:
+    def test_60_input_guard_blocks(self, hooks: AgentHooks) -> None:
+        with pytest.raises(RuntimeError):
+            letta_input_guard(hooks)(_INJECT)
+
+    def test_61_tool_guard_blocks_shell(self, hooks: AgentHooks) -> None:
+        assert letta_tool_guard(hooks)(_SHELL[0], _SHELL[1]).allowed is False
+
+    def test_62_scan_response_flags_leak(self, hooks: AgentHooks) -> None:
+        response = SimpleNamespace(
+            messages=[SimpleNamespace(message_type="assistant_message", content=_API_KEY_OUT)]
+        )
+        d = scan_letta_response(hooks, response)
+        assert d.allowed is False or d.result.redacted_text is not None
+
+
 class TestAdapterSmoke:
     """Extra adapter callability checks."""
 
@@ -346,3 +415,36 @@ class TestAdapterSmoke:
 
     def test_smolagents_final_answer_benign(self, hooks: AgentHooks) -> None:
         assert smolagents_final_answer_check(hooks)("Paris is the capital.", None, None) is True
+
+    def test_dspy_input_benign(self, hooks: AgentHooks) -> None:
+        assert dspy_input_guard(hooks)(_BENIGN) == _BENIGN
+
+    def test_dspy_guard_tool_runs_benign(self, hooks: AgentHooks) -> None:
+        def search(query: str) -> str:
+            return f"results for {query}"
+
+        wrapped = dspy_guard_tool(search, hooks)
+        assert wrapped(query="weather paris") == "results for weather paris"
+
+    def test_dspy_prediction_text_extracts(self) -> None:
+        assert dspy_prediction_text(SimpleNamespace(answer="Paris.")) == "Paris."
+
+    def test_strands_input_benign(self, hooks: AgentHooks) -> None:
+        assert strands_input_guard(hooks)(_BENIGN) == _BENIGN
+
+    def test_strands_hook_provider_allows_benign(self, hooks: AgentHooks) -> None:
+        event = SimpleNamespace(tool_use={"name": "search", "input": {"q": "x"}}, cancel_tool=None)
+        UnplugHookProvider(hooks).on_before_tool_call(event)
+        assert event.cancel_tool is None
+
+    def test_letta_extract_assistant_text(self) -> None:
+        response = SimpleNamespace(
+            messages=[
+                SimpleNamespace(message_type="reasoning_message", reasoning="thinking"),
+                SimpleNamespace(message_type="assistant_message", content="Paris."),
+            ]
+        )
+        assert letta_extract_assistant_text(response) == "Paris."
+
+    def test_letta_input_benign(self, hooks: AgentHooks) -> None:
+        assert letta_input_guard(hooks)(_BENIGN) == _BENIGN
