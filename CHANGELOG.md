@@ -4,6 +4,13 @@ All notable changes to the `unplug-ai` SDK.
 
 ## [Unreleased]
 
+### Added
+
+- Integration adapters for four more agent frameworks: **OpenAI Agents SDK** (`unplug.integrations.openai_agents`, native input/output guardrails), **LangChain** (`unplug.integrations.langchain`, LCEL Runnable guards + a tool-gating callback handler), **Google ADK** (`unplug.integrations.google_adk`, `before_model` / `before_tool` callbacks), and **smolagents** (`unplug.integrations.smolagents`, task gate + `final_answer_checks` + tool guard)
+- Per-framework optional extras `unplug-ai[openai-agents]`, `[langchain]`, `[google-adk]`, `[smolagents]`, all folded into the `integrations` meta-extra
+- Per-framework guides under `integrations/` and runnable demos under `examples/` for each new adapter
+- Expanded the agent security matrix from 40 to **52 angles** (new framework bindings), plus live tests and dedicated `Integrations (live)` CI legs for each new extra
+
 ## [0.4.1] — 2026-06-25
 
 ### Added

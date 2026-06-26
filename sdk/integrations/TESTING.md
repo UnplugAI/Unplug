@@ -1,6 +1,6 @@
 # Integration security matrix
 
-Unplug integration tests cover **40 attack angles** across hook points and framework adapters. The matrix lives in:
+Unplug integration tests cover **52 attack angles** across hook points and framework adapters. The matrix lives in:
 
 ```
 tests/security/test_agent_integration_matrix.py
@@ -19,7 +19,7 @@ Run the full hook + adapter suite:
 uv run pytest tests/integration/test_integrations.py tests/unit/integrations/ -v
 ```
 
-## Matrix (40 angles)
+## Matrix (52 angles)
 
 | # | Category | Scenario | Expected |
 |---|----------|----------|----------|
@@ -63,12 +63,24 @@ uv run pytest tests/integration/test_integrations.py tests/unit/integrations/ -v
 | 38 | Haystack | scan_document drops block | Dropped |
 | 39 | Hooks | wrap_retrieved blocked placeholder | Non-empty safe text |
 | 40 | Hooks | Secret-shaped user input | Block / redact |
+| 41 | OpenAI Agents | Input guardrail injection | Tripwire |
+| 42 | OpenAI Agents | Output guardrail secret leak | Tripwire |
+| 43 | OpenAI Agents | Tool guard destructive shell | Not allowed |
+| 44 | LangChain | Input Runnable guard injection | RuntimeError |
+| 45 | LangChain | Output Runnable guard secret leak | RuntimeError |
+| 46 | LangChain | Tool guard SQL DROP | Not allowed |
+| 47 | Google ADK | `before_model` scan injection | Blocked |
+| 48 | Google ADK | `before_tool` destructive | Block dict |
+| 49 | Google ADK | Extract user text from `LlmRequest` | Parsed text |
+| 50 | smolagents | Task gate injection | RuntimeError |
+| 51 | smolagents | `final_answer_checks` secret leak | RuntimeError |
+| 52 | smolagents | Tool guard destructive shell | Not allowed |
 
 ## Two layers of coverage
 
 | Layer | What it proves | Frameworks installed? |
 |-------|----------------|-----------------------|
-| **Matrix** (`tests/security/test_agent_integration_matrix.py`) | The 40 attack angles + our adapter callables behave correctly | No — regex core only |
+| **Matrix** (`tests/security/test_agent_integration_matrix.py`) | The 52 attack angles + our adapter callables behave correctly | No — regex core only |
 | **Live** (`tests/optional/live/test_<framework>_live.py`) | Each adapter works against the *real* installed framework (e.g. a compiled LangGraph graph, a real LlamaIndex `TextNode`, a real SK `Kernel`) | Yes — one extra per run |
 
 The matrix is framework-agnostic and always runs. The live tests `importorskip` their
