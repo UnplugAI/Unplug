@@ -1,6 +1,6 @@
 # Agent framework integrations
 
-> **Full guides:** [`integrations/README.md`](../integrations/README.md) — per-framework wiring, extras, and the [40-angle security matrix](../integrations/TESTING.md).
+> **Full guides:** [`integrations/README.md`](../integrations/README.md) — per-framework wiring, extras, and the [62-angle security matrix](../integrations/TESTING.md).
 
 Unplug ships **framework-agnostic hooks** first. Install only the extra for your stack:
 
@@ -40,6 +40,13 @@ tool_decision = hooks.before_tool_call("send_email", {"to": "...", "body": "..."
 | Framework | Extra | Module |
 |-----------|-------|--------|
 | LangGraph | `langgraph` | `unplug.integrations.langgraph` |
+| OpenAI Agents SDK | `openai-agents` | `unplug.integrations.openai_agents` |
+| LangChain | `langchain` | `unplug.integrations.langchain` |
+| Google ADK | `google-adk` | `unplug.integrations.google_adk` |
+| smolagents | `smolagents` | `unplug.integrations.smolagents` |
+| DSPy | `dspy` | `unplug.integrations.dspy` |
+| Strands Agents | `strands` | `unplug.integrations.strands` |
+| Letta | `letta` | `unplug.integrations.letta` |
 | Agno | `agno` | `unplug.integrations.agno` |
 | CrewAI | `crewai` | `unplug.integrations.crewai` |
 | AutoGen | `autogen` | `unplug.integrations.autogen` |
@@ -84,7 +91,7 @@ Tool enforcement always runs locally. See [`DEPLOYMENT.md`](DEPLOYMENT.md).
 uv run pytest tests/security/test_agent_integration_matrix.py -v
 ```
 
-See [`integrations/TESTING.md`](../integrations/TESTING.md) for all 40 angles.
+See [`integrations/TESTING.md`](../integrations/TESTING.md) for all 62 angles.
 
 ## Docker E2E (sidecar + examples)
 

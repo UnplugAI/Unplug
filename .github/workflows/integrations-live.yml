@@ -42,6 +42,20 @@ jobs:
             test: tests/optional/live/test_pydantic_ai_live.py
           - extra: semantic-kernel
             test: tests/optional/live/test_semantic_kernel_live.py
+          - extra: openai-agents
+            test: tests/optional/live/test_openai_agents_live.py
+          - extra: langchain
+            test: tests/optional/live/test_langchain_live.py
+          - extra: google-adk
+            test: tests/optional/live/test_google_adk_live.py
+          - extra: smolagents
+            test: tests/optional/live/test_smolagents_live.py
+          - extra: dspy
+            test: tests/optional/live/test_dspy_live.py
+          - extra: strands
+            test: tests/optional/live/test_strands_live.py
+          - extra: letta
+            test: tests/optional/live/test_letta_live.py
     name: live (${{ matrix.extra }})
     defaults:
       run:
