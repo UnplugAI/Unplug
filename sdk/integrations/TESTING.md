@@ -127,7 +127,7 @@ Run one framework locally the same way CI does (latest compatible version of tha
 
 ```bash
 cd sdk
-uv venv /tmp/unplug-lg && uv pip install --python /tmp/unplug-lg -e ".[dev,langgraph]"
+uv venv --allow-existing /tmp/unplug-lg && uv pip install --python /tmp/unplug-lg -e ".[dev,langgraph]"
 /tmp/unplug-lg/bin/python -m pytest -q -m requires_integrations tests/optional/live/test_langgraph_live.py
 ```
 

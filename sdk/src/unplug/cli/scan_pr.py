@@ -29,8 +29,11 @@ _AGENT_MARKERS = (
     "copilot-instructions",
     ".github/agents/",
 )
-_MAX_CHUNK = 2000
-_CHUNK_OVERLAP = 200
+# Whole files are scanned in a single pass (Guard's default input limit is 50k
+# chars). We deliberately do NOT window the text: any fixed-size chunk boundary
+# can split a prompt-injection phrase so neither chunk matches it, letting a
+# crafted agent file scan clean. The cap is only a DoS guard for huge files.
+_MAX_SCAN_CHARS = 50_000
 
 
 def _is_agent_file(rel: str) -> bool:
@@ -73,31 +76,25 @@ def changed_agent_files(base_ref: str, repo_root: Path) -> list[Path]:
     return paths
 
 
-def _chunks(text: str) -> list[str]:
-    """Overlapping windows so an injection straddling a chunk boundary is still
-    wholly contained in at least one chunk."""
-    text = text[:50_000]
-    if len(text) <= _MAX_CHUNK:
-        return [text]
-    step = _MAX_CHUNK - _CHUNK_OVERLAP
-    return [text[i : i + _MAX_CHUNK] for i in range(0, len(text), step)]
+def _scannable_text(text: str) -> str:
+    """Cap pathologically large files; the file is scanned whole (no windowing)."""
+    return text[:_MAX_SCAN_CHARS]
 
 
 def scan_paths(repo_root: Path, paths: list[Path]) -> list[tuple[Path, str]]:
-    """Scan files; return list of (path, message) for each blocked chunk."""
+    """Scan files whole; return list of (path, message) for each blocked file."""
     guard = Guard()
     blocked: list[tuple[Path, str]] = []
     for path in paths:
-        for chunk in _chunks(path.read_text(encoding="utf-8", errors="replace")):
-            result = guard.scan(chunk, source="user")
-            if result.action == Action.BLOCK or not result.safe:
-                try:
-                    rel = path.relative_to(repo_root)
-                except ValueError:
-                    rel = path
-                msg = f"Unplug flagged {result.action.value} (risk={result.risk_score:.2f})"
-                blocked.append((rel, msg))
-                break
+        text = _scannable_text(path.read_text(encoding="utf-8", errors="replace"))
+        result = guard.scan(text, source="user")
+        if result.action == Action.BLOCK or not result.safe:
+            try:
+                rel = path.relative_to(repo_root)
+            except ValueError:
+                rel = path
+            msg = f"Unplug flagged {result.action.value} (risk={result.risk_score:.2f})"
+            blocked.append((rel, msg))
     return blocked
 
 

@@ -49,13 +49,15 @@ def test_missing_base_ref_fails_closed(capsys: pytest.CaptureFixture[str]) -> No
     assert "not found" in out
 
 
-def test_chunks_overlap_keeps_boundary_phrase_intact() -> None:
-    phrase = "ignore all previous instructions"
-    # Position the phrase so it straddles the first 2000-char window boundary.
-    prefix = "a" * (2000 - len(phrase) // 2)
-    text = prefix + phrase + "b" * 3000
-    chunks = scan_pr._chunks(text)
-    assert any(phrase in chunk for chunk in chunks)
+def test_injection_beyond_first_window_is_flagged(tmp_path: Path) -> None:
+    # Files are scanned whole (no fixed-size windows), so an injection located
+    # past the former 2000-char chunk boundary can't be split across chunks and
+    # must still be flagged.
+    prefix = "Routine agent configuration notes. " * 120
+    assert len(prefix) > 2000
+    path = _write_agent_file(tmp_path, "AGENTS.md", prefix + _ATTACK)
+    blocked = scan_pr.scan_paths(tmp_path, [path])
+    assert len(blocked) == 1
 
 
 def test_github_agent_files_are_in_scope() -> None:

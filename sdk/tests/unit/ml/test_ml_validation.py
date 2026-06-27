@@ -59,6 +59,24 @@ def test_resolve_checkpoint_without_weights() -> None:
     assert (ckpt / "config.json").is_file()
 
 
+def test_resolve_checkpoint_missing_manifest_returns_none(monkeypatch: pytest.MonkeyPatch) -> None:
+    # A wheel/non-editable install can ship without configs/ml_validation.json.
+    # The resolver must return None (never raise) so module-level skipif decorators
+    # degrade to a clean skip instead of crashing pytest collection at import time.
+    monkeypatch.delenv("UNPLUG_TEST_CHECKPOINT", raising=False)
+    monkeypatch.delenv("UNPLUG_MODEL_PATH", raising=False)
+    monkeypatch.setattr(
+        "unplug.ml.validation.manifest_path",
+        lambda: Path("/no/such/dir/ml_validation.json"),
+    )
+    load_ml_validation_manifest.cache_clear()
+    try:
+        assert resolve_validation_checkpoint(require_weights=False) is None
+        assert resolve_validation_checkpoint(require_weights=True) is None
+    finally:
+        load_ml_validation_manifest.cache_clear()
+
+
 @pytest.mark.requires_ml_weights
 def test_resolve_checkpoint_with_weights(ml_checkpoint_with_weights: Path) -> None:
     assert is_valid_checkpoint(ml_checkpoint_with_weights, require_weights=True)

@@ -41,8 +41,45 @@ import functools
 from collections.abc import Callable
 from typing import Any
 
-from unplug.integrations.hooks import AgentHooks, HookDecision
+from unplug.integrations.hooks import AgentHooks, HookDecision, flatten_text
 from unplug.integrations.langgraph import require_allowed
+
+
+def _scan_redact_content(content: Any, scan: Callable[[str], HookDecision]) -> Any:
+    """Scan ``str`` or multimodal-``list`` message content, redacting in place.
+
+    AG2's ``process_last_received_message`` hook receives the *content* of the
+    last message — a plain ``str`` or a list of multimodal blocks
+    (``{"type": "text", "text": ...}`` plus image/file blocks), not the message
+    history. We scan each text payload and write redactions back into the same
+    shape so non-text blocks (images) are preserved rather than flattened into a
+    string. Returns the original object unchanged when nothing was redacted (so
+    AG2's "did a hook modify this?" identity check stays correct). Raises when
+    Unplug blocks the content.
+    """
+    if isinstance(content, list):
+        new_blocks: list[Any] = []
+        changed = False
+        for block in content:
+            if isinstance(block, dict) and isinstance(block.get("text"), str):
+                decision = scan(block["text"])
+                require_allowed(decision)
+                new_block = dict(block)
+                if decision.redacted_text and decision.redacted_text != block["text"]:
+                    new_block["text"] = decision.redacted_text
+                    changed = True
+                new_blocks.append(new_block)
+            else:
+                new_blocks.append(block)
+        return new_blocks if changed else content
+
+    text = content if isinstance(content, str) else flatten_text(content)
+    decision = scan(text)
+    require_allowed(decision)
+    redacted = decision.redacted_text
+    if isinstance(content, str) and redacted and redacted != text:
+        return redacted
+    return content
 
 
 def ag2_received_message_hook(
@@ -52,10 +89,7 @@ def ag2_received_message_hook(
     h = hooks or AgentHooks()
 
     def hook(content: Any) -> Any:
-        text = content if isinstance(content, str) else str(content)
-        decision = h.scan_user_input(text)
-        require_allowed(decision)
-        return decision.redacted_text or content
+        return _scan_redact_content(content, h.scan_user_input)
 
     return hook
 
@@ -66,24 +100,19 @@ def ag2_message_hook(
     """Build a ``process_message_before_send`` hook: scan outgoing messages.
 
     Signature matches AG2: ``(sender, message, recipient, silent) -> message``.
-    Raises when Unplug blocks the message; otherwise redacts the ``content``.
+    Raises when Unplug blocks the message; otherwise redacts the ``content``
+    (preserving multimodal list structure).
     """
     h = hooks or AgentHooks()
 
     def hook(sender: Any, message: Any, recipient: Any, silent: Any) -> Any:
         if isinstance(message, dict):
-            text = str(message.get("content", ""))
-        else:
-            text = str(message)
-        decision = h.scan_agent_output(text)
-        require_allowed(decision)
-        redacted = decision.redacted_text
-        if redacted and redacted != text:
-            if isinstance(message, dict):
-                message["content"] = redacted
-            else:
-                return redacted
-        return message
+            original = message.get("content", "")
+            new_content = _scan_redact_content(original, h.scan_agent_output)
+            if new_content is not original:
+                message["content"] = new_content
+            return message
+        return _scan_redact_content(message, h.scan_agent_output)
 
     return hook
 
