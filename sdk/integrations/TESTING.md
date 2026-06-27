@@ -1,6 +1,6 @@
 # Integration security matrix
 
-Unplug integration tests cover **62 attack angles** across hook points and framework adapters. The matrix lives in:
+Unplug integration tests cover **72 attack angles** across hook points and framework adapters. The matrix lives in:
 
 ```
 tests/security/test_agent_integration_matrix.py
@@ -19,7 +19,7 @@ Run the full hook + adapter suite:
 uv run pytest tests/integration/test_integrations.py tests/unit/integrations/ -v
 ```
 
-## Matrix (62 angles)
+## Matrix (72 angles)
 
 | # | Category | Scenario | Expected |
 |---|----------|----------|----------|
@@ -85,12 +85,22 @@ uv run pytest tests/integration/test_integrations.py tests/unit/integrations/ -v
 | 60 | Letta | Input guard injection | RuntimeError |
 | 61 | Letta | Tool guard destructive shell | Not allowed |
 | 62 | Letta | `scan_letta_response` secret leak | Block / redact |
+| 63 | Griptape | Input guard injection | RuntimeError |
+| 64 | Griptape | Tool guard destructive shell | Not allowed |
+| 65 | Griptape | `unplug_before_run` injected task input | RuntimeError |
+| 66 | Griptape | `unplug_after_run` secret leak in output | RuntimeError |
+| 67 | AG2 | `process_last_received_message` injection | RuntimeError |
+| 68 | AG2 | `process_message_before_send` secret leak | RuntimeError |
+| 69 | AG2 | Tool guard destructive shell | Not allowed |
+| 70 | Atomic Agents | `atomic_scan_input` injection | RuntimeError |
+| 71 | Atomic Agents | Tool guard destructive shell | Not allowed |
+| 72 | Atomic Agents | `atomic_scan_output` secret leak | RuntimeError |
 
 ## Two layers of coverage
 
 | Layer | What it proves | Frameworks installed? |
 |-------|----------------|-----------------------|
-| **Matrix** (`tests/security/test_agent_integration_matrix.py`) | The 62 attack angles + our adapter callables behave correctly | No — regex core only |
+| **Matrix** (`tests/security/test_agent_integration_matrix.py`) | The 72 attack angles + our adapter callables behave correctly | No — regex core only |
 | **Live** (`tests/optional/live/test_<framework>_live.py`) | Each adapter works against the *real* installed framework (e.g. a compiled LangGraph graph, a real LlamaIndex `TextNode`, a real SK `Kernel`) | Yes — one extra per run |
 
 The matrix is framework-agnostic and always runs. The live tests `importorskip` their
