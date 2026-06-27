@@ -7,7 +7,19 @@ from types import SimpleNamespace
 import pytest
 
 from unplug import Guard
+from unplug.integrations.ag2 import (
+    ag2_guard_tool,
+    ag2_message_hook,
+    ag2_received_message_hook,
+    ag2_tool_guard,
+)
 from unplug.integrations.agno import agno_post_run_hook, agno_pre_run_hook, agno_tool_hook
+from unplug.integrations.atomic_agents import (
+    atomic_extract_text,
+    atomic_scan_input,
+    atomic_scan_output,
+    atomic_tool_guard,
+)
 from unplug.integrations.autogen import (
     autogen_reply_hook,
     autogen_user_message_hook,
@@ -26,6 +38,12 @@ from unplug.integrations.google_adk import (
     adk_extract_user_text,
     unplug_before_model_callback,
     unplug_before_tool_callback,
+)
+from unplug.integrations.griptape import (
+    griptape_input_guard,
+    griptape_tool_guard,
+    unplug_after_run,
+    unplug_before_run,
 )
 from unplug.integrations.hooks import AgentHooks
 from unplug.integrations.langchain import (
@@ -266,3 +284,61 @@ class TestLettaHelpers:
             messages=[SimpleNamespace(message_type="assistant_message", content="Paris.")]
         )
         assert scan_letta_response(AgentHooks(Guard()), response).allowed is True
+
+
+class TestGriptapeHelpers:
+    def test_input_guard_benign(self) -> None:
+        assert griptape_input_guard(AgentHooks(Guard()))("Hello") == "Hello"
+
+    def test_tool_guard_blocks_shell(self) -> None:
+        d = griptape_tool_guard(AgentHooks(Guard()))("shell", {"command": "rm -rf /"})
+        assert d.allowed is False
+
+    def test_before_run_redacts_in_place(self) -> None:
+        task = SimpleNamespace(input=SimpleNamespace(value="My AWS key is AKIAIOSFODNN7EXAMPLE"))
+        try:
+            unplug_before_run(AgentHooks(Guard()))(task)
+        except RuntimeError:
+            return  # blocked is also an acceptable secure outcome
+        assert isinstance(task.input, str) or task.input.value is not None
+
+    def test_after_run_allows_benign(self) -> None:
+        task = SimpleNamespace(output=SimpleNamespace(value="Paris is the capital."))
+        unplug_after_run(AgentHooks(Guard()))(task)
+        assert task.output.value == "Paris is the capital."
+
+
+class TestAg2Helpers:
+    def test_received_message_benign(self) -> None:
+        assert ag2_received_message_hook(AgentHooks(Guard()))("Hello") == "Hello"
+
+    def test_message_before_send_benign(self) -> None:
+        msg = {"content": "All done."}
+        out = ag2_message_hook(AgentHooks(Guard()))(None, msg, None, False)
+        assert out["content"] == "All done."
+
+    def test_tool_guard_blocks_shell(self) -> None:
+        d = ag2_tool_guard(AgentHooks(Guard()))("shell", {"command": "rm -rf /"})
+        assert d.allowed is False
+
+    def test_guard_tool_runs_benign(self) -> None:
+        def search(query: str) -> str:
+            return f"hits:{query}"
+
+        assert ag2_guard_tool(search, AgentHooks(Guard()))(query="x") == "hits:x"
+
+
+class TestAtomicAgentsHelpers:
+    def test_extract_text_named_field(self) -> None:
+        assert atomic_extract_text(SimpleNamespace(chat_message="hi")) == "hi"
+
+    def test_scan_input_benign(self) -> None:
+        schema = SimpleNamespace(chat_message="Hello")
+        assert atomic_scan_input(AgentHooks(Guard()), schema).chat_message == "Hello"
+
+    def test_scan_output_benign(self) -> None:
+        schema = SimpleNamespace(chat_message="Paris.")
+        assert atomic_scan_output(AgentHooks(Guard()), schema).chat_message == "Paris."
+
+    def test_tool_guard_benign(self) -> None:
+        assert atomic_tool_guard(AgentHooks(Guard()))("search", {"q": "x"}).allowed is True

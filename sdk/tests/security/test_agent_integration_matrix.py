@@ -1,4 +1,4 @@
-"""62-angle agent integration security matrix (regex Guard, no framework installs)."""
+"""72-angle agent integration security matrix (regex Guard, no framework installs)."""
 
 from __future__ import annotations
 
@@ -8,7 +8,19 @@ import pytest
 
 from unplug import Guard
 from unplug.api.enums import Action, Source
+from unplug.integrations.ag2 import (
+    ag2_guard_tool,
+    ag2_message_hook,
+    ag2_received_message_hook,
+    ag2_tool_guard,
+)
 from unplug.integrations.agno import agno_post_run_hook, agno_pre_run_hook, agno_tool_hook
+from unplug.integrations.atomic_agents import (
+    atomic_extract_text,
+    atomic_scan_input,
+    atomic_scan_output,
+    atomic_tool_guard,
+)
 from unplug.integrations.autogen import (
     autogen_reply_hook,
     autogen_tool_hook,
@@ -30,6 +42,12 @@ from unplug.integrations.google_adk import (
     adk_extract_user_text,
     adk_scan_request,
     unplug_before_tool_callback,
+)
+from unplug.integrations.griptape import (
+    griptape_input_guard,
+    griptape_tool_guard,
+    unplug_after_run,
+    unplug_before_run,
 )
 from unplug.integrations.haystack import scan_document, scan_for_ingestion
 from unplug.integrations.hooks import AgentHooks
@@ -378,6 +396,52 @@ class TestLettaMatrix:
         assert d.allowed is False or d.result.redacted_text is not None
 
 
+class TestGriptapeMatrix:
+    def test_63_input_guard_blocks(self, hooks: AgentHooks) -> None:
+        with pytest.raises(RuntimeError):
+            griptape_input_guard(hooks)(_INJECT)
+
+    def test_64_tool_guard_blocks_shell(self, hooks: AgentHooks) -> None:
+        assert griptape_tool_guard(hooks)(_SHELL[0], _SHELL[1]).allowed is False
+
+    def test_65_before_run_blocks_injected_task(self, hooks: AgentHooks) -> None:
+        task = SimpleNamespace(input=SimpleNamespace(value=_INJECT))
+        with pytest.raises(RuntimeError):
+            unplug_before_run(hooks)(task)
+
+    def test_66_after_run_blocks_leak(self, hooks: AgentHooks) -> None:
+        task = SimpleNamespace(output=SimpleNamespace(value=_API_KEY_OUT))
+        with pytest.raises(RuntimeError):
+            unplug_after_run(hooks)(task)
+
+
+class TestAg2Matrix:
+    def test_67_received_message_blocks_injection(self, hooks: AgentHooks) -> None:
+        with pytest.raises(RuntimeError):
+            ag2_received_message_hook(hooks)(_INJECT)
+
+    def test_68_message_before_send_blocks_leak(self, hooks: AgentHooks) -> None:
+        hook = ag2_message_hook(hooks)
+        with pytest.raises(RuntimeError):
+            hook(None, {"content": _API_KEY_OUT}, None, False)
+
+    def test_69_tool_guard_blocks_shell(self, hooks: AgentHooks) -> None:
+        assert ag2_tool_guard(hooks)(_SHELL[0], _SHELL[1]).allowed is False
+
+
+class TestAtomicAgentsMatrix:
+    def test_70_scan_input_blocks_injection(self, hooks: AgentHooks) -> None:
+        with pytest.raises(RuntimeError):
+            atomic_scan_input(hooks, SimpleNamespace(chat_message=_INJECT))
+
+    def test_71_tool_guard_blocks_shell(self, hooks: AgentHooks) -> None:
+        assert atomic_tool_guard(hooks)(_SHELL[0], _SHELL[1]).allowed is False
+
+    def test_72_scan_output_blocks_leak(self, hooks: AgentHooks) -> None:
+        with pytest.raises(RuntimeError):
+            atomic_scan_output(hooks, SimpleNamespace(chat_message=_API_KEY_OUT))
+
+
 class TestAdapterSmoke:
     """Extra adapter callability checks."""
 
@@ -448,3 +512,27 @@ class TestAdapterSmoke:
 
     def test_letta_input_benign(self, hooks: AgentHooks) -> None:
         assert letta_input_guard(hooks)(_BENIGN) == _BENIGN
+
+    def test_griptape_input_benign(self, hooks: AgentHooks) -> None:
+        assert griptape_input_guard(hooks)(_BENIGN) == _BENIGN
+
+    def test_griptape_before_run_allows_benign(self, hooks: AgentHooks) -> None:
+        task = SimpleNamespace(input=SimpleNamespace(value=_BENIGN))
+        unplug_before_run(hooks)(task)
+
+    def test_ag2_received_benign(self, hooks: AgentHooks) -> None:
+        assert ag2_received_message_hook(hooks)(_BENIGN) == _BENIGN
+
+    def test_ag2_guard_tool_runs_benign(self, hooks: AgentHooks) -> None:
+        def search(query: str) -> str:
+            return f"results for {query}"
+
+        wrapped = ag2_guard_tool(search, hooks)
+        assert wrapped(query="paris") == "results for paris"
+
+    def test_atomic_extract_text(self) -> None:
+        assert atomic_extract_text(SimpleNamespace(chat_message="Paris.")) == "Paris."
+
+    def test_atomic_scan_input_benign(self, hooks: AgentHooks) -> None:
+        schema = SimpleNamespace(chat_message=_BENIGN)
+        assert atomic_scan_input(hooks, schema).chat_message == _BENIGN

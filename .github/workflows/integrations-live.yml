@@ -56,6 +56,12 @@ jobs:
             test: tests/optional/live/test_strands_live.py
           - extra: letta
             test: tests/optional/live/test_letta_live.py
+          - extra: griptape
+            test: tests/optional/live/test_griptape_live.py
+          - extra: ag2
+            test: tests/optional/live/test_ag2_live.py
+          - extra: atomic-agents
+            test: tests/optional/live/test_atomic_agents_live.py
     name: live (${{ matrix.extra }})
     defaults:
       run:

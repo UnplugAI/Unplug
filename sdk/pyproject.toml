@@ -94,11 +94,21 @@ strands = [
 letta = [
     "letta-client>=0.1",
 ]
+griptape = [
+    "griptape>=1.0",
+]
+ag2 = [
+    "ag2>=0.7",
+]
+atomic-agents = [
+    # atomic-agents 2.x requires Python >=3.12; harmless no-op on 3.11.
+    "atomic-agents>=2.0; python_version >= '3.12'",
+]
 mcp = [
     "mcp>=1.0,<2",
 ]
 integrations = [
-    "unplug-ai[langgraph,agno,crewai,autogen,llama-index,pydantic-ai,semantic-kernel,openai-agents,langchain,google-adk,smolagents,dspy,strands,letta,haystack,mcp]",
+    "unplug-ai[langgraph,agno,crewai,autogen,llama-index,pydantic-ai,semantic-kernel,openai-agents,langchain,google-adk,smolagents,dspy,strands,letta,griptape,ag2,atomic-agents,haystack,mcp]",
 ]
 # `all` = capability extras only. Agent-framework adapters install via the
 # `integrations` meta-extra (or one framework at a time) so the default CI

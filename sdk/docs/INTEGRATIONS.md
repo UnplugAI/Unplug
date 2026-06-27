@@ -1,6 +1,6 @@
 # Agent framework integrations
 
-> **Full guides:** [`integrations/README.md`](../integrations/README.md) — per-framework wiring, extras, and the [62-angle security matrix](../integrations/TESTING.md).
+> **Full guides:** [`integrations/README.md`](../integrations/README.md) — per-framework wiring, extras, and the [72-angle security matrix](../integrations/TESTING.md).
 
 Unplug ships **framework-agnostic hooks** first. Install only the extra for your stack:
 
@@ -47,6 +47,9 @@ tool_decision = hooks.before_tool_call("send_email", {"to": "...", "body": "..."
 | DSPy | `dspy` | `unplug.integrations.dspy` |
 | Strands Agents | `strands` | `unplug.integrations.strands` |
 | Letta | `letta` | `unplug.integrations.letta` |
+| Griptape | `griptape` | `unplug.integrations.griptape` |
+| AG2 | `ag2` | `unplug.integrations.ag2` |
+| Atomic Agents | `atomic-agents` | `unplug.integrations.atomic_agents` |
 | Agno | `agno` | `unplug.integrations.agno` |
 | CrewAI | `crewai` | `unplug.integrations.crewai` |
 | AutoGen | `autogen` | `unplug.integrations.autogen` |
@@ -91,7 +94,7 @@ Tool enforcement always runs locally. See [`DEPLOYMENT.md`](DEPLOYMENT.md).
 uv run pytest tests/security/test_agent_integration_matrix.py -v
 ```
 
-See [`integrations/TESTING.md`](../integrations/TESTING.md) for all 62 angles.
+See [`integrations/TESTING.md`](../integrations/TESTING.md) for all 72 angles.
 
 ## Docker E2E (sidecar + examples)
 

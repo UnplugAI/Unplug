@@ -45,6 +45,9 @@ if not decision.allowed:
 | **DSPy** | `dspy` | [dspy](dspy/README.md) | `dspy.py` |
 | **Strands Agents** | `strands` | [strands](strands/README.md) | `strands.py` |
 | **Letta** | `letta` | [letta](letta/README.md) | `letta.py` |
+| **Griptape** | `griptape` | [griptape](griptape/README.md) | `griptape.py` |
+| **AG2** | `ag2` | [ag2](ag2/README.md) | `ag2.py` |
+| **Atomic Agents** | `atomic-agents` | [atomic-agents](atomic-agents/README.md) | `atomic_agents.py` |
 | **Agno** | `agno` | [agno](agno/README.md) | `agno.py` |
 | **Haystack** | `haystack` | [haystack](haystack/README.md) | `haystack.py` |
 | **LlamaIndex** | `llama-index` | [llama-index](llama-index/README.md) | `llama_index.py` |
@@ -67,6 +70,9 @@ python examples/smolagents_hooks_demo.py
 python examples/dspy_hooks_demo.py
 python examples/strands_hooks_demo.py
 python examples/letta_hooks_demo.py
+python examples/griptape_hooks_demo.py
+python examples/ag2_hooks_demo.py
+python examples/atomic_agents_hooks_demo.py
 ```
 
 ## Deployment modes
@@ -81,7 +87,7 @@ See [`docs/DEPLOYMENT.md`](../docs/DEPLOYMENT.md).
 
 ## Security testing
 
-We maintain a **62-angle integration security matrix** exercised in CI. See [TESTING.md](TESTING.md) for the full list and how to run it locally:
+We maintain a **72-angle integration security matrix** exercised in CI. See [TESTING.md](TESTING.md) for the full list and how to run it locally:
 
 ```bash
 cd sdk

@@ -8,8 +8,10 @@ All notable changes to the `unplug-ai` SDK.
 
 - Integration adapters for seven more agent frameworks: **OpenAI Agents SDK** (`unplug.integrations.openai_agents`, native input/output guardrails), **LangChain** (`unplug.integrations.langchain`, LCEL Runnable guards + a tool-gating callback handler), **Google ADK** (`unplug.integrations.google_adk`, `before_model` / `before_tool` callbacks), **smolagents** (`unplug.integrations.smolagents`, task gate + `final_answer_checks` + tool guard), **DSPy** (`unplug.integrations.dspy`, `unplug_guard_module` wrapping + `dspy_guard_tool` for ReAct), **Strands Agents** (`unplug.integrations.strands`, a `HookProvider` that cancels destructive tool calls), and **Letta** (`unplug.integrations.letta`, client-boundary message/response guards)
 - Per-framework optional extras `unplug-ai[openai-agents]`, `[langchain]`, `[google-adk]`, `[smolagents]`, `[dspy]`, `[strands]`, `[letta]`, all folded into the `integrations` meta-extra
+- Three more framework adapters: **Griptape** (`unplug.integrations.griptape`, `on_before_run` / `on_after_run` task hooks + tool gate), **AG2** (`unplug.integrations.ag2`, `ConversableAgent` message hooks + `ag2_guard_tool`, distinct from the Microsoft `autogen` extra), and **Atomic Agents** (`unplug.integrations.atomic_agents`, Pydantic IO-schema input/output guards)
+- Optional extras `unplug-ai[griptape]`, `[ag2]`, `[atomic-agents]` (the last gated to Python ≥3.12, which the library requires), folded into the `integrations` meta-extra
 - Per-framework guides under `integrations/` and runnable demos under `examples/` for each new adapter
-- Expanded the agent security matrix from 40 to **62 angles** (new framework bindings), plus live tests and dedicated `Integrations (live)` CI legs for each new extra
+- Expanded the agent security matrix from 40 to **72 angles** (ten new framework bindings), plus live tests and dedicated `Integrations (live)` CI legs for each new extra
 
 ## [0.4.1] — 2026-06-25
 
