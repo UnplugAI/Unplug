@@ -2,7 +2,7 @@
 
 All notable changes to the `unplug-ai` SDK.
 
-## [Unreleased]
+## [0.5.0] — 2026-06-27
 
 ### Added
 
