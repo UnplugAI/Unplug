@@ -58,20 +58,28 @@ def _scan_redact_content(content: Any, scan: Callable[[str], HookDecision]) -> A
     Unplug blocks the content.
     """
     if isinstance(content, list):
-        new_blocks: list[Any] = []
-        changed = False
-        for block in content:
-            if isinstance(block, dict) and isinstance(block.get("text"), str):
-                decision = scan(block["text"])
-                require_allowed(decision)
-                new_block = dict(block)
-                if decision.redacted_text and decision.redacted_text != block["text"]:
-                    new_block["text"] = decision.redacted_text
-                    changed = True
-                new_blocks.append(new_block)
-            else:
-                new_blocks.append(block)
-        return new_blocks if changed else content
+        # Scan the COMBINED text of all blocks, not each block in isolation: a
+        # multimodal list reaches the model as one message, so an injection split
+        # across adjacent text blocks must not slip past a per-block scan. Redaction
+        # is consolidated into the first text block (and later text blocks cleared)
+        # so the model-visible text equals the cleaned output, while non-text blocks
+        # (images) are preserved.
+        text_indices = [
+            i
+            for i, block in enumerate(content)
+            if isinstance(block, dict) and isinstance(block.get("text"), str)
+        ]
+        combined = "\n".join(content[i]["text"] for i in text_indices)
+        decision = scan(combined)
+        require_allowed(decision)
+        redacted = decision.redacted_text
+        if not text_indices or not redacted or redacted == combined:
+            return content
+        new_content: list[Any] = [dict(b) if isinstance(b, dict) else b for b in content]
+        new_content[text_indices[0]]["text"] = redacted
+        for i in text_indices[1:]:
+            new_content[i]["text"] = ""
+        return new_content
 
     text = content if isinstance(content, str) else flatten_text(content)
     decision = scan(text)
