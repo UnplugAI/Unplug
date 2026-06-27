@@ -1,6 +1,6 @@
 [project]
 name = "unplug-ai"
-version = "0.4.1"
+version = "0.5.0"
 description = "Unplug the bad AI. Fast prompt injection detection and redaction for LLM apps, agents, and RAG pipelines."
 readme = "README.md"
 license = "Apache-2.0"
