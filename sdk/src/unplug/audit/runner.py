@@ -183,7 +183,7 @@ def run_audit(
                 checks.append(
                     _check(
                         "fp_probe_suite",
-                        True,
+                        False,
                         "skipped (ML inactive; pip install unplug-ai[ml], "
                         "set active_model=tiny, or use --require-ml)",
                     )
@@ -203,7 +203,7 @@ def run_audit(
                 checks.append(
                     _check(
                         "encoding_probe_suite",
-                        True,
+                        False,
                         "skipped (ML inactive; use --probes --require-ml for full batteries)",
                     )
                 )

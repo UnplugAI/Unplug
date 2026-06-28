@@ -80,6 +80,19 @@ def test_run_audit_with_boundary_probes() -> None:
     assert "encoding_probe_suite" in names
 
 
+def test_run_audit_ml_probes_skipped_mark_not_passed() -> None:
+    """When --probes runs without ML, skipped FP/encoding must not count as passed."""
+    report = run_audit(workspace_root=WORKSPACE, include_probes=True)
+    fp = next(c for c in report["checks"] if c["name"] == "fp_probe_suite")
+    enc = next(c for c in report["checks"] if c["name"] == "encoding_probe_suite")
+    if not fp["detail"].startswith("skipped"):
+        pytest.skip("ML active in this environment; skipped-probe path not exercised")
+    assert fp["passed"] is False
+    assert enc["passed"] is False
+    assert report["all_passed"] is False
+    assert report["wiring_pass"] is True
+
+
 @pytest.mark.skipif(_checkpoint() is None, reason="checkpoint not available")
 def test_run_audit_require_ml_wires_injection() -> None:
     pytest.importorskip("torch")

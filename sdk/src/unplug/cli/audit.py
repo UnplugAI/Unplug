@@ -45,7 +45,10 @@ def main() -> None:
         print(json.dumps(report, indent=2))
     else:
         for row in report["checks"]:
-            mark = "ok" if row["passed"] else "FAIL"
+            if not row["passed"] and str(row["detail"]).startswith("skipped"):
+                mark = "skip"
+            else:
+                mark = "ok" if row["passed"] else "FAIL"
             print(f"[{mark}] {row['name']}: {row['detail']}")
         print(
             f"\nwiring_pass={report['wiring_pass']} "
