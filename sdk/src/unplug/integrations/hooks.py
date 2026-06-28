@@ -66,6 +66,16 @@ class HookDecision:
     def action(self) -> Action:
         return self.result.action
 
+    @property
+    def needs_review(self) -> bool:
+        """True when the host should pause for operator approval (not a hard block)."""
+        return self.result.action == Action.REVIEW
+
+    @property
+    def is_block(self) -> bool:
+        """True on hard block (distinct from review)."""
+        return not self.allowed and self.result.action == Action.BLOCK
+
 
 @dataclass
 class AgentHooks:

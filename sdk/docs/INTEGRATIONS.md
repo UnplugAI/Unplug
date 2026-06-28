@@ -1,6 +1,8 @@
 # Agent framework integrations
 
 > **Full guides:** [`integrations/README.md`](../integrations/README.md) — per-framework wiring, extras, and the [72-angle security matrix](../integrations/TESTING.md).
+>
+> **Beginners:** [`GETTING_STARTED.md`](GETTING_STARTED.md) · **REVIEW vs BLOCK:** [`AGENT_ACTIONS.md`](AGENT_ACTIONS.md)
 
 Unplug ships **framework-agnostic hooks** first. Install only the extra for your stack:
 
@@ -25,6 +27,10 @@ if not decision.allowed:
 
 wrapped, rag_decision = hooks.wrap_retrieved_content(webpage_html)
 tool_decision = hooks.before_tool_call("send_email", {"to": "...", "body": "..."})
+if tool_decision.needs_review:
+    pause_for_operator(tool_decision)  # see AGENT_ACTIONS.md
+elif not tool_decision.allowed:
+    raise RuntimeError(tool_decision.message)
 ```
 
 | Hook | When to call |

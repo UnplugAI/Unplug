@@ -14,7 +14,7 @@ uv sync --all-extras --dev   # everything, including optional extras
 uv sync --dev
 ```
 
-3. Optional extras map to scanner features — install only what you touch:
+3. Optional extras map to scanner features and integrations — install only what you touch:
 
 | Extra | Enables |
 |-------|---------|
@@ -24,6 +24,28 @@ uv sync --dev
 | `litellm` | LLM judge for borderline cases |
 | `haystack` | Haystack RAG integration |
 | `scrape` | Firecrawl content provider |
+| `langgraph` | LangGraph node hooks |
+| `langchain` | LangChain Runnable + callback hooks |
+| `openai-agents` | OpenAI Agents SDK guardrails |
+| `google-adk` | Google ADK before-model / before-tool callbacks |
+| `smolagents` | smolagents task + final-answer checks |
+| `crewai` | CrewAI task/output guards |
+| `autogen` | Microsoft AutoGen AgentChat hooks |
+| `ag2` | AG2 (community AutoGen fork) hooks |
+| `agno` | Agno pre/post run hooks |
+| `dspy` | DSPy module guards |
+| `strands` | Strands Agents hook provider |
+| `letta` | Letta message guards |
+| `griptape` | Griptape before/after run hooks |
+| `atomic-agents` | Atomic Agents schema guards (Python ≥3.12) |
+| `llama-index` | LlamaIndex node postprocessor |
+| `pydantic-ai` | Pydantic AI validators |
+| `semantic-kernel` | Semantic Kernel filters |
+| `mcp` | MCP client-side tooling tests |
+| `integrations` | **Meta-extra:** all framework extras above |
+| `all` | ML + presidio + yara + scrape + haystack + litellm |
+
+Integration guides: [`sdk/integrations/README.md`](sdk/integrations/README.md). New contributor docs: [`sdk/docs/GETTING_STARTED.md`](sdk/docs/GETTING_STARTED.md), [`sdk/docs/AGENT_ACTIONS.md`](sdk/docs/AGENT_ACTIONS.md).
 
 4. Verify your environment: `make check` (lint + format + tests).
 

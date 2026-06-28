@@ -2,6 +2,23 @@
 
 All notable changes to the `unplug-ai` SDK.
 
+## [Unreleased]
+
+### Added
+
+- Beginner onboarding: [`sdk/docs/GETTING_STARTED.md`](sdk/docs/GETTING_STARTED.md) (5-minute path)
+- Agent-host guide: [`sdk/docs/AGENT_ACTIONS.md`](sdk/docs/AGENT_ACTIONS.md) (ALLOW / REVIEW / BLOCK + `ApprovalProvider`)
+- `HookDecision.needs_review` and `HookDecision.is_block` helpers for integration adapters
+
+### Changed
+
+- Integrations hub: pick-your-path table, PyPI doc links, REVIEW vs BLOCK section
+- `unplug-audit --probes` skips FP/encoding batteries when ML is inactive (boundary probes still run); clearer CLI hints
+- `unplug.example.toml`: ML settings commented by default (regex-only copy-paste safe)
+- PyPI `Documentation` URL points to Getting Started; `scan_context_file` tuple examples fixed in READMEs
+- `unplug-scan-action` default version pin bumped to `>=0.5.0,<0.6`
+- `CONTRIBUTING.md`: full framework extras table
+
 ## [0.5.0] — 2026-06-27
 
 ### Added

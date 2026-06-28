@@ -23,8 +23,8 @@ def main() -> None:
         "--probes",
         action="store_true",
         help=(
-            "Run FP, encoding, and boundary probe suites "
-            "(slower; model quality separate from wiring)"
+            "Run probe batteries: boundary (regex OK); FP + encoding require ML "
+            "(use with --require-ml or active_model=tiny)"
         ),
     )
     parser.add_argument(
@@ -57,6 +57,18 @@ def main() -> None:
                 "\nHint: checkpoint found but ML inactive: "
                 'set active_model = "tiny" or UNPLUG_ACTIVE_MODEL=tiny'
             )
+        if args.probes and not args.require_ml:
+            skipped = [
+                row["name"]
+                for row in report["checks"]
+                if row["name"] in {"fp_probe_suite", "encoding_probe_suite"}
+                and row["detail"].startswith("skipped")
+            ]
+            if skipped:
+                print(
+                    "\nNote: FP/encoding probes skipped without ML. "
+                    "For full batteries: unplug-audit --probes --require-ml"
+                )
 
     sys.exit(0 if report["wiring_pass"] else 1)
 

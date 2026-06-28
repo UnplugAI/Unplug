@@ -127,7 +127,8 @@ dev = [
 Homepage = "https://unplug-ai.org"
 Repository = "https://github.com/UnplugAI/Unplug"
 Issues = "https://github.com/UnplugAI/Unplug/issues"
-Documentation = "https://github.com/UnplugAI/Unplug#readme"
+Documentation = "https://github.com/UnplugAI/Unplug/blob/dev/sdk/docs/GETTING_STARTED.md"
+Integrations = "https://github.com/UnplugAI/Unplug/tree/dev/sdk/integrations"
 
 [build-system]
 requires = ["hatchling"]

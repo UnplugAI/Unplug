@@ -108,9 +108,21 @@ Wire Unplug into any agent that fetches external content or calls tools:
 5. **Scan agent output.** `guard.scan_output(text)`. Set `strip_on_output = true` to remove boundary markers from redacted output.
 6. **New trusted turn.** `guard.reset_session_taint()` clears taint and degradation.
 
-Context files (AGENTS.md and similar): `guard.scan_context_file(text, filename="AGENTS.md")` before loading into the system prompt.
+Context files (AGENTS.md and similar) — returns ``(text_for_prompt, scan_result)``; use the
+placeholder text when blocked, never the raw file:
+
+```python
+text_for_prompt, result = guard.scan_context_file(raw, filename="AGENTS.md")
+if not result.safe:
+    system_prompt = text_for_prompt  # blocked placeholder, not raw content
+```
+
+See [`docs/AGENT_ACTIONS.md`](docs/AGENT_ACTIONS.md) for **REVIEW** vs **BLOCK** handling
+and human approval via ``ApprovalProvider``.
 
 Full walkthrough: [`examples/agent_exfil_demo.py`](examples/agent_exfil_demo.py) shows a hidden webpage injection leading to a tainted session, an exfil tool call held for review, and a destructive call blocked — see [`agent_exfil_demo.txt`](examples/agent_exfil_demo.txt) for sample output.
+
+New here? Start with [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md) (5-minute path).
 
 ## Long documents and streams
 
@@ -189,9 +201,10 @@ All published model metrics come from a frozen golden-eval harness on held-out d
 Verify your wiring anytime:
 
 ```bash
-unplug-audit                   # wiring + ML status
-unplug-audit --probes          # FP + encoding + boundary batteries
+unplug-audit                   # wiring + ML status (regex-only OK)
+unplug-audit --probes          # boundary probes always; FP/encoding need ML (see below)
 unplug-audit --require-ml      # fail if checkpoint / config / ML not active
+unplug-audit --probes --require-ml   # full probe batteries (FP + encoding + boundary)
 unplug-scan-pr --base-ref main # scan changed agent/MCP files in a PR (CI)
 ```
 
@@ -240,6 +253,8 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for layering and optional extra
 
 | Doc | Covers |
 |-----|--------|
+| [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md) | 5-minute install → scan (beginners) |
+| [`docs/AGENT_ACTIONS.md`](docs/AGENT_ACTIONS.md) | ALLOW / REVIEW / BLOCK + ApprovalProvider |
 | [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Hosted vs embedded vs sidecar architecture |
 | [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md) | Regex vs regex + ML eval results (neuralchemy, microsoft) |
 | [`docs/ML_INTEGRATION.md`](docs/ML_INTEGRATION.md) | Checkpoint layout, thresholds, long-text and streaming config |
