@@ -243,6 +243,8 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for layering and optional extra
 ## Examples
 
 - [`examples/quickstart.py`](examples/quickstart.py): minimal local Guard scan
+- [`examples/public_api_surface_demo.py`](examples/public_api_surface_demo.py): stable
+  `unplug.api.*` imports for server/MCP-style dependents
 - [`examples/server_client.py`](examples/server_client.py): HTTP client against a running sidecar
 - [`examples/agent_exfil_demo.py`](examples/agent_exfil_demo.py): hidden injection, tainted session, blocked exfil tool call
 - [`examples/langgraph_hooks_demo.py`](examples/langgraph_hooks_demo.py) and [`examples/agno_hooks_demo.py`](examples/agno_hooks_demo.py): framework hooks
@@ -255,6 +257,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for layering and optional extra
 |-----|--------|
 | [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md) | 5-minute install → scan (beginners) |
 | [`docs/AGENT_ACTIONS.md`](docs/AGENT_ACTIONS.md) | ALLOW / REVIEW / BLOCK + ApprovalProvider |
+| [`docs/PUBLIC_API.md`](docs/PUBLIC_API.md) | Stable `unplug.api.*` imports for server/MCP dependents |
 | [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Hosted vs embedded vs sidecar architecture |
 | [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md) | Regex vs regex + ML eval results (neuralchemy, microsoft) |
 | [`docs/ML_INTEGRATION.md`](docs/ML_INTEGRATION.md) | Checkpoint layout, thresholds, long-text and streaming config |
@@ -273,6 +276,7 @@ cd sdk && uv sync --all-extras --dev
 make fix          # auto-fix lint + format
 make check        # lint + format check + full pytest
 make check-ci     # CI parity: check + exfil demo + security regression
+make test-cov     # coverage report + 80% minimum gate
 make test-security
 make audit        # unplug-audit wiring
 make audit-ml     # unplug-audit --require-ml

@@ -9,6 +9,9 @@ All notable changes to the `unplug-ai` SDK.
 - Beginner onboarding: [`sdk/docs/GETTING_STARTED.md`](sdk/docs/GETTING_STARTED.md) (5-minute path)
 - Agent-host guide: [`sdk/docs/AGENT_ACTIONS.md`](sdk/docs/AGENT_ACTIONS.md) (ALLOW / REVIEW / BLOCK + `ApprovalProvider`)
 - `HookDecision.needs_review` and `HookDecision.is_block` helpers for integration adapters
+- Stable public API facades under `unplug.api.*` for policy, privacy, cache,
+  boundaries, normalization, encoding, and ML runtime imports used by server/MCP
+  dependents ([`sdk/docs/PUBLIC_API.md`](sdk/docs/PUBLIC_API.md))
 
 ### Changed
 

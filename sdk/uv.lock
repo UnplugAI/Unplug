@@ -7088,7 +7088,7 @@ requires-dist = [
     { name = "smolagents", marker = "extra == 'smolagents'", specifier = ">=1.0" },
     { name = "strands-agents", marker = "extra == 'strands'", specifier = ">=1.0" },
     { name = "torch", marker = "extra == 'ml'", specifier = ">=2.0" },
-    { name = "transformers", marker = "extra == 'ml'", specifier = ">=4.44,<4.45" },
+    { name = "transformers", marker = "extra == 'ml'", specifier = ">=4.44,<5.13" },
     { name = "unplug-ai", extras = ["langgraph", "agno", "crewai", "autogen", "llama-index", "pydantic-ai", "semantic-kernel", "openai-agents", "langchain", "google-adk", "smolagents", "dspy", "strands", "letta", "griptape", "ag2", "atomic-agents", "haystack", "mcp"], marker = "extra == 'integrations'" },
     { name = "unplug-ai", extras = ["ml", "scrape", "litellm", "yara", "haystack", "presidio"], marker = "extra == 'all'" },
     { name = "yara-python", marker = "extra == 'yara'", specifier = ">=4.5" },

@@ -74,6 +74,7 @@ GitHub Actions runs on every PR to `dev` ([`.github/workflows/ci.yml`](.github/w
 2. **Tests** — full pytest suite (`pytest -q`)
 3. **Exfil demo gate** — `test_exfil_demo_integration.py` + `sdk/examples/agent_exfil_demo.py`
 4. **Security regression** — explicit subset (adversarial, encodings, secrets, agent hardening, etc.)
+5. **Coverage** — SDK coverage report with an 80% minimum gate (`make test-cov`)
 
 ## Local checks (SDK)
 
@@ -86,6 +87,9 @@ make check
 
 # Exact CI parity before PR (includes exfil demo + security subset)
 make check-ci
+
+# Coverage report and 80% minimum gate
+make test-cov
 
 # Auto-fix formatting and safe lint fixes
 make fix
