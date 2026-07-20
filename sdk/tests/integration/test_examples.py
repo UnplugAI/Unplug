@@ -18,6 +18,7 @@ LOCAL_EXAMPLES = [
     "agent_exfil_demo.py",
     "langgraph_hooks_demo.py",
     "agno_hooks_demo.py",
+    "public_api_surface_demo.py",
 ]
 
 SERVER_EXAMPLES = [
