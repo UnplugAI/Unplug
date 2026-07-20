@@ -271,6 +271,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for layering and optional extra
 | [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md) | LangGraph, Agno, CrewAI, hooks API |
 | [`docs/AGENT_FLOW_SECURITY.md`](docs/AGENT_FLOW_SECURITY.md) | End-to-end agent hardening flow |
 | [`docs/HERMES_AGENT_SECURITY.md`](docs/HERMES_AGENT_SECURITY.md) | Context-file scanning for agent frameworks |
+| [`docs/TESTING_HARNESS.md`](docs/TESTING_HARNESS.md) | Pre-release make targets: frameworks, ML, CI vs local |
 
 ## Development
 
@@ -279,14 +280,19 @@ Supported Python versions: **3.11, 3.12, and 3.13** (CI matrix). On 3.13, the `m
 ```bash
 cd sdk && uv sync --all-extras --dev
 
-make fix          # auto-fix lint + format
-make check        # lint + format check + full pytest
-make check-ci     # CI parity: check + exfil demo + security regression
-make test-cov     # coverage report + 80% minimum gate
+make fix              # auto-fix lint + format
+make check            # lint + format check + full pytest
+make check-ci         # CI parity: check + exfil demo + security regression
+make test-cov         # coverage report + 80% minimum gate
 make test-security
-make audit        # unplug-audit wiring
-make audit-ml     # unplug-audit --require-ml
+make test-frameworks  # agent matrix + adapters (no framework installs)
+make test-ml-harness  # ML unit/integration + optional weight smoke
+make test-all-local   # check-ci + cov + frameworks + ML harness + examples
+make audit            # unplug-audit wiring
+make audit-ml         # unplug-audit --require-ml (needs checkpoint)
 ```
+
+Full command map and CI vs local notes: [`docs/TESTING_HARNESS.md`](docs/TESTING_HARNESS.md).
 
 Contributions welcome. See [`CONTRIBUTING.md`](../CONTRIBUTING.md).
 
