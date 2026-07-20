@@ -14,6 +14,10 @@ Package name on PyPI is **`unplug-ai`**. You import it as **`unplug`**:
 from unplug import Guard
 ```
 
+**Import style:** Apps and agents use top-level `unplug` exports. Server/MCP code
+that needs policy, cache, or boundary facades uses `unplug.api.*`
+([`PUBLIC_API.md`](PUBLIC_API.md)). Avoid `unplug.core.*` — it is internal.
+
 Optional ML model (better recall on indirect injection):
 
 ```bash
