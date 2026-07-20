@@ -6,6 +6,7 @@ All notable changes to the `unplug-ai` SDK.
 
 ### Added
 
+- Coverage tests for v1.0 deprecation shim re-exports (`unplug.core.*`, `guard_scan`, `scanner`, `safeguards`)
 - Offline synthetic BIOES checkpoint fixture for ML unit tests (no real weights required)
 - CI wheel-only resolve for `unplug-ai[ml]` on Python 3.13 (catches sdist-only breakage)
 
