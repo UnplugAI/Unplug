@@ -48,6 +48,8 @@ class _FakeStore:
             raise ModelError("bad model")
         if tier == "boom":
             raise RuntimeError("network")
+        if tier == "missing-import":
+            raise ImportError("No module named 'huggingface_hub'")
         return f"/models/{tier}"
 
 
@@ -111,16 +113,41 @@ def test_models_download_known_errors(
     assert "Error:" in capsys.readouterr().err
 
 
-def test_models_download_unexpected_error_mentions_ml_extra(
+def test_models_download_import_error_mentions_ml_extra(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     monkeypatch.setattr(models, "ModelStore", _FakeStore)
 
-    code = models._cmd_download(argparse.Namespace(tier="boom", force=False))
+    code = models._cmd_download(argparse.Namespace(tier="missing-import", force=False))
 
     assert code == 1
-    assert "pip install 'unplug-ai[ml]'" in capsys.readouterr().err
+    err = capsys.readouterr().err
+    assert "pip install 'unplug-ai[ml]'" in err
+
+
+def test_models_download_network_error_without_extras_hint(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    hf_error = type(
+        "HfHubHTTPError",
+        (Exception,),
+        {"__module__": "huggingface_hub.errors"},
+    )
+
+    class _NetworkStore(_FakeStore):
+        def ensure_tier(self, tier: str, *, force: bool = False) -> str:
+            raise hf_error("404 Client Error for repo Unplug-AI/unplug-tiny-v1")
+
+    monkeypatch.setattr(models, "ModelStore", _NetworkStore)
+
+    code = models._cmd_download(argparse.Namespace(tier="tiny", force=False))
+
+    assert code == 1
+    err = capsys.readouterr().err
+    assert "pip install 'unplug-ai[ml]'" not in err
+    assert "Hugging Face" in err
 
 
 def test_models_status(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:

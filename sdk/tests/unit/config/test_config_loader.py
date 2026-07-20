@@ -164,6 +164,28 @@ class TestLoad:
             for w in caught
         )
 
+    def test_judge_enabled_warns(self) -> None:
+        import warnings
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            build_config({"guard": {"judge_enabled": True}})
+        assert any(
+            issubclass(w.category, DeprecationWarning) and "judge_enabled" in str(w.message)
+            for w in caught
+        )
+
+    def test_pipeline_judge_timeout_warns(self) -> None:
+        import warnings
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            build_config({"pipeline": {"judge_timeout": 60.0}})
+        assert any(
+            issubclass(w.category, DeprecationWarning) and "judge_timeout" in str(w.message)
+            for w in caught
+        )
+
     def test_env_override(self, toml_file: Path):
         with patch.dict(os.environ, {"UNPLUG_GUARD__MODE": "server"}):
             cfg = load(file_path=toml_file)

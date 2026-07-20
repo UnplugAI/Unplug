@@ -115,19 +115,21 @@ These run in the dedicated **`Integrations (live)`** workflow
 nightly (06:00 UTC), and via manual dispatch — keeping the everyday PR gate fast while
 still catching framework drift.
 
-**Fresh resolution, on purpose.** Each leg runs `uv pip install -e ".[dev,<extra>]"`, *not*
-`uv sync`. The unified `uv.lock` co-resolves every extra together and pins some frameworks to
-old releases (e.g. `semantic-kernel` 1.15, which imports `Url` from `pydantic.networks` —
-removed in Pydantic v2). No user installs every framework at once; they run
+**Fresh resolution, on purpose.** Each leg runs
+`uv pip install -e ".[<extra>]" --group dev`, *not* `uv sync`. The unified `uv.lock`
+co-resolves every extra together and pins some frameworks to old releases
+(e.g. `semantic-kernel` 1.15, which imports `Url` from `pydantic.networks` — removed in
+Pydantic v2). No user installs every framework at once; they run
 `pip install "unplug-ai[semantic-kernel]"`, which resolves that one framework freshly (→ 1.36,
 which works). We mirror the user path. The `-e` (editable) keeps the source tree on `sys.path`
-so test-only assets like `configs/ml_validation.json` resolve.
+so test-only assets like `configs/ml_validation.json` resolve. `--group dev` pulls pytest
+from the dependency-group (not a published PyPI extra).
 
 Run one framework locally the same way CI does (latest compatible version of that extra):
 
 ```bash
 cd sdk
-uv venv --allow-existing /tmp/unplug-lg && uv pip install --python /tmp/unplug-lg -e ".[dev,langgraph]"
+uv venv --allow-existing /tmp/unplug-lg && uv pip install --python /tmp/unplug-lg -e ".[langgraph]" --group dev
 /tmp/unplug-lg/bin/python -m pytest -q -m requires_integrations tests/optional/live/test_langgraph_live.py
 ```
 

@@ -26,6 +26,9 @@ in any release).
 | Flat `unplug.core.<name>` shims (e.g. `core.canary`, `core.cache`, `core.intent`, `core.encodings`, …) | their subpackage home (e.g. `core.agent.canary`, `core.runtime.cache`, `core.agent.intent`, `core.normalize.encodings`) | ~25 modules re-export from subpackages (note: `core.taint`, `core.policy`, `core.privacy`, `core.normalize` are canonical subpackages, **not** shims) |
 | `unplug.guard_scan` | `unplug.api.results` | `refresh_scan_result` now lives in `api.results`; `guard_scan` is a back-compat shim that emits a `DeprecationWarning` |
 | `fail_closed=false` / `fail_mode="open"` | (removed) | errors always fail closed; the flag is ignored |
+| `judge_enabled` | `judge=` on `Guard()` | config flag was a no-op without a provider; removed in v1.0 |
+| `pipeline.judge_timeout` | (removed) | never wired; removed in v1.0 |
+| `pipeline.fail_closed` | (removed) | duplicate of deprecated `guard.fail_closed`; removed in v1.0 |
 
 ## Notes / known follow-ups
 

@@ -30,6 +30,10 @@ uv sync && uv pip install -e ".[ml]"
 
 ## Quickstart
 
+App and agent code imports from the top-level package (`from unplug import Guard`).
+Server/MCP integrations use `unplug.api.*` for wire types and facades — see
+[`sdk/docs/PUBLIC_API.md`](sdk/docs/PUBLIC_API.md). Do not use `unplug.core.*`.
+
 ```python
 from unplug import Guard
 from unplug.api.enums import Source
