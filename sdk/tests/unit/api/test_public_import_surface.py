@@ -220,3 +220,14 @@ def test_public_ml_runtime_import_is_lazy() -> None:
     model = SpanInferenceModel(Path("/tmp/nonexistent-unplug-checkpoint"), device="cpu")
     assert model.loaded is False
     assert model.checkpoint.name == "nonexistent-unplug-checkpoint"
+    assert model.device == "cpu"
+
+
+def test_public_ml_constructor_without_device_stays_lazy() -> None:
+    from pathlib import Path
+
+    from unplug.api.ml import SpanInferenceModel
+
+    model = SpanInferenceModel(Path("/tmp/nonexistent-unplug-checkpoint"))
+    assert model.loaded is False
+    assert model.device == "auto"

@@ -145,6 +145,15 @@ class TestInjectionScanner:
             subs = {f.subcategory for f in findings}
             assert expected in subs, f"expected {expected!r} in {subs} for {payload!r}"
 
+    def test_instructions_updated_does_not_flag_benign_changelog(self):
+        text = _make_text(
+            "The build instructions have been updated. "
+            "Please replace the old deployment steps with the new pipeline."
+        )
+        findings = self.scanner.scan(text, self.ctx)
+        subs = {f.subcategory for f in findings}
+        assert "instructions_updated_supersede" not in subs
+
     def test_clean_text(self):
         text = _make_text("what is the weather today?")
         findings = self.scanner.scan(text, self.ctx)

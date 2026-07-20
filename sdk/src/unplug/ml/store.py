@@ -6,6 +6,9 @@ import hashlib
 import json
 import os
 import shutil
+import threading
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -34,6 +37,29 @@ _SNAPSHOT_ALLOW_PATTERNS = [
     "vocab*",
     "merges.txt",
 ]
+
+
+@contextmanager
+def _tier_download_lock(tier_dir: Path) -> Iterator[None]:
+    """Serialize checkpoint swaps for one tier across threads and processes."""
+    tier_dir.mkdir(parents=True, exist_ok=True)
+    lock_path = tier_dir / ".download.lock"
+    with open(lock_path, "a+", encoding="utf-8") as lock_file:
+        try:
+            import fcntl
+
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+        except ImportError:
+            pass
+        try:
+            yield
+        finally:
+            try:
+                import fcntl
+
+                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+            except ImportError:
+                pass
 
 
 def _config_digest(path: Path) -> str | None:
@@ -109,7 +135,11 @@ class ModelStore:
     def is_valid_checkpoint(self, path: Path) -> bool:
         if not path.is_dir() or not (path / "config.json").is_file():
             return False
-        return any((path / name).is_file() for name in _WEIGHT_FILES)
+        if any((path / name).is_file() for name in _WEIGHT_FILES):
+            return True
+        if (path / "model.safetensors.index.json").is_file():
+            return any(path.glob("*.safetensors"))
+        return any(path.glob("model-*-of-*.safetensors"))
 
     def _installed_checkpoint(self, tier: str) -> Path | None:
         """Return cached checkpoint when manifest + weights exist (revision may be stale)."""
@@ -166,57 +196,67 @@ class ModelStore:
         from huggingface_hub import snapshot_download
 
         dest = self.tier_dir(tier) / "checkpoint"
-        temp_dest = self.tier_dir(tier) / f".checkpoint-download-{os.getpid()}"
-        backup = self.tier_dir(tier) / f".checkpoint-{os.getpid()}.bak"
+        staging_id = f"{os.getpid()}-{threading.get_ident()}"
+        temp_dest = self.tier_dir(tier) / f".checkpoint-download-{staging_id}"
+        backup = self.tier_dir(tier) / f".checkpoint-{staging_id}.bak"
 
-        if temp_dest.exists():
-            shutil.rmtree(temp_dest)
-        temp_dest.mkdir(parents=True, exist_ok=True)
-
-        moved_to_backup = False
-        try:
-            local_dir = snapshot_download(
-                repo_id=tier_entry.repo_id,
-                revision=tier_entry.revision,
-                local_dir=str(temp_dest),
-                allow_patterns=_SNAPSHOT_ALLOW_PATTERNS,
-            )
-            ckpt = Path(local_dir)
-            if not self.is_valid_checkpoint(ckpt):
-                msg = (
-                    f"Downloaded model at {ckpt} is missing config.json or weight files. "
-                    f"Check repo {tier_entry.repo_id!r} on Hugging Face."
-                )
-                raise ConfigError(msg)
-
-            manifest = ModelManifest(
-                tier=tier,
-                repo_id=tier_entry.repo_id,
-                revision=tier_entry.revision,
-                path=str(dest),
-                config_digest=_config_digest(ckpt),
-            )
-
-            if backup.exists():
-                shutil.rmtree(backup)
-            if dest.exists():
-                os.replace(dest, backup)
-                moved_to_backup = True
-            os.replace(ckpt, dest)
-            self.write_manifest(manifest)
-            if backup.exists():
-                shutil.rmtree(backup)
-            return dest
-        except Exception:
-            # Roll back to the last good checkpoint so a failed swap never
-            # strands the tier without a model (manifest still matches it).
-            if moved_to_backup and backup.exists():
-                if dest.exists():
-                    shutil.rmtree(dest)
-                os.replace(backup, dest)
+        with _tier_download_lock(self.tier_dir(tier)):
             if temp_dest.exists():
                 shutil.rmtree(temp_dest)
-            raise
+            temp_dest.mkdir(parents=True, exist_ok=True)
+
+            moved_to_backup = False
+            manifest_written = False
+            previous_manifest = self.read_manifest(tier)
+            try:
+                local_dir = snapshot_download(
+                    repo_id=tier_entry.repo_id,
+                    revision=tier_entry.revision,
+                    local_dir=str(temp_dest),
+                    allow_patterns=_SNAPSHOT_ALLOW_PATTERNS,
+                )
+                ckpt = Path(local_dir)
+                if not self.is_valid_checkpoint(ckpt):
+                    msg = (
+                        f"Downloaded model at {ckpt} is missing config.json or weight files. "
+                        f"Check repo {tier_entry.repo_id!r} on Hugging Face."
+                    )
+                    raise ConfigError(msg)
+
+                manifest = ModelManifest(
+                    tier=tier,
+                    repo_id=tier_entry.repo_id,
+                    revision=tier_entry.revision,
+                    path=str(dest),
+                    config_digest=_config_digest(ckpt),
+                )
+
+                if backup.exists():
+                    shutil.rmtree(backup)
+                if dest.exists():
+                    os.replace(dest, backup)
+                    moved_to_backup = True
+                os.replace(ckpt, dest)
+                self.write_manifest(manifest)
+                manifest_written = True
+                if backup.exists():
+                    shutil.rmtree(backup)
+                return dest
+            except Exception:
+                # Roll back to the last good checkpoint so a failed swap never
+                # strands the tier without a model (manifest still matches it).
+                if moved_to_backup and backup.exists():
+                    if dest.exists():
+                        shutil.rmtree(dest)
+                    os.replace(backup, dest)
+                if manifest_written:
+                    if previous_manifest is not None:
+                        self.write_manifest(previous_manifest)
+                    elif self.manifest_path(tier).is_file():
+                        self.manifest_path(tier).unlink()
+                if temp_dest.exists():
+                    shutil.rmtree(temp_dest)
+                raise
 
     def list_status(self) -> list[dict[str, Any]]:
         """Status for every catalog tier (installed / upgrade available)."""

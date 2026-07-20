@@ -47,9 +47,11 @@ def test_overflow_sliding_window_path(synthetic_ml_checkpoint: Path) -> None:
         self: SpanInferenceModel,
         encoding: dict,
         bodies: list[str],
+        model: object,
+        tokenizer: object,
     ) -> list[SpanPrediction]:
         calls.append(encoding)
-        return original(self, encoding, bodies)
+        return original(self, encoding, bodies, model, tokenizer)  # type: ignore[arg-type]
 
     with patch.object(SpanInferenceModel, "_predict_overflowing", tracking):
         pred = model.predict(text)
