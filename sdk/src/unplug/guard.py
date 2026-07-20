@@ -684,17 +684,23 @@ class Guard:
                 if self._server_client is not None:
                     return self._server_client.scan_request(request)
                 ctx = self._request_context(request, isolated=isolated)
-                if request.scanners:
-                    ctx.allowed_scanners = resolve_input_scanners(
-                        list(request.scanners),
-                        strict=self._config.strict_scanner_allowlist,
-                    )
-                if not isolated:
-                    self._capture_user_intent(request)
-                result = self._run_input_with_cache(request, ctx)
-                if not isolated:
-                    self._maybe_mark_session_tainted_from_scan(request.source)
-                return result
+                prev_allowed = ctx.allowed_scanners
+                try:
+                    if request.scanners is not None:
+                        ctx.allowed_scanners = resolve_input_scanners(
+                            list(request.scanners),
+                            strict=self._config.strict_scanner_allowlist,
+                        )
+                    else:
+                        ctx.allowed_scanners = None
+                    if not isolated:
+                        self._capture_user_intent(request)
+                    result = self._run_input_with_cache(request, ctx)
+                    if not isolated:
+                        self._maybe_mark_session_tainted_from_scan(request.source)
+                    return result
+                finally:
+                    ctx.allowed_scanners = prev_allowed
         except ConfigError:
             raise
         except Exception as exc:
