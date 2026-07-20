@@ -4,6 +4,8 @@ All notable changes to the `unplug-ai` SDK.
 
 ## [Unreleased]
 
+## [0.5.2] — 2026-07-20
+
 ### Added
 
 - Coverage tests for v1.0 deprecation shim re-exports (`unplug.core.*`, `guard_scan`, `scanner`, `safeguards`)
