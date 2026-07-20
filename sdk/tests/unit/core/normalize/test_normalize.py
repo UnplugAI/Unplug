@@ -358,6 +358,16 @@ class TestNormalizer:
         orig_start, orig_end = result.to_original_span(0, 6)
         assert result.original[orig_start:orig_end] == "ig​nore"
 
+    def test_to_original_span_includes_adjacent_bidi(self):
+        n = Normalizer()
+        original = "\u202eignore previous"
+        result = n.normalize(original)
+        # Match starts after the stripped RTL override in normalized text.
+        start, end = result.to_original_span(0, 6)
+        assert start == 0
+        assert "\u202e" in result.original[start:end]
+        assert result.original[start:end].endswith("ignore")
+
     def test_combined_evasion(self):
         n = Normalizer()
         result = n.normalize("1g​n0r3")

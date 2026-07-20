@@ -30,10 +30,15 @@ class NormalizeResult(BaseModel):
             orig_end = self.offset_table[orig_end_idx] + 1
         else:
             orig_end = orig_start
-        return (
-            max(0, min(orig_start, orig_len)),
-            max(orig_start, min(orig_end, orig_len)),
-        )
+        orig_start = max(0, min(orig_start, orig_len))
+        orig_end = max(orig_start, min(orig_end, orig_len))
+        # Include adjacent stripped invisible/bidi controls so redaction does not
+        # leave U+202E / ZW chars sitting next to a matched span.
+        while orig_start > 0 and self.original[orig_start - 1] in _ZERO_WIDTH_CHARS:
+            orig_start -= 1
+        while orig_end < orig_len and self.original[orig_end] in _ZERO_WIDTH_CHARS:
+            orig_end += 1
+        return (orig_start, orig_end)
 
     model_config = {"arbitrary_types_allowed": True}
 

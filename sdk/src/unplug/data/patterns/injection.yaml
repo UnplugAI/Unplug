@@ -194,7 +194,7 @@
   regex: (?i)(please\s+)?(disregard|ignore|forget)\s+the\s+(above|previous|prior)\b
   flags: i
 - name: instructions_updated_supersede
-  regex: (?i)(instructions?\s+have\s+been\s+updated|new\s+instructions?\s+supersede|following\s+instructions?\s+replace\s+your)
+  regex: (?i)(instructions?\s+have\s+been\s+updated.{0,80}(supersede|replace|override|ignore|disregard)|new\s+instructions?\s+supersede|following\s+instructions?\s+replace\s+your)
   flags: i
 - name: instruction_override_bracket
   regex: (?i)\[{1,2}\s*INSTRUCTION\s+OVERRIDE\s*\]{1,2}
