@@ -106,7 +106,21 @@ def _build_pipeline(data: dict[str, Any]) -> PipelineConfig:
     if "policy" in data:
         kwargs["policy"] = _build_policy(data["policy"])
     if "fail_closed" in data:
-        kwargs["fail_closed"] = data["fail_closed"]
+        import warnings
+
+        warnings.warn(
+            "pipeline.fail_closed is deprecated and ignored; scanner/pipeline errors always block",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+    if "judge_timeout" in data:
+        import warnings
+
+        warnings.warn(
+            "pipeline.judge_timeout is deprecated and ignored; removed in v1.0",
+            DeprecationWarning,
+            stacklevel=2,
+        )
     if "ml_gate" in data:
         ml_gate_data = _apply_ml_gate_preset(data["ml_gate"])
         kwargs["ml_gate"] = MlGateConfig(
@@ -247,7 +261,13 @@ def build_config(data: dict[str, Any]) -> GuardConfig:
         kwargs["messages"] = _build_messages(messages_data)
 
     if "judge_enabled" in guard_data:
-        kwargs["judge_enabled"] = guard_data["judge_enabled"]
+        import warnings
+
+        warnings.warn(
+            "judge_enabled is deprecated and ignored; pass judge= to Guard() (removed in v1.0)",
+            DeprecationWarning,
+            stacklevel=2,
+        )
     if "judge_low" in guard_data:
         kwargs["judge_low"] = float(guard_data["judge_low"])
     if "judge_high" in guard_data:

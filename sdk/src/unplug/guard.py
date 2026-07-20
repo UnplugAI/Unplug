@@ -224,7 +224,7 @@ class Guard:
             normalizer=Normalizer(),
             config=cfg.pipeline,
             metrics=self._metrics,
-            judge=judge if cfg.judge_enabled or judge is not None else None,
+            judge=judge,
             judge_low=cfg.judge_low,
             judge_high=cfg.judge_high,
             encoding_classifier=encoding_classifier

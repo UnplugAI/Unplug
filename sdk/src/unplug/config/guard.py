@@ -77,8 +77,6 @@ class PipelineConfig(BaseModel):
 
     thresholds: ThresholdConfig = Field(default_factory=ThresholdConfig)
     policy: ScanPolicy = Field(default_factory=ScanPolicy)
-    fail_closed: bool = True
-    judge_timeout: float = 30.0
     ml_gate: MlGateConfig = Field(
         default_factory=MlGateConfig,
         description="Hybrid regex-to-ML routing for the injection_ml second pass",
@@ -108,7 +106,6 @@ class GuardConfig(BaseModel):
     scanner_configs: dict[str, ScannerConfig] = Field(default_factory=dict)
     limits: LimitConfig = Field(default_factory=LimitConfig)
     messages: MessageConfig = Field(default_factory=MessageConfig)
-    judge_enabled: bool = False
     judge_low: float = 0.3
     judge_high: float = 0.8
     models: dict[str, Any] = Field(
