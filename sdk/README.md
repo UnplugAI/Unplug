@@ -73,7 +73,7 @@ single-turn sessions:
 
 | Dataset | Mode | Recall | F1 | FPR |
 | --- | --- | ---: | ---: | ---: |
-| neuralchemy (direct, 4,391) | regex-only | 0.39 | 0.56 | <1% |
+| neuralchemy (direct, 4,391) | regex-only | 0.41 | 0.58 | <1% |
 | neuralchemy (direct, 4,391) | **regex + ML** | **0.98** | **0.99** | <1% |
 | microsoft llmail (indirect, 2,500) | regex-only | 0.05 | — | — |
 | microsoft llmail (indirect, 2,500) | **regex + ML** | **0.91** | — | — |
@@ -264,6 +264,8 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for layering and optional extra
 | [`docs/PUBLIC_API.md`](docs/PUBLIC_API.md) | Stable `unplug.api.*` imports for server/MCP dependents |
 | [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Hosted vs embedded vs sidecar architecture |
 | [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md) | Regex vs regex + ML eval results (neuralchemy, microsoft) |
+| [`docs/LIMITS_AND_JUDGE.md`](docs/LIMITS_AND_JUDGE.md) | `LimitConfig` + optional BYOLLM `JudgeProvider` wiring |
+| [`docs/EVAL_PHASE_C.md`](docs/EVAL_PHASE_C.md) | Phase C eval re-run, download commands, remaining gaps |
 | [`docs/ML_INTEGRATION.md`](docs/ML_INTEGRATION.md) | Checkpoint layout, thresholds, long-text and streaming config |
 | [`integrations/README.md`](integrations/README.md) | Per-framework guides, extras, security matrix |
 | [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md) | LangGraph, Agno, CrewAI, hooks API |

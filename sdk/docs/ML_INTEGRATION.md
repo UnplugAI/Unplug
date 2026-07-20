@@ -102,7 +102,9 @@ When `abstain_enabled` is true (default in `catalog.toml`), the ML scanner uses 
 - **ALLOW**: scores below `tau_abstain_low` with no span fire
 - **ABSTAIN**: uncertain middle band → `Action.ABSTAIN` (safe with span redaction)
 
-Optional `JudgeProvider` runs on ABSTAIN when passed as `judge=` to `Guard()`.
+Optional `JudgeProvider` runs when passed as `judge=` to `Guard()` — on ML ABSTAIN
+or when max scanner risk is in `[judge_low, judge_high)` (defaults 0.3–0.8). See
+[`LIMITS_AND_JUDGE.md`](LIMITS_AND_JUDGE.md).
 
 ## Dual-head behavior
 

@@ -17,6 +17,7 @@ from unplug.config import (
 from unplug.config.limits import LimitConfig
 from unplug.config.policy import ScanPolicy
 from unplug.core.context import ExecutionContext, ToolCall
+from unplug.core.judge import CallableJudge, JudgeContext, JudgeProvider, JudgeResult
 from unplug.core.models import ModelProvider, ModelRegistry, ModelSpec
 from unplug.core.privacy.secrets import SecretsRegistry
 from unplug.core.runtime.logging import correlation_scope, get_correlation_id
@@ -32,12 +33,16 @@ __all__ = [
     "Action",
     "BaseScanner",
     "BlockedContent",
+    "CallableJudge",
     "ConfigError",
     "ContentOutcome",
     "ExecutionContext",
     "Finding",
     "Guard",
     "GuardConfig",
+    "JudgeContext",
+    "JudgeProvider",
+    "JudgeResult",
     "LimitConfig",
     "MessageConfig",
     "MetricsCollector",

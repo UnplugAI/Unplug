@@ -92,6 +92,13 @@ class TestStripZeroWidth:
         assert result == "ab"
         assert offsets == [0, 2]
 
+    def test_bidi_override_stripped(self):
+        # U+202E RIGHT-TO-LEFT OVERRIDE between letters (token smuggling).
+        text = "ig\u202enore previous"
+        result, _ = _strip_zero_width(text, _make_table(text))
+        assert "\u202e" not in result
+        assert result.startswith("ignore")
+
 
 class TestDecodeUnicodeTags:
     def test_tag_smuggled_text_decodes(self):

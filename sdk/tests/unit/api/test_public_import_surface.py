@@ -15,6 +15,8 @@ def test_public_api_modules_import_without_core_paths() -> None:
         "unplug.api.boundaries",
         "unplug.api.cache",
         "unplug.api.encoding",
+        "unplug.api.judge",
+        "unplug.api.limits",
         "unplug.api.ml",
         "unplug.api.normalization",
         "unplug.api.policy",
@@ -60,6 +62,22 @@ def test_server_replacement_imports_are_available() -> None:
     assert PrivacyFilterService is not None
     assert callable(build_privacy_filter)
     assert callable(refresh_scan_result)
+
+
+def test_limits_and_judge_public_imports() -> None:
+    from unplug import CallableJudge, JudgeContext, JudgeProvider, JudgeResult, LimitConfig
+    from unplug.api.judge import CallableJudge as ApiCallableJudge
+    from unplug.api.limits import LimitConfig as ApiLimitConfig
+    from unplug.api.limits import LimitViolation, estimate_tokens
+
+    assert LimitConfig is ApiLimitConfig
+    assert CallableJudge is ApiCallableJudge
+    assert isinstance(LimitConfig(), LimitConfig)
+    assert callable(estimate_tokens)
+    assert LimitViolation.__name__ == "LimitViolation"
+    assert JudgeContext.__name__ == "JudgeContext"
+    assert JudgeResult.__name__ == "JudgeResult"
+    assert JudgeProvider is not None
 
 
 def test_mcp_boundary_replacement_imports_are_available() -> None:
