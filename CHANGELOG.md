@@ -4,6 +4,10 @@ All notable changes to the `unplug-ai` SDK.
 
 ## [Unreleased]
 
+### Fixed
+
+- Judge `action=block` (and `review`/`allow`) now clamps finding scores so score-driven policy honors the declared verdict even when the LLM returns an inconsistent score
+
 ## [0.5.2] — 2026-07-20
 
 ### Added

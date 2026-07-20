@@ -65,8 +65,18 @@ Optional Stage-3 classifier for borderline cases. Pass any object with
 | `judge_low` / `judge_high` on `GuardConfig` | `0.3` / `0.8` | Invoke when max scanner score is in `[low, high)` **or** ML emitted ABSTAIN |
 | Failures / timeouts | — | Fail closed (`Action.BLOCK`, stage `llm_judge`) |
 
-`judge_enabled` in TOML is **deprecated and ignored**. Provide a real `judge=`
-instance in code.
+Judge JSON `action` is authoritative for that finding's contribution to
+score-driven policy. Inconsistent score/action pairs are clamped:
+
+| Judge `action` | Score handling |
+|----------------|----------------|
+| `block` | Raised to at least `block_threshold` so enforcement blocks |
+| `review` | Clamped into the review band (`>= review_threshold`, `< redact_threshold`) |
+| `allow` | Capped below `review_threshold` so the judge finding alone cannot escalate |
+
+Other scanner findings can still raise the overall action above the judge's
+verdict. `judge_enabled` in TOML is **deprecated and ignored**. Provide a real
+`judge=` instance in code.
 
 ### Python
 
