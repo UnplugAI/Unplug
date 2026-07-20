@@ -1,6 +1,6 @@
 [project]
 name = "unplug-ai"
-version = "0.5.0"
+version = "0.5.1"
 description = "Unplug the bad AI. Fast prompt injection detection and redaction for LLM apps, agents, and RAG pipelines."
 readme = "README.md"
 license = "Apache-2.0"
@@ -30,7 +30,7 @@ dependencies = [
 ml = [
     "huggingface_hub>=0.23",
     "onnxruntime>=1.17",
-    "transformers>=4.44,<4.45",
+    "transformers>=4.44,<5.13",
     "sentencepiece>=0.2",
     "numpy>=1.26",
     "torch>=2.0",
@@ -127,7 +127,8 @@ dev = [
 Homepage = "https://unplug-ai.org"
 Repository = "https://github.com/UnplugAI/Unplug"
 Issues = "https://github.com/UnplugAI/Unplug/issues"
-Documentation = "https://github.com/UnplugAI/Unplug#readme"
+Documentation = "https://github.com/UnplugAI/Unplug/blob/dev/sdk/docs/GETTING_STARTED.md"
+Integrations = "https://github.com/UnplugAI/Unplug/tree/dev/sdk/integrations"
 
 [build-system]
 requires = ["hatchling"]

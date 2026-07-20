@@ -83,6 +83,8 @@ On the neuralchemy prompt-injection set, regex-only detection reaches **F1 0.56 
 
 See [sdk/README.md](sdk/README.md) for config (`unplug.toml`), `unplug-audit`, and dev gates (`make check`, `make check-ci`).
 
+**New to Unplug?** [`sdk/docs/GETTING_STARTED.md`](sdk/docs/GETTING_STARTED.md) · **Agent hosts:** [`sdk/docs/AGENT_ACTIONS.md`](sdk/docs/AGENT_ACTIONS.md)
+
 ## Development
 
 ```bash

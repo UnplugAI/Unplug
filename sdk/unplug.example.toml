@@ -12,10 +12,10 @@ judge_enabled = false
 # server_url = "https://api.unplug.example"
 # server_api_key = "up_live_xxxxxxxx"
 
-# Local ML: downloads Unplug-AI/unplug-tiny-v1 on first use (pip install unplug-ai[ml])
-active_model = "tiny"
-auto_download_model = true
-require_ml = false
+# Local ML (optional — requires pip install "unplug-ai[ml]"):
+# active_model = "tiny"
+# auto_download_model = true
+# require_ml = false
 
 [limits]
 max_input_chars = 50000

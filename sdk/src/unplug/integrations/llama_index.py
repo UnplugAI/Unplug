@@ -113,7 +113,15 @@ class UnplugNodePostprocessor:
         if isinstance(node, dict):
             node["text"] = content
             return
-        if hasattr(node, "text"):
-            node.text = content
-        elif hasattr(node, "set_content"):
-            node.set_content(content)
+        # Wrappers like LlamaIndex ``NodeWithScore`` proxy reads (``get_content``)
+        # to an inner ``.node`` but don't expose a settable ``.text`` of their own.
+        # Write to that inner node so the redaction reaches the text actually
+        # inserted into the prompt instead of being silently dropped on the wrapper.
+        target = getattr(node, "node", node)
+        if hasattr(target, "text"):
+            target.text = content
+        elif hasattr(target, "set_content"):
+            target.set_content(content)
+        else:
+            msg = f"Cannot write scanned content back to node type {type(node).__name__}"
+            raise TypeError(msg)

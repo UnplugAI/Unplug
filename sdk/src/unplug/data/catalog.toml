@@ -8,7 +8,7 @@ default_tier = "tiny"
 [catalog.tiers.tiny]
 name = "unplug-tiny"
 repo_id = "Unplug-AI/unplug-tiny-v1"
-revision = "19b7d6701bea"
+revision = "19b7d6701bea1f6d9f03ec7bcaeeea390dff43be"
 backend = "transformers_span"
 description = "Default dual-head span injection model (DeBERTa-v3-xsmall)"
 
@@ -28,31 +28,3 @@ long_text_mode = "sliding"
 long_text_threshold_chars = 8192
 long_text_chunk_chars = 2048
 long_text_overlap_chars = 256
-
-[catalog.tiers.medium]
-name = "unplug-medium"
-repo_id = "UnplugAI/unplug-medium"
-revision = "main"
-backend = "transformers_span"
-description = "Higher-capacity injection model (future release)"
-
-[catalog.tiers.medium.config]
-inj_threshold = 0.45
-doc_threshold = 0.9
-max_length = 512
-stride = 64
-device = "auto"
-
-[catalog.tiers.large]
-name = "unplug-large"
-repo_id = "UnplugAI/unplug-large"
-revision = "main"
-backend = "transformers_span"
-description = "Largest injection model tier (future release)"
-
-[catalog.tiers.large.config]
-inj_threshold = 0.45
-doc_threshold = 0.9
-max_length = 512
-stride = 64
-device = "auto"

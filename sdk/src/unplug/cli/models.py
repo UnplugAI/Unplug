@@ -77,12 +77,12 @@ def main() -> None:
     list_p.set_defaults(func=_cmd_list)
 
     dl_p = sub.add_parser("download", help="Download a tier from Hugging Face")
-    dl_p.add_argument("tier", nargs="?", help="tiny | medium | large (default: catalog default)")
+    dl_p.add_argument("tier", nargs="?", help="catalog tier (default: catalog default)")
     dl_p.add_argument("--force", action="store_true", help="Re-download even if cached")
     dl_p.set_defaults(func=_cmd_download)
 
     up_p = sub.add_parser("upgrade", help="Re-download tier to pick up catalog revision")
-    up_p.add_argument("tier", nargs="?", help="tiny | medium | large")
+    up_p.add_argument("tier", nargs="?", help="catalog tier (default: catalog default)")
 
     def _upgrade_cmd(a: argparse.Namespace) -> int:
         return _cmd_download(argparse.Namespace(**{**vars(a), "force": True}))

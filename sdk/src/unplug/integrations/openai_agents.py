@@ -40,7 +40,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from unplug.integrations.hooks import AgentHooks, HookDecision
+from unplug.integrations.hooks import AgentHooks, HookDecision, flatten_text
 
 
 @dataclass
@@ -75,22 +75,23 @@ def _coerce_input_text(value: Any) -> str:
             if isinstance(content, str):
                 parts.append(content)
             elif content is not None:
-                parts.append(str(content))
+                parts.append(flatten_text(content))
             elif not isinstance(item, dict):
-                parts.append(str(item))
+                parts.append(flatten_text(item))
         return "\n".join(p for p in parts if p)
-    return str(value)
+    return flatten_text(value)
 
 
 def _coerce_output_text(value: Any) -> str:
-    """Flatten an agent output (``str``, message object, or model) to text."""
+    """Flatten an agent output (``str``, message object, or model) to text.
+
+    Flattens the whole object rather than returning the first ``.content``/``.text``
+    attribute, so a secret stashed in another field can't ride along unscanned in
+    output whose primary string form omits it.
+    """
     if isinstance(value, str):
         return value
-    for attr in ("response", "content", "text", "output", "final_output"):
-        inner = getattr(value, attr, None)
-        if isinstance(inner, str):
-            return inner
-    return str(value)
+    return flatten_text(value)
 
 
 def evaluate_input(hooks: AgentHooks, text: str) -> GuardEvaluation:

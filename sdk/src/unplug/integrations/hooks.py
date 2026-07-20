@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import contextlib
+import dataclasses
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -11,6 +14,43 @@ from unplug.api.types import ScanResult
 from unplug.models import ScanRequest
 
 _RETRIEVED_BLOCKED_PLACEHOLDER = "[RETRIEVED CONTENT BLOCKED BY UNPLUG]"
+_FLATTEN_MAX_DEPTH = 6
+
+
+def flatten_text(value: Any, *, _depth: int = 0) -> str:
+    """Recursively flatten an arbitrary value into newline-joined scannable text.
+
+    Agent frameworks hand the guard structured payloads — dicts, lists, Pydantic
+    models, dataclasses, tool results. Scanning only ``.text`` or ``str(value)``
+    can miss a secret or injection tucked in a sibling field whose string form
+    hides it. This walks the structure (depth-bounded so pathological or cyclic
+    objects stay safe) so every nested string is included in what gets scanned.
+    """
+    if value is None or _depth > _FLATTEN_MAX_DEPTH:
+        return ""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, (bytes, bytearray)):
+        return bytes(value).decode("utf-8", "replace")
+    if isinstance(value, (bool, int, float)):
+        return str(value)
+    nxt = _depth + 1
+    if isinstance(value, Mapping):
+        return "\n".join(flatten_text(v, _depth=nxt) for v in value.values())
+    if isinstance(value, (list, tuple, set, frozenset)):
+        return "\n".join(flatten_text(v, _depth=nxt) for v in value)
+    model_dump = getattr(value, "model_dump", None)  # Pydantic v2 model
+    if callable(model_dump):
+        # A failed dump falls through to the remaining strategies below.
+        with contextlib.suppress(Exception):
+            return flatten_text(model_dump(), _depth=nxt)
+    if dataclasses.is_dataclass(value) and not isinstance(value, type):
+        with contextlib.suppress(Exception):
+            return flatten_text(dataclasses.asdict(value), _depth=nxt)
+    obj_dict = getattr(value, "__dict__", None)
+    if isinstance(obj_dict, dict) and obj_dict:
+        return flatten_text(obj_dict, _depth=nxt)
+    return str(value)
 
 
 @dataclass
@@ -25,6 +65,16 @@ class HookDecision:
     @property
     def action(self) -> Action:
         return self.result.action
+
+    @property
+    def needs_review(self) -> bool:
+        """True when the host should pause for operator approval (not a hard block)."""
+        return self.result.action == Action.REVIEW
+
+    @property
+    def is_block(self) -> bool:
+        """True on hard block (distinct from review)."""
+        return not self.allowed and self.result.action == Action.BLOCK
 
 
 @dataclass

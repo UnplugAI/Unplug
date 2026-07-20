@@ -44,7 +44,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from unplug.integrations.hooks import AgentHooks, HookDecision
+from unplug.integrations.hooks import AgentHooks, HookDecision, flatten_text
 
 _BLOCKED_MODEL_REPLY = "Request blocked by Unplug: the input failed a safety guardrail."
 
@@ -53,14 +53,27 @@ def adk_extract_user_text(llm_request: Any) -> str:
     """Pull the latest user text out of an ADK ``LlmRequest`` (duck-typed).
 
     Reads ``llm_request.contents`` (a list of ``types.Content``), preferring the
-    last ``role == "user"`` turn and joining its parts' ``.text``. Falls back to
-    the final content if no user role is tagged. Returns ``""`` when empty.
+    last ``role == "user"`` turn and joining its parts. Text parts contribute
+    their ``.text``; a ``function_response`` part (tool output echoed back into
+    the turn) is flattened so instructions smuggled in it are still scanned rather
+    than treated as empty. Binary parts (``inline_data`` / ``file_data``) are not
+    text-scannable. Falls back to the final content if no user role is tagged.
     """
     contents = getattr(llm_request, "contents", None) or []
 
     def _join_parts(content: Any) -> str:
         parts = getattr(content, "parts", None) or []
-        texts = [getattr(p, "text", None) for p in parts]
+        texts: list[str] = []
+        for part in parts:
+            text = getattr(part, "text", None)
+            if text:
+                texts.append(text)
+                continue
+            fn_response = getattr(part, "function_response", None)
+            if fn_response is not None:
+                flat = flatten_text(getattr(fn_response, "response", fn_response))
+                if flat:
+                    texts.append(flat)
         return "\n".join(t for t in texts if t)
 
     for content in reversed(contents):

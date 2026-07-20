@@ -69,3 +69,42 @@ def test_scan_user_input_blocks_abstain(monkeypatch) -> None:
 
     decision = AgentHooks(guard=guard).scan_user_input("uncertain input")
     assert decision.allowed is False
+
+
+def test_hook_decision_review_vs_block_flags() -> None:
+    review = ScanResult(
+        safe=False,
+        action=Action.REVIEW,
+        risk_score=0.35,
+        findings=[],
+        latency_ms=0.1,
+        stages_run=["toolcall"],
+    )
+    block = ScanResult(
+        safe=False,
+        action=Action.BLOCK,
+        risk_score=0.9,
+        findings=[],
+        latency_ms=0.1,
+        stages_run=["destructive"],
+    )
+    from unplug.integrations.hooks import HookDecision
+
+    rev = HookDecision(allowed=False, result=review, message="held")
+    blk = HookDecision(allowed=False, result=block, message="blocked")
+    allow_result = ScanResult(
+        safe=True,
+        action=Action.ALLOW,
+        risk_score=0.0,
+        findings=[],
+        latency_ms=0.0,
+        stages_run=[],
+    )
+    ok = HookDecision(allowed=True, result=allow_result)
+
+    assert rev.needs_review is True
+    assert rev.is_block is False
+    assert blk.needs_review is False
+    assert blk.is_block is True
+    assert ok.needs_review is False
+    assert ok.is_block is False

@@ -2,6 +2,34 @@
 
 All notable changes to the `unplug-ai` SDK.
 
+## [0.5.1] — 2026-07-20
+
+### Fixed
+
+- Python 3.13: `unplug-ai[ml]` / `[all]` install without a Rust toolchain — widen `transformers` constraint to `>=4.44,<5.13` so `tokenizers` resolves to a cp313 wheel (was pinned via `transformers>=4.44,<4.45` → `tokenizers==0.19.1`)
+
+### Security
+
+- Pin bundled model catalog to immutable Hugging Face commit SHAs under `Unplug-AI/`; drop unpublished medium/large tiers that pointed at a non-existent org
+
+### Added
+
+- Beginner onboarding: [`sdk/docs/GETTING_STARTED.md`](sdk/docs/GETTING_STARTED.md) (5-minute path)
+- Agent-host guide: [`sdk/docs/AGENT_ACTIONS.md`](sdk/docs/AGENT_ACTIONS.md) (ALLOW / REVIEW / BLOCK + `ApprovalProvider`)
+- `HookDecision.needs_review` and `HookDecision.is_block` helpers for integration adapters
+- Stable public API facades under `unplug.api.*` for policy, privacy, cache,
+  boundaries, normalization, encoding, and ML runtime imports used by server/MCP
+  dependents ([`sdk/docs/PUBLIC_API.md`](sdk/docs/PUBLIC_API.md))
+
+### Changed
+
+- Integrations hub: pick-your-path table, PyPI doc links, REVIEW vs BLOCK section
+- `unplug-audit --probes` skips FP/encoding batteries when ML is inactive (boundary probes still run); clearer CLI hints
+- `unplug.example.toml`: ML settings commented by default (regex-only copy-paste safe)
+- PyPI `Documentation` URL points to Getting Started; `scan_context_file` tuple examples fixed in READMEs
+- `unplug-scan-action` default version pin bumped to `>=0.5.0,<0.6`
+- `CONTRIBUTING.md`: full framework extras table
+
 ## [0.5.0] — 2026-06-27
 
 ### Added

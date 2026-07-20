@@ -43,23 +43,34 @@ def is_valid_checkpoint(path: Path, *, require_weights: bool = False) -> bool:
 
 
 def resolve_validation_checkpoint(*, require_weights: bool = False) -> Path | None:
-    for env_name in ("UNPLUG_TEST_CHECKPOINT", "UNPLUG_MODEL_PATH"):
-        raw = os.environ.get(env_name)
-        if raw:
-            candidate = Path(raw)
-            if is_valid_checkpoint(candidate, require_weights=require_weights):
-                return candidate
+    """Resolve the validation checkpoint path, or ``None`` when unavailable.
 
-    manifest = load_ml_validation_manifest()
-    relative = manifest.get("checkpoint_relative")
-    if not relative:
+    Returns ``None`` (never raises) when the ML validation manifest is absent —
+    e.g. a non-editable/wheel install without ``configs/ml_validation.json``. This
+    matters because callers such as module-level ``@pytest.mark.skipif`` decorators
+    run at import time; raising there would crash test collection instead of
+    degrading to a clean skip.
+    """
+    try:
+        for env_name in ("UNPLUG_TEST_CHECKPOINT", "UNPLUG_MODEL_PATH"):
+            raw = os.environ.get(env_name)
+            if raw:
+                candidate = Path(raw)
+                if is_valid_checkpoint(candidate, require_weights=require_weights):
+                    return candidate
+
+        manifest = load_ml_validation_manifest()
+        relative = manifest.get("checkpoint_relative")
+        if not relative:
+            return None
+        candidate = workspace_root() / str(relative)
+        if is_valid_checkpoint(candidate, require_weights=require_weights):
+            return candidate
+        if not require_weights and is_valid_checkpoint(candidate, require_weights=False):
+            return candidate
         return None
-    candidate = workspace_root() / str(relative)
-    if is_valid_checkpoint(candidate, require_weights=require_weights):
-        return candidate
-    if not require_weights and is_valid_checkpoint(candidate, require_weights=False):
-        return candidate
-    return None
+    except FileNotFoundError:
+        return None
 
 
 def resolve_thresholds_path() -> Path | None:

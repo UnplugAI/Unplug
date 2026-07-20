@@ -1,4 +1,4 @@
-"""Load bundled model tier catalog (tiny / medium / large)."""
+"""Load bundled model tier catalog from data/catalog.toml."""
 
 from __future__ import annotations
 
