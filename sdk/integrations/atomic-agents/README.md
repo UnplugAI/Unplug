@@ -12,7 +12,9 @@ Pydantic-schema-driven framework: `AtomicAgent[InputSchema, OutputSchema]` with
 - **Output** — scan the output schema's text field after `agent.run`.
 - **Tools** — gate a `BaseTool` call before it executes.
 
-> Atomic Agents 2.x requires Python ≥3.12, so this extra is a no-op on 3.11.
+> **Python ≥3.12 required.** The `atomic-agents` extra is gated with an environment
+> marker, so `pip install "unplug-ai[atomic-agents]"` on Python 3.11 installs nothing
+> (the package itself requires ≥3.12).
 
 ## Guard agent I/O
 

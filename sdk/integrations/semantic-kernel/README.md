@@ -3,6 +3,10 @@
 **Extra:** `pip install "unplug-ai[semantic-kernel]"`  
 **Module:** `unplug.integrations.semantic_kernel`
 
+> **Wheel-only installs:** `semantic-kernel` depends on `pybars4`, which publishes
+> sdists only on PyPI. `pip install --only-binary=:all:` / `uv --no-build` of
+> `unplug-ai[semantic-kernel]` or `[integrations]` will fail until a wheel exists.
+
 ## Filters around kernel invoke
 
 ```python

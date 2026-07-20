@@ -35,8 +35,9 @@ jobs:
       - name: Install
         run: |
           if [ "${{ matrix.python-version }}" = "3.13" ]; then
-            # tokenizers 0.19 (pulled by ml/litellm) has no cp313 wheels yet — skip those extras.
-            uv sync --extra dev --extra scrape --extra yara --extra haystack --extra presidio --group dev
+            # Skip ml/litellm on the 3.13 test matrix (heavy); wheel-only resolve
+            # for [ml] is covered by the packaging-ml-wheels job below.
+            uv sync --extra scrape --extra yara --extra haystack --extra presidio --dev
           else
             uv sync --all-extras --dev
           fi
@@ -72,3 +73,25 @@ jobs:
           xml-skip-covered: true
           report-only-changed-files: true
           default-branch: dev
+
+  # Catch sdist-only transitive breakage that plain lock/compile misses
+  # (e.g. tokenizers without a cp313 wheel). Dry-run — no torch download.
+  packaging-ml-wheels:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sdk
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          enable-cache: true
+          version: "0.6.14"
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      - name: Resolve unplug-ai[ml] wheels-only
+        run: uv pip compile --python-version 3.13 --extra ml --no-build -o /tmp/ml-wheels.txt pyproject.toml

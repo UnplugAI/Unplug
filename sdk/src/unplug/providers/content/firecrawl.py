@@ -1,4 +1,4 @@
-"""Firecrawl-backed scraper (optional unplug[scrape] extra)."""
+"""Firecrawl-backed scraper (optional unplug-ai[scrape] extra)."""
 
 from __future__ import annotations
 

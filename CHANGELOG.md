@@ -7,10 +7,14 @@ All notable changes to the `unplug-ai` SDK.
 ### Added
 
 - Offline synthetic BIOES checkpoint fixture for ML unit tests (no real weights required)
+- CI wheel-only resolve for `unplug-ai[ml]` on Python 3.13 (catches sdist-only breakage)
 
 ### Changed
 
 - Unknown `active_model` tier names now raise `ConfigError` with valid catalog tiers instead of silently running without ML
+- Widen `transformers` extra constraint to `>=4.44,<6` (was `<5.13`) so newer minors stay installable
+- Drop published `dev` optional-extra; test/lint tools live in the `dev` dependency-group (`uv sync --dev`)
+- Docs: `unplug-ai[scrape]` package name in Firecrawl docstring; Atomic Agents Python ≥3.12 install gate; Semantic Kernel `pybars4` wheel-only note
 
 ### Fixed
 
