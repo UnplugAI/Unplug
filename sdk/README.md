@@ -30,6 +30,10 @@ pip install unplug-ai           # regex-only core, zero ML deps
 pip install "unplug-ai[ml]"     # add the ML span model
 ```
 
+**Imports:** App and agent code uses `from unplug import Guard` (and other top-level
+exports). Server/MCP dependents that need wire types or facades use `unplug.api.*`
+— see [`docs/PUBLIC_API.md`](docs/PUBLIC_API.md). Do not import from `unplug.core.*`.
+
 Or from source:
 
 ```bash

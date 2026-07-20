@@ -18,6 +18,7 @@ All notable changes to the `unplug-ai` SDK.
 
 ### Fixed
 
+- Agent usability: `Guard.init()` docstring no longer claims auto-instrumentation; docs standardize on `from unplug import ...` for apps and `unplug.api.*` for server/MCP dependents; routine `REVIEW` pipeline outcomes log at INFO instead of WARNING
 - ML inference hardening: BIOES decode no longer crashes on checkpoints without `*-INJ` labels; label maps are validated at load with a clear `ModelError`; forced torch devices are validated (`ConfigError`); `ModelProvider`/`SpanInferenceModel` load is thread-safe; ML modules log device/tokenizer fallbacks and import torch via `unplug.optional.ml` helpers
 - Model store hardening: corrupt manifests no longer crash Guard or `unplug-models`; checkpoint validation requires weight files; atomic manifest writes and download swaps preserve existing installs on failure; `list_status` correctly reports stale revisions as upgrade-available; invalid `UNPLUG_MODEL_PATH` logs a warning; CLI download errors distinguish missing ML extras from network/repo failures
 

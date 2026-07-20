@@ -1,5 +1,13 @@
 # Public SDK API Surface
 
+## Which import path?
+
+| Audience | Import from | Example |
+|----------|-------------|---------|
+| **App and agent authors** | Top-level `unplug` exports | `from unplug import Guard` |
+| **Server, MCP, and dependents** needing policy, cache, boundaries, or ML facades | `unplug.api.*` | `from unplug.api.types import ScanRequest` |
+| **Do not use in new code** | `unplug.core.*` | Internal; may change in minor releases |
+
 Use `unplug.api.*` for cross-repository integrations. Treat `unplug.core.*` and
 most of `unplug.ml.*` as private implementation details that can move during SDK
 refactors.

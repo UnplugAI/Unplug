@@ -702,7 +702,7 @@ class Guard:
 
     @classmethod
     def init(cls, **kwargs: Any) -> Guard:
-        """Initialize a global Guard and auto-instrument detected frameworks."""
+        """Create and store a process-wide Guard singleton (see ``get()``)."""
         with cls._lock:
             cls._instance = Guard(**kwargs)
             return cls._instance

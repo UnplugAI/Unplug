@@ -2,6 +2,9 @@
 
 Every Unplug scan returns an **`Action`**. Agent hosts and integration adapters must handle each action differently — especially **`REVIEW`**, which is not the same as **`BLOCK`**.
 
+Examples below use `from unplug import Guard` for the host and `from unplug.api.*` only
+where wire types or enums are needed. Do not import from `unplug.core.*`.
+
 ## Decision table
 
 | `result.action` | `result.safe` | `HookDecision.allowed` | Agent host should |

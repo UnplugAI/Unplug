@@ -114,7 +114,10 @@ class BasePipeline(ABC):
 
         ctx.update_risk(risk_score)
 
-        log_fn = _log.warning if 0.3 <= risk_score < 0.5 else _log.info
+        if action == Action.REVIEW:
+            log_fn = _log.info
+        else:
+            log_fn = _log.warning if 0.3 <= risk_score < 0.5 else _log.info
         log_fn(
             "pipeline %s: action=%s risk=%.2f findings=%d latency=%.1fms",
             self.name,
