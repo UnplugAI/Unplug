@@ -4,13 +4,18 @@ All notable changes to the `unplug-ai` SDK.
 
 ## [Unreleased]
 
-### Fixed
-
-- ML inference hardening: BIOES decode no longer crashes on checkpoints without `*-INJ` labels; label maps are validated at load with a clear `ModelError`; forced torch devices are validated (`ConfigError`); `ModelProvider`/`SpanInferenceModel` load is thread-safe; ML modules log device/tokenizer fallbacks and import torch via `unplug.optional.ml` helpers
-
 ### Added
 
 - Offline synthetic BIOES checkpoint fixture for ML unit tests (no real weights required)
+
+### Changed
+
+- Unknown `active_model` tier names now raise `ConfigError` with valid catalog tiers instead of silently running without ML
+
+### Fixed
+
+- ML inference hardening: BIOES decode no longer crashes on checkpoints without `*-INJ` labels; label maps are validated at load with a clear `ModelError`; forced torch devices are validated (`ConfigError`); `ModelProvider`/`SpanInferenceModel` load is thread-safe; ML modules log device/tokenizer fallbacks and import torch via `unplug.optional.ml` helpers
+- Model store hardening: corrupt manifests no longer crash Guard or `unplug-models`; checkpoint validation requires weight files; atomic manifest writes and download swaps preserve existing installs on failure; `list_status` correctly reports stale revisions as upgrade-available; invalid `UNPLUG_MODEL_PATH` logs a warning; CLI download errors distinguish missing ML extras from network/repo failures
 
 ## [0.5.1] — 2026-07-20
 

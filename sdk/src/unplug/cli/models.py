@@ -12,6 +12,19 @@ from unplug.ml.catalog import load_catalog
 from unplug.ml.store import ModelStore
 
 
+def _hf_error_hint(exc: BaseException) -> str | None:
+    module = type(exc).__module__
+    if module.startswith("huggingface_hub"):
+        return (
+            "Check network access and that the Hugging Face repo/revision exists "
+            "for this catalog tier."
+        )
+    cause = exc.__cause__
+    if cause is not None and cause is not exc:
+        return _hf_error_hint(cause)
+    return None
+
+
 def _cmd_list(args: argparse.Namespace) -> int:
     store = ModelStore()
     rows = store.list_status()
@@ -43,13 +56,20 @@ def _cmd_download(args: argparse.Namespace) -> int:
     except (ConfigError, ModelError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
-    except Exception as exc:
+    except ImportError as exc:
         print(
             f"Error: {exc}\n"
             f"Install ML extras: pip install 'unplug-ai[ml]'\n"
             f"Or set UNPLUG_MODEL_PATH to a local checkpoint directory.",
             file=sys.stderr,
         )
+        return 1
+    except Exception as exc:
+        hint = _hf_error_hint(exc)
+        if hint is not None:
+            print(f"Error: {exc}\n{hint}", file=sys.stderr)
+        else:
+            print(f"Error: {exc}", file=sys.stderr)
         return 1
     print(f"Downloaded {tier} → {path}")
     return 0
