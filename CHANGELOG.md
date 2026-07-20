@@ -4,9 +4,29 @@ All notable changes to the `unplug-ai` SDK.
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-07-20
+
+### Security
+
+- Safe-prefix cache: re-scan overlap at chunk boundaries and scope cache keys by source + policy fingerprint so split injection phrases and cross-source ALLOW reuse cannot bypass detection (#87, fixes #82/#83)
+- Per-request `scanners=` allowlist no longer sticks on the shared `ExecutionContext`; omitted `scanners` clears the allowlist so later scans use the full configured set (#88, fixes #84)
+- `Guard(config=GuardConfig(mode=...))` keeps the configured mode when `mode=` is not passed; `strict_scanner_allowlist` loads from TOML/`build_config`; unknown `[guard]` keys raise `ConfigError` (#89, fixes #85)
+- Judge `action=block` / `review` / `allow` clamps finding scores so declared verdicts drive enforcement even when the LLM returns an inconsistent score (#90, fixes #86)
+- Follow-up hardening from review debt: cache policy fingerprint + prefix overlap ≥ 1, strict-allowlist coercion, judge score enforcement, skip sensitive-context boost on `llm_judge`, hold ML inference lock through `predict_batch`, validate indexed shard checkpoints (#91)
+
+### Added
+
+- Public `LimitConfig` / BYOLLM judge surface (`unplug`, `unplug.api.limits`, `unplug.api.judge`) with docs, example, and TOML notes (#80)
+- Focused injection regex patterns from neuralchemy FN sampling; bidi control stripping in the normalizer (#80)
+- Pre-0.6.0 local test harness: `make test-frameworks`, `test-ml-harness`, `smoke-ml-hooks`, `test-all-local` plus `sdk/docs/TESTING_HARNESS.md` (#92)
+
 ### Fixed
 
-- Judge `action=block` (and `review`/`allow`) now clamps finding scores so score-driven policy honors the declared verdict even when the LLM returns an inconsistent score
+- Post-merge review follow-ups across promote/Phase C: `unplug-scan` pin, AG2 multimodal redaction, model download flock/staging, tighter `instructions_updated_supersede` regex, `NORMALIZER_VERSION` bump, sharded safetensors checkpoints (#81)
+
+### Changed
+
+- Eval docs refreshed (`EVAL_PHASE_C.md` / benchmarks); regex neuralchemy recall/F1 improved modestly after pattern expansion (#80)
 
 ## [0.5.2] — 2026-07-20
 
