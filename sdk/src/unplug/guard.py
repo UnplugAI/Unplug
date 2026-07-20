@@ -22,7 +22,12 @@ from unplug.core.normalize.encodings import EncodingClassifier, default_encoding
 from unplug.core.policy import policy_from_request
 from unplug.core.privacy import NullPrivacyFilter, PrivacyFilterService
 from unplug.core.privacy.secrets import SecretsRegistry, SecretsSanitizer
-from unplug.core.runtime.cache import SafePrefixState, ScanCache, merge_suffix_result
+from unplug.core.runtime.cache import (
+    SafePrefixState,
+    ScanCache,
+    effective_prefix_skip,
+    merge_suffix_result,
+)
 from unplug.core.runtime.logging import correlation_scope, get_logger
 from unplug.core.runtime.model_runtime import (
     load_active_model_provider,
@@ -418,6 +423,7 @@ class Guard:
             self,
             source=source,
             scan_every_chars=scan_every_chars,
+            overlap_chars=self._config.cache.prefix_overlap_chars,
             document_id=document_id,
         )
 
@@ -484,6 +490,37 @@ class Guard:
     def _model_version_for_cache(self) -> str:
         return self._model_cache_version
 
+    def _cache_policy_fingerprint(self, request: ScanRequest) -> str:
+        """Fingerprint policy + scanner set so cache entries are not reused across configs."""
+        policy = self._config.policy
+        scanners = request.scanners if request.scanners is not None else list(self._config.scanners)
+        parts = [
+            ",".join(scanners),
+            str(
+                request.block_threshold
+                if request.block_threshold is not None
+                else policy.block_threshold
+            ),
+            str(
+                request.redact_threshold
+                if request.redact_threshold is not None
+                else policy.redact_threshold
+            ),
+            str(
+                request.review_threshold
+                if request.review_threshold is not None
+                else policy.review_threshold
+            ),
+            str(
+                request.block_coverage_ratio
+                if request.block_coverage_ratio is not None
+                else policy.block_coverage_ratio
+            ),
+            str(request.redact),
+            str(request.redaction_mode.value if request.redaction_mode is not None else ""),
+        ]
+        return "|".join(parts)
+
     def _run_input_with_cache(self, request: ScanRequest, ctx: ExecutionContext) -> ScanResult:
         cache = ctx.scan_cache
         if cache is None or not self._config.cache.enabled:
@@ -498,8 +535,10 @@ class Guard:
             document_id=request.document_id,
             normalizer_version=NORMALIZER_VERSION,
             model_version=self._model_version_for_cache(),
+            source=str(request.source),
+            policy_fingerprint=self._cache_policy_fingerprint(request),
         )
-        hit = cache.get_chunk(parts.full_hash)
+        hit = cache.get_chunk_for_parts(parts)
         if hit is not None:
             return hit
 
@@ -508,13 +547,20 @@ class Guard:
         if prefix_state is not None and prefix_state.verify(request.text):
             prefix_len = prefix_state.prefix_len
 
+        scan_start = 0
         if 0 < prefix_len < len(request.text):
+            scan_start = effective_prefix_skip(
+                prefix_len,
+                self._config.cache.prefix_overlap_chars,
+            )
+
+        if 0 < scan_start < len(request.text):
             suffix_result = self._input_pipeline.run(
-                request.text[prefix_len:],
+                request.text[scan_start:],
                 source=request.source,
                 context=ctx,
             )
-            result = merge_suffix_result(suffix_result, prefix_len)
+            result = merge_suffix_result(suffix_result, scan_start)
         else:
             result = self._input_pipeline.run(
                 request.text,
@@ -530,7 +576,7 @@ class Guard:
                 parts,
                 SafePrefixState.from_text(request.text, len(request.text)),
             )
-        cache.set_chunk(parts.full_hash, result)
+        cache.set_chunk_for_parts(parts, result)
         return result
 
     def scan_output(self, text: str | TaintedText) -> ScanResult:

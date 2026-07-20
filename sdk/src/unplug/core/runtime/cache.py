@@ -11,6 +11,9 @@ from unplug.api.enums import Action
 from unplug.api.types import Finding, ScanResult
 from unplug.core.runtime.versions import MODEL_VERSION_LOCAL, NORMALIZER_VERSION
 
+# Match StreamScanner default so append-only scans re-check the boundary.
+DEFAULT_PREFIX_OVERLAP_CHARS = 256
+
 
 def _sha256(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
@@ -39,6 +42,8 @@ class CacheKeyParts(BaseModel):
     full_hash: str
     normalizer_version: str
     model_version: str
+    source: str = ""
+    policy_fingerprint: str = ""
 
 
 def cache_key_parts(
@@ -47,6 +52,8 @@ def cache_key_parts(
     document_id: str | None,
     normalizer_version: str = NORMALIZER_VERSION,
     model_version: str = MODEL_VERSION_LOCAL,
+    source: str = "",
+    policy_fingerprint: str = "",
 ) -> CacheKeyParts:
     doc_key = f"doc:{document_id}" if document_id else f"hash:{_sha256(text)[:16]}"
     return CacheKeyParts(
@@ -54,11 +61,31 @@ def cache_key_parts(
         full_hash=_sha256(text),
         normalizer_version=normalizer_version,
         model_version=model_version,
+        source=source,
+        policy_fingerprint=policy_fingerprint,
     )
 
 
 def prefix_storage_key(parts: CacheKeyParts) -> str:
-    return f"{parts.doc_key}|{parts.normalizer_version}|{parts.model_version}"
+    return (
+        f"{parts.doc_key}|{parts.source}|{parts.policy_fingerprint}|"
+        f"{parts.normalizer_version}|{parts.model_version}"
+    )
+
+
+def chunk_storage_key(parts: CacheKeyParts) -> str:
+    return (
+        f"{parts.full_hash}|{parts.source}|{parts.policy_fingerprint}|"
+        f"{parts.normalizer_version}|{parts.model_version}"
+    )
+
+
+def effective_prefix_skip(prefix_len: int, overlap_chars: int) -> int:
+    """Return the scan start offset, re-scanning ``overlap_chars`` at the boundary."""
+    if prefix_len <= 0:
+        return 0
+    overlap = max(0, overlap_chars)
+    return max(0, prefix_len - overlap)
 
 
 class ScanCache:
@@ -76,16 +103,23 @@ class ScanCache:
         document_id: str | None,
         normalizer_version: str = NORMALIZER_VERSION,
         model_version: str = MODEL_VERSION_LOCAL,
+        source: str = "",
+        policy_fingerprint: str = "",
     ) -> CacheKeyParts:
         return cache_key_parts(
             text,
             document_id=document_id,
             normalizer_version=normalizer_version,
             model_version=model_version,
+            source=source,
+            policy_fingerprint=policy_fingerprint,
         )
 
     def prefix_storage_key(self, parts: CacheKeyParts) -> str:
         return prefix_storage_key(parts)
+
+    def chunk_storage_key(self, parts: CacheKeyParts) -> str:
+        return chunk_storage_key(parts)
 
     def get_safe_prefix(self, parts: CacheKeyParts) -> SafePrefixState | None:
         return self._prefixes.get(prefix_storage_key(parts))
@@ -101,6 +135,12 @@ class ScanCache:
         self._chunks.move_to_end(content_hash)
         while len(self._chunks) > self._max_chunk_entries:
             self._chunks.popitem(last=False)
+
+    def get_chunk_for_parts(self, parts: CacheKeyParts) -> ScanResult | None:
+        return self.get_chunk(chunk_storage_key(parts))
+
+    def set_chunk_for_parts(self, parts: CacheKeyParts, result: ScanResult) -> None:
+        self.set_chunk(chunk_storage_key(parts), result)
 
     @staticmethod
     def should_advance_prefix(action: Action, *, advance_on_redact: bool) -> bool:
