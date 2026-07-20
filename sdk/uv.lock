@@ -6910,7 +6910,7 @@ wheels = [
 
 [[package]]
 name = "unplug-ai"
-version = "0.5.0"
+version = "0.5.1"
 source = { editable = "." }
 dependencies = [
     { name = "httpx" },

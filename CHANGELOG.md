@@ -2,7 +2,11 @@
 
 All notable changes to the `unplug-ai` SDK.
 
-## [Unreleased]
+## [0.5.1] — 2026-07-20
+
+### Fixed
+
+- Python 3.13: `unplug-ai[ml]` / `[all]` install without a Rust toolchain — widen `transformers` constraint to `>=4.44,<5.13` so `tokenizers` resolves to a cp313 wheel (was pinned via `transformers>=4.44,<4.45` → `tokenizers==0.19.1`)
 
 ### Security
 
