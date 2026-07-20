@@ -117,7 +117,7 @@ class GuardConfig(BaseModel):
     )
     active_model: str | None = Field(
         default=None,
-        description="Model tier key: tiny, medium, or large (see data/catalog.toml)",
+        description="Model tier key from data/catalog.toml (default tier: tiny)",
     )
     auto_download_model: bool = Field(
         default=False,

@@ -4,6 +4,10 @@ All notable changes to the `unplug-ai` SDK.
 
 ## [Unreleased]
 
+### Security
+
+- Pin bundled model catalog to immutable Hugging Face commit SHAs under `Unplug-AI/`; drop unpublished medium/large tiers that pointed at a non-existent org
+
 ### Added
 
 - Beginner onboarding: [`sdk/docs/GETTING_STARTED.md`](sdk/docs/GETTING_STARTED.md) (5-minute path)
