@@ -2,6 +2,16 @@
 
 All notable changes to the `unplug-ai` SDK.
 
+## [Unreleased]
+
+### Fixed
+
+- ML inference hardening: BIOES decode no longer crashes on checkpoints without `*-INJ` labels; label maps are validated at load with a clear `ModelError`; forced torch devices are validated (`ConfigError`); `ModelProvider`/`SpanInferenceModel` load is thread-safe; ML modules log device/tokenizer fallbacks and import torch via `unplug.optional.ml` helpers
+
+### Added
+
+- Offline synthetic BIOES checkpoint fixture for ML unit tests (no real weights required)
+
 ## [0.5.1] — 2026-07-20
 
 ### Fixed

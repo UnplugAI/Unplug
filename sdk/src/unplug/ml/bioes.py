@@ -17,8 +17,13 @@ def decode_bioes_spans(
 
     Handles B/I and, when present in the label map, E (explicit end) and
     S (single token). Falls back to plain BIO behavior for BIO-only checkpoints.
+
+    Returns an empty list when the label map has no ``*-INJ`` columns (callers
+    should reject such checkpoints at load time).
     """
     inj_cols = [label2id[t] for t in ("B-INJ", "I-INJ", "E-INJ", "S-INJ") if t in label2id]
+    if not inj_cols:
+        return []
     inj_label_ids = set(inj_cols)
     current: CharSpan | None = None
     spans: list[CharSpan] = []
