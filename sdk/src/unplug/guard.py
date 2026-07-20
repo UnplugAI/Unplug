@@ -22,7 +22,12 @@ from unplug.core.normalize.encodings import EncodingClassifier, default_encoding
 from unplug.core.policy import policy_from_request
 from unplug.core.privacy import NullPrivacyFilter, PrivacyFilterService
 from unplug.core.privacy.secrets import SecretsRegistry, SecretsSanitizer
-from unplug.core.runtime.cache import SafePrefixState, ScanCache, merge_suffix_result
+from unplug.core.runtime.cache import (
+    SafePrefixState,
+    ScanCache,
+    effective_prefix_skip,
+    merge_suffix_result,
+)
 from unplug.core.runtime.logging import correlation_scope, get_logger
 from unplug.core.runtime.model_runtime import (
     load_active_model_provider,
@@ -95,7 +100,7 @@ class Guard:
         self,
         *,
         scanners: list[str] | None = None,
-        mode: str = "local",
+        mode: str | None = None,
         server_url: str | None = None,
         server_api_key: str | None = None,
         fail_mode: str = "closed",
@@ -118,7 +123,9 @@ class Guard:
                 DeprecationWarning,
                 stacklevel=2,
             )
-        overrides: dict[str, Any] = {"mode": mode, "fail_closed": fail_mode == "closed"}
+        overrides: dict[str, Any] = {"fail_closed": fail_mode == "closed"}
+        if mode is not None:
+            overrides["mode"] = mode
         if scanners is not None:
             overrides["scanners"] = scanners
         if server_url is not None:
@@ -418,6 +425,7 @@ class Guard:
             self,
             source=source,
             scan_every_chars=scan_every_chars,
+            overlap_chars=self._config.cache.prefix_overlap_chars,
             document_id=document_id,
         )
 
@@ -484,6 +492,60 @@ class Guard:
     def _model_version_for_cache(self) -> str:
         return self._model_cache_version
 
+    def _cache_policy_fingerprint(self, request: ScanRequest) -> str:
+        """Fingerprint policy + scanner set so cache entries are not reused across configs."""
+        policy = self._config.policy
+        pipeline_policy = self._config.pipeline.policy
+        ml_gate = self._config.pipeline.ml_gate
+        scanners = request.scanners if request.scanners is not None else list(self._config.scanners)
+        scanner_cfg_parts = [
+            f"{name}:{cfg.base_score}:{cfg.trust_boost}:{cfg.enabled}:{cfg.normalize}"
+            for name, cfg in sorted(self._config.scanner_configs.items())
+        ]
+        parts = [
+            ",".join(scanners),
+            str(self._config.strict_scanner_allowlist),
+            str(
+                request.block_threshold
+                if request.block_threshold is not None
+                else policy.block_threshold
+            ),
+            str(
+                request.redact_threshold
+                if request.redact_threshold is not None
+                else policy.redact_threshold
+            ),
+            str(
+                request.review_threshold
+                if request.review_threshold is not None
+                else policy.review_threshold
+            ),
+            str(
+                request.block_coverage_ratio
+                if request.block_coverage_ratio is not None
+                else policy.block_coverage_ratio
+            ),
+            str(request.redact),
+            str(request.redaction_mode.value if request.redaction_mode is not None else ""),
+            str(policy.sensitive_context_enabled),
+            str(policy.sensitive_context_boost),
+            str(policy.sensitive_context_block_delta),
+            str(policy.abstain_is_safe),
+            str(policy.decision_mode.value),
+            str(policy.tau_abstain_low),
+            str(policy.tau_doc_gate),
+            str(policy.scan_user_secrets),
+            str(pipeline_policy.merge_overlapping_spans),
+            str(self._config.judge_low),
+            str(self._config.judge_high),
+            str(ml_gate.always_below_high),
+            str(ml_gate.gray_low),
+            str(self._config.cache.prefix_overlap_chars),
+            str(self._config.cache.advance_prefix_on_redact),
+            ";".join(scanner_cfg_parts),
+        ]
+        return "|".join(parts)
+
     def _run_input_with_cache(self, request: ScanRequest, ctx: ExecutionContext) -> ScanResult:
         cache = ctx.scan_cache
         if cache is None or not self._config.cache.enabled:
@@ -498,8 +560,10 @@ class Guard:
             document_id=request.document_id,
             normalizer_version=NORMALIZER_VERSION,
             model_version=self._model_version_for_cache(),
+            source=str(request.source),
+            policy_fingerprint=self._cache_policy_fingerprint(request),
         )
-        hit = cache.get_chunk(parts.full_hash)
+        hit = cache.get_chunk_for_parts(parts)
         if hit is not None:
             return hit
 
@@ -508,13 +572,20 @@ class Guard:
         if prefix_state is not None and prefix_state.verify(request.text):
             prefix_len = prefix_state.prefix_len
 
+        scan_start = 0
         if 0 < prefix_len < len(request.text):
+            scan_start = effective_prefix_skip(
+                prefix_len,
+                self._config.cache.prefix_overlap_chars,
+            )
+
+        if 0 < scan_start < len(request.text):
             suffix_result = self._input_pipeline.run(
-                request.text[prefix_len:],
+                request.text[scan_start:],
                 source=request.source,
                 context=ctx,
             )
-            result = merge_suffix_result(suffix_result, prefix_len)
+            result = merge_suffix_result(suffix_result, scan_start)
         else:
             result = self._input_pipeline.run(
                 request.text,
@@ -530,7 +601,7 @@ class Guard:
                 parts,
                 SafePrefixState.from_text(request.text, len(request.text)),
             )
-        cache.set_chunk(parts.full_hash, result)
+        cache.set_chunk_for_parts(parts, result)
         return result
 
     def scan_output(self, text: str | TaintedText) -> ScanResult:
@@ -638,17 +709,26 @@ class Guard:
                 if self._server_client is not None:
                     return self._server_client.scan_request(request)
                 ctx = self._request_context(request, isolated=isolated)
-                if request.scanners:
-                    ctx.allowed_scanners = resolve_input_scanners(
-                        list(request.scanners),
-                        strict=self._config.strict_scanner_allowlist,
-                    )
-                if not isolated:
-                    self._capture_user_intent(request)
-                result = self._run_input_with_cache(request, ctx)
-                if not isolated:
-                    self._maybe_mark_session_tainted_from_scan(request.source)
-                return result
+                prev_allowed = ctx.allowed_scanners
+                try:
+                    if request.scanners is not None:
+                        if request.scanners:
+                            ctx.allowed_scanners = resolve_input_scanners(
+                                list(request.scanners),
+                                strict=self._config.strict_scanner_allowlist,
+                            )
+                        else:
+                            ctx.allowed_scanners = None
+                    else:
+                        ctx.allowed_scanners = None
+                    if not isolated:
+                        self._capture_user_intent(request)
+                    result = self._run_input_with_cache(request, ctx)
+                    if not isolated:
+                        self._maybe_mark_session_tainted_from_scan(request.source)
+                    return result
+                finally:
+                    ctx.allowed_scanners = prev_allowed
         except ConfigError:
             raise
         except Exception as exc:

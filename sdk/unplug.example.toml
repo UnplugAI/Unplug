@@ -14,11 +14,17 @@ mode = "local"
 # auto_download_model = true
 # require_ml = false
 
+# Optional BYOLLM judge band (provider must be passed as judge= in Python):
+# judge_low = 0.3
+# judge_high = 0.8
+# judge_enabled is deprecated/ignored — pass judge=CallableJudge(...) to Guard()
+
 [limits]
 max_input_chars = 50000
 # max_input_tokens = 8192   # estimated offline (max of words and chars/4); off by default
 max_tool_calls_per_session = 100
 blocked_tools = []
+# allowed_tools = ["read_file", "search"]  # when set, only these tools are permitted
 
 [tools]
 enabled = true

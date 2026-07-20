@@ -7,13 +7,17 @@ from typing import TYPE_CHECKING
 
 from unplug.api.enums import Action, Source
 from unplug.api.types import ScanResult
-from unplug.core.runtime.cache import merge_suffix_result
+from unplug.core.runtime.cache import (
+    DEFAULT_PREFIX_OVERLAP_CHARS,
+    effective_prefix_skip,
+    merge_suffix_result,
+)
 
 if TYPE_CHECKING:
     from unplug.guard import Guard
 
 _DEFAULT_SCAN_EVERY = 1024
-_DEFAULT_OVERLAP = 256
+_DEFAULT_OVERLAP = DEFAULT_PREFIX_OVERLAP_CHARS
 
 
 class StreamScanner:
@@ -73,7 +77,7 @@ class StreamScanner:
             and self._last_result.action in (Action.ALLOW, Action.REVIEW)
             and self._last_result.safe
         ):
-            prefix_len = max(0, self._safe_prefix_len - self._overlap)
+            prefix_len = effective_prefix_skip(self._safe_prefix_len, self._overlap)
 
         scan_body = body[prefix_len:] if prefix_len else body
         request = self._guard._build_scan_request(scan_body, self._source)

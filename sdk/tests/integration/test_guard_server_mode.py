@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 from unplug import Guard
 from unplug.api.enums import Action
+from unplug.config.guard import GuardConfig
 from unplug.models import ScanResult
 
 
@@ -50,3 +51,18 @@ class TestGuardServerMode:
             out = guard.scan_request(req)
         assert out.safe is True
         mock_cls.return_value.scan_request.assert_called_once()
+
+    def test_config_server_mode_not_overridden_by_default(self) -> None:
+        cfg = GuardConfig(mode="server", server_url="http://unplug.test")
+        with patch("unplug.guard.UnplugClient") as mock_cls:
+            guard = Guard(config=cfg)
+        assert guard.config.mode == "server"
+        assert guard.is_server_mode is True
+        mock_cls.assert_called_once_with(base_url="http://unplug.test", api_key=None)
+
+    def test_explicit_mode_overrides_config(self) -> None:
+        cfg = GuardConfig(mode="server", server_url="http://unplug.test")
+        with patch("unplug.guard.UnplugClient"):
+            guard = Guard(config=cfg, mode="local")
+        assert guard.config.mode == "local"
+        assert guard.is_server_mode is False

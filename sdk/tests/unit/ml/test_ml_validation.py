@@ -54,9 +54,30 @@ def test_catalog_config_from_manifest_missing_catalog_returns_empty(
 def test_resolve_checkpoint_without_weights() -> None:
     ckpt = resolve_validation_checkpoint(require_weights=False)
     if ckpt is None:
-        pytest.skip("checkpoint directory not in workspace")
+        pytest.skip("checkpoint directory not in workspace or model cache")
     assert is_valid_checkpoint(ckpt, require_weights=False)
     assert (ckpt / "config.json").is_file()
+
+
+def test_resolve_checkpoint_prefers_model_cache(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """When env/workspace pins are absent, use ~/.cache/unplug/models/<tier>/checkpoint."""
+    monkeypatch.delenv("UNPLUG_TEST_CHECKPOINT", raising=False)
+    monkeypatch.delenv("UNPLUG_MODEL_PATH", raising=False)
+    cache_root = tmp_path / "models"
+    ckpt = cache_root / "tiny" / "checkpoint"
+    ckpt.mkdir(parents=True)
+    (ckpt / "config.json").write_text("{}", encoding="utf-8")
+    (ckpt / "model.safetensors").write_bytes(b"x")
+    monkeypatch.setenv("UNPLUG_MODEL_CACHE", str(cache_root))
+    monkeypatch.setattr(
+        "unplug.ml.validation.load_ml_validation_manifest",
+        lambda: {"tier": "tiny", "optional_weight_files": ["model.safetensors"]},
+    )
+    found = resolve_validation_checkpoint(require_weights=True)
+    assert found == ckpt
 
 
 def test_resolve_checkpoint_missing_manifest_returns_none(monkeypatch: pytest.MonkeyPatch) -> None:

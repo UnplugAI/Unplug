@@ -134,6 +134,26 @@ class TestBuildConfig:
         assert "injection" in cfg.scanner_configs
         assert cfg.scanner_configs["injection"].base_score == 0.9
 
+    def test_strict_scanner_allowlist_from_guard_section(self) -> None:
+        cfg = build_config({"guard": {"strict_scanner_allowlist": True}})
+        assert cfg.strict_scanner_allowlist is True
+
+    def test_unknown_guard_key_raises(self) -> None:
+        from unplug.exceptions import ConfigError
+
+        with pytest.raises(ConfigError, match="Unknown \\[guard\\] config keys"):
+            build_config({"guard": {"strict_scanner_allowlist_typo": True}})
+
+    def test_invalid_guard_section_type_raises(self) -> None:
+        from unplug.exceptions import ConfigError
+
+        with pytest.raises(ConfigError, match="\\[guard\\] must be a table"):
+            build_config({"guard": None})
+
+    def test_strict_scanner_allowlist_string_false(self) -> None:
+        cfg = build_config({"guard": {"strict_scanner_allowlist": "false"}})
+        assert cfg.strict_scanner_allowlist is False
+
 
 class TestLoad:
     def test_from_file(self, toml_file: Path):
@@ -245,6 +265,15 @@ blocked_tools = ["danger"]
         cfg = load(file_path=p)
         assert cfg.limits.max_input_chars == 100
         assert cfg.limits.blocked_tools == ["danger"]
+
+    def test_strict_scanner_allowlist_from_toml(self, tmp_path: Path) -> None:
+        p = tmp_path / "unplug.toml"
+        p.write_text("""\
+[guard]
+strict_scanner_allowlist = true
+""")
+        cfg = load(file_path=p)
+        assert cfg.strict_scanner_allowlist is True
 
     def test_messages_from_toml(self, tmp_path: Path) -> None:
         p = tmp_path / "unplug.toml"

@@ -61,13 +61,22 @@ def resolve_validation_checkpoint(*, require_weights: bool = False) -> Path | No
 
         manifest = load_ml_validation_manifest()
         relative = manifest.get("checkpoint_relative")
-        if not relative:
+        if relative:
+            candidate = workspace_root() / str(relative)
+            if is_valid_checkpoint(candidate, require_weights=require_weights):
+                return candidate
+            if not require_weights and is_valid_checkpoint(candidate, require_weights=False):
+                return candidate
+
+        # Fallback: checkpoint installed via `unplug-models download <tier>`.
+        tier = str(manifest.get("tier", "tiny"))
+        try:
+            from unplug.ml.store import default_cache_root
+        except ImportError:
             return None
-        candidate = workspace_root() / str(relative)
-        if is_valid_checkpoint(candidate, require_weights=require_weights):
-            return candidate
-        if not require_weights and is_valid_checkpoint(candidate, require_weights=False):
-            return candidate
+        cached = default_cache_root() / tier / "checkpoint"
+        if is_valid_checkpoint(cached, require_weights=require_weights):
+            return cached
         return None
     except FileNotFoundError:
         return None

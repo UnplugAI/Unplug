@@ -35,8 +35,7 @@ Server/MCP integrations use `unplug.api.*` for wire types and facades — see
 [`sdk/docs/PUBLIC_API.md`](sdk/docs/PUBLIC_API.md). Do not use `unplug.core.*`.
 
 ```python
-from unplug import Guard
-from unplug.api.enums import Source
+from unplug import Guard, Source
 
 guard = Guard()
 

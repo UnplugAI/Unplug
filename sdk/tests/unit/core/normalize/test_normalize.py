@@ -92,6 +92,13 @@ class TestStripZeroWidth:
         assert result == "ab"
         assert offsets == [0, 2]
 
+    def test_bidi_override_stripped(self):
+        # U+202E RIGHT-TO-LEFT OVERRIDE between letters (token smuggling).
+        text = "ig\u202enore previous"
+        result, _ = _strip_zero_width(text, _make_table(text))
+        assert "\u202e" not in result
+        assert result.startswith("ignore")
+
 
 class TestDecodeUnicodeTags:
     def test_tag_smuggled_text_decodes(self):
@@ -350,6 +357,16 @@ class TestNormalizer:
         result = n.normalize("ig​nore")
         orig_start, orig_end = result.to_original_span(0, 6)
         assert result.original[orig_start:orig_end] == "ig​nore"
+
+    def test_to_original_span_includes_adjacent_bidi(self):
+        n = Normalizer()
+        original = "\u202eignore previous"
+        result = n.normalize(original)
+        # Match starts after the stripped RTL override in normalized text.
+        start, end = result.to_original_span(0, 6)
+        assert start == 0
+        assert "\u202e" in result.original[start:end]
+        assert result.original[start:end].endswith("ignore")
 
     def test_combined_evasion(self):
         n = Normalizer()

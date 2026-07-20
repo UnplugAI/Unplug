@@ -19,6 +19,8 @@ def test_normalize_toml_loads() -> None:
     assert maps.homoglyphs["а"] == "a"
     assert maps.override_verbs["ignorar"] == "ignore"
     assert "\u200b" in maps.zero_width_chars
+    assert "\u202e" in maps.zero_width_chars  # RTL override (token smuggling)
+    assert "\u2066" in maps.zero_width_chars  # LRI
 
 
 def test_module_maps_match_bundled_data() -> None:
