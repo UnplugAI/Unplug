@@ -186,3 +186,34 @@
 - name: quiet_side_channel
   regex: (?i)quietly\s+(route|forward|send|relay|post|push).{0,80}(channel|endpoint|webhook|proxy|maintenance)
   flags: i
+# High-value FN closures from neuralchemy regex-gap sampling (Phase C)
+- name: ignore_everything_above
+  regex: (?i)(ignore|forget|disregard|override|bypass)\s+everything\s+(above|before|prior|earlier)\b
+  flags: i
+- name: disregard_the_above
+  regex: (?i)(please\s+)?(disregard|ignore|forget)\s+the\s+(above|previous|prior)\b
+  flags: i
+- name: instructions_updated_supersede
+  regex: (?i)(instructions?\s+have\s+been\s+updated.{0,80}(supersede|override|ignore|disregard|replace\s+(?:your|all|previous|prior|above|system))|new\s+instructions?\s+supersede|following\s+instructions?\s+replace\s+your)
+  flags: i
+- name: instruction_override_bracket
+  regex: (?i)\[{1,2}\s*INSTRUCTION\s+OVERRIDE\s*\]{1,2}
+  flags: i
+- name: new_instruction_set
+  regex: (?i)(new\s+instruction\s+set\s+incoming|ignore\s+everything\s+above\s+this\s+line|context\s+window\s+before\s+this\s+message)
+  flags: i
+- name: admin_priority_commands
+  regex: (?i)(i\s+am\s+your\s+new\s+administrator|my\s+commands?\s+take\s+priority|previous\s+instructions?\s+are\s+cancelled)
+  flags: i
+- name: delete_system_prompt_fresh
+  regex: (?i)(delete\s+your\s+system\s+prompt|start\s+fresh.{0,40}new\s+instructions?)
+  flags: i
+- name: academic_policy_bypass
+  regex: (?i)(for\s+the\s+purpose\s+of\s+this\s+(academic\s+)?exercise|as\s+an?\s+(academic|hypothetical)\s+(exercise|scenario)).{0,80}(ignore|bypass|disable|without).{0,40}(policy|filter|restriction|guideline|safety)
+  flags: i
+- name: assistant_follow_user_only
+  regex: (?i)(assistant'?s?\s+previous\s+instructions?\s+are\s+cancelled|follow\s+instructions?\s+from\s+the\s+user\s+only)
+  flags: i
+- name: original_programming_replace
+  regex: (?i)(replace\s+your\s+original\s+programming|supersede\s+all\s+previous\s+(ones|instructions?))
+  flags: i

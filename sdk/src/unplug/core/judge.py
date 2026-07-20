@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import math
 from typing import Any, Protocol, runtime_checkable
 
 from pydantic import BaseModel, Field
@@ -41,14 +42,56 @@ class JudgeResult(BaseModel):
     score: float = Field(ge=0.0, le=1.0, default=0.5)
     reason: str = ""
 
-    def to_finding(self, text_length: int) -> Finding:
+    def enforced_score(
+        self,
+        *,
+        block_threshold: float = 0.8,
+        redact_threshold: float = 0.5,
+        review_threshold: float = 0.3,
+    ) -> float:
+        """Clamp score so score-driven policy honors the declared action.
+
+        Inconsistent pairs are resolved in favor of ``action``:
+        - ``BLOCK`` + low score → raise to at least ``block_threshold``
+        - ``REVIEW`` → land in ``[review_threshold, min(redact, block))``
+        - ``ALLOW`` + high score → cap below ``review_threshold``
+        """
+        score = self.score
+        if self.action == Action.BLOCK:
+            return min(1.0, max(score, block_threshold))
+        if self.action == Action.REVIEW:
+            upper = min(redact_threshold, block_threshold)
+            if upper <= review_threshold:
+                return max(0.0, math.nextafter(upper, 0.0)) if upper > 0 else 0.0
+            floored = max(score, review_threshold)
+            if floored >= upper:
+                return max(review_threshold, math.nextafter(upper, 0.0))
+            return floored
+        if self.action == Action.ALLOW:
+            if score >= review_threshold:
+                return max(0.0, math.nextafter(review_threshold, 0.0))
+            return score
+        return score
+
+    def to_finding(
+        self,
+        text_length: int,
+        *,
+        block_threshold: float = 0.8,
+        redact_threshold: float = 0.5,
+        review_threshold: float = 0.3,
+    ) -> Finding:
         return Finding(
             category=self.category,
             subcategory="llm_judge",
             stage="llm_judge",
             span_start=0,
             span_end=text_length,
-            score=self.score,
+            score=self.enforced_score(
+                block_threshold=block_threshold,
+                redact_threshold=redact_threshold,
+                review_threshold=review_threshold,
+            ),
             evidence=self.reason,
         )
 

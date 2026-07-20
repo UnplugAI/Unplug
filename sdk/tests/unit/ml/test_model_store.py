@@ -226,6 +226,32 @@ def test_ensure_tier_redownloads_when_weights_missing(
     assert store.is_valid_checkpoint(resolved)
 
 
+def test_is_valid_checkpoint_accepts_sharded_safetensors(tmp_path: Path) -> None:
+    store = ModelStore(cache_root=tmp_path)
+    ckpt = tmp_path / "sharded"
+    ckpt.mkdir()
+    (ckpt / "config.json").write_text("{}", encoding="utf-8")
+    (ckpt / "model.safetensors.index.json").write_text(
+        '{"weight_map": {"layer": "model-00001-of-00002.safetensors"}}',
+        encoding="utf-8",
+    )
+    (ckpt / "model-00001-of-00002.safetensors").write_bytes(b"x" * 10)
+    assert store.is_valid_checkpoint(ckpt)
+
+
+def test_is_valid_checkpoint_rejects_partial_sharded_index(tmp_path: Path) -> None:
+    store = ModelStore(cache_root=tmp_path)
+    ckpt = tmp_path / "partial"
+    ckpt.mkdir()
+    (ckpt / "config.json").write_text("{}", encoding="utf-8")
+    (ckpt / "model.safetensors.index.json").write_text(
+        '{"weight_map": {"layer": "model-00001-of-00002.safetensors"}}',
+        encoding="utf-8",
+    )
+    (ckpt / "extra.safetensors").write_bytes(b"x" * 10)
+    assert store.is_valid_checkpoint(ckpt) is False
+
+
 def test_stale_revision_reports_installed_and_upgrade_available(tmp_path: Path) -> None:
     store = ModelStore(cache_root=tmp_path)
     ckpt = tmp_path / "tiny" / "checkpoint"
@@ -324,7 +350,11 @@ def test_failed_swap_restores_backup_checkpoint(
     # Old checkpoint restored at the original path; manifest still matches it.
     assert (ckpt / "config.json").read_text(encoding="utf-8") == '{"model": "keep"}'
     assert store.resolve_local_path("tiny") == ckpt
-    leftovers = [p.name for p in (tmp_path / "tiny").iterdir() if p.name != "checkpoint"]
+    leftovers = [
+        p.name
+        for p in (tmp_path / "tiny").iterdir()
+        if p.name not in {"checkpoint", ".download.lock"}
+    ]
     assert leftovers == ["manifest.json"]
 
 

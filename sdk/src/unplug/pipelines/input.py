@@ -174,4 +174,11 @@ class InputPipeline(BasePipeline):
                     evidence=f"Judge failed: {type(exc).__name__}",
                 )
             ]
-        return [result.to_finding(len(input_data.text))]
+        return [
+            result.to_finding(
+                len(input_data.text),
+                block_threshold=policy.block_threshold,
+                redact_threshold=policy.redact_threshold,
+                review_threshold=policy.review_threshold,
+            )
+        ]

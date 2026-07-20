@@ -26,6 +26,8 @@ refactors.
 | Encoded-payload scanning | `unplug.api.encoding` | `unplug.core.normalize.encodings` |
 | Span model runtime | `unplug.api.ml` | `unplug.ml.span_model` |
 | Rebuild scan result | `unplug.api.results` | `unplug.guard_scan` / internal policy |
+| Input/tool limits | `unplug.api.limits` or top-level `LimitConfig` | `unplug.config.limits`, `unplug.core.limits` |
+| BYOLLM judge | `unplug.api.judge` or top-level `CallableJudge` | `unplug.core.judge` |
 
 ## Examples
 
@@ -57,6 +59,16 @@ from unplug.api.ml import SpanInferenceModel
 from unplug.api.normalization import Normalizer
 from unplug.api.encoding import HeuristicEncodingClassifier
 ```
+
+Limits and optional LLM judge:
+
+```python
+from unplug import CallableJudge, Guard, LimitConfig
+# or: from unplug.api.limits import LimitConfig
+# or: from unplug.api.judge import CallableJudge, JudgeProvider
+```
+
+See [`LIMITS_AND_JUDGE.md`](LIMITS_AND_JUDGE.md).
 
 ## Compatibility
 

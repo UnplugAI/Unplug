@@ -37,6 +37,9 @@ def apply_sensitive_context_boost(
     boosted: list[Finding] = []
     boosted_any = False
     for finding in findings:
+        if finding.stage == "llm_judge":
+            boosted.append(finding)
+            continue
         if finding.category in _BOOST_CATEGORIES:
             boosted_any = True
             boosted.append(

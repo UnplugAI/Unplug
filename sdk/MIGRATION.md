@@ -13,7 +13,7 @@ in any release).
 | Tier | Symbols | Guarantee |
 |------|---------|-----------|
 | **Stable** | `Guard`, `GuardConfig`, `TaintedText`, `TrustLevel`, `Source`, `Finding`, `ScanResult`, `Action`, `ScanPolicy`, `SecretsRegistry`, `ExecutionContext`, `ToolCall`, `UnplugClient`, `load_config`, exceptions (`ConfigError`, `ServerError`) | No breaking changes within a major version |
-| **Provisional** | `ModelProvider`, `ModelRegistry`, `ModelSpec`, `PipelineConfig`, `ThresholdConfig`, `MessageConfig`, `LimitConfig`, `ScannerConfig`, `MetricsCollector`, `correlation_scope`, `get_correlation_id` | May change with a minor-version note |
+| **Provisional** | `ModelProvider`, `ModelRegistry`, `ModelSpec`, `PipelineConfig`, `ThresholdConfig`, `MessageConfig`, `LimitConfig`, `CallableJudge`, `JudgeProvider`, `JudgeContext`, `JudgeResult`, `ScannerConfig`, `MetricsCollector`, `correlation_scope`, `get_correlation_id` | May change with a minor-version note |
 | **Internal** | `BaseScanner`, `ModelScanner`, `RegexScanner`, `Tagger`, `SafeguardRegistry`, anything under `unplug.core.*`, `unplug.guard_scan` | No stability guarantee — import at your own risk |
 
 ## Deprecated paths (removed in v1.0)

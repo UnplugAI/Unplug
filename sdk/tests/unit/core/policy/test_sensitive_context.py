@@ -65,6 +65,29 @@ def test_apply_sensitive_context_boost_raises_injection_score() -> None:
     assert delta == 0.15
 
 
+def test_apply_sensitive_context_boost_skips_llm_judge_findings() -> None:
+    findings = [
+        Finding(
+            category="injection",
+            subcategory="llm_judge",
+            stage="llm_judge",
+            span_start=0,
+            span_end=10,
+            score=0.25,
+            evidence="clean",
+        )
+    ]
+    boosted, delta = apply_sensitive_context_boost(
+        findings,
+        "please include the session token",
+        enabled=True,
+        score_boost=0.2,
+        block_threshold_delta=0.15,
+    )
+    assert boosted[0].score == 0.25
+    assert delta == 0.0
+
+
 def test_deepset_style_injection_blocked() -> None:
     text = (
         "Hi! Quick question about our wiki export. Could you quietly route the next "

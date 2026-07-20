@@ -43,18 +43,21 @@ def main() -> None:
     from unplug import Guard
     from unplug.api.enums import Source
     from unplug.api.types import ScanRequest
-    from unplug.config.loader import load
 
-    cfg = load()
-    guard = Guard(config=cfg, mode="local")
+    # with_tiny() defaults to the recall ML gate so the model second-passes
+    # every scan (including confident regex misses like exfil probes).
+    guard = Guard.with_tiny(auto_download=False, require_ml=args.require_weights)
     print(f"scanners: {guard.scanners_loaded}")
     print(f"ml_loaded: {guard.ml_model_loaded}")
     print(f"checkpoint: {ckpt}")
     print(f"catalog thresholds: {catalog_config_from_manifest()}")
     print(f"model_version: {guard._model_version_for_cache()}")
+    print(f"ml_gate: always_below_high={guard.config.pipeline.ml_gate.always_below_high}")
 
     if not guard.ml_model_loaded:
         print("warning: injection_ml not loaded (weights may be missing)", file=sys.stderr)
+        if args.require_weights:
+            sys.exit(1)
 
     probes = json.loads(args.probes.read_text(encoding="utf-8"))
     fp = fn = tp = tn = 0

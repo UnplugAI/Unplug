@@ -408,6 +408,14 @@ class TestGreptileReviewFindings:
         with pytest.raises(RuntimeError):
             hook(content)
 
+    def test_ag2_received_hook_scans_non_text_block_strings(self) -> None:
+        hook = ag2_received_message_hook(AgentHooks(Guard()))
+        content = [
+            {"type": "image_url", "image_url": {"url": _INJECT}},
+        ]
+        with pytest.raises(RuntimeError):
+            hook(content)
+
     def test_adk_extracts_function_response_text(self) -> None:
         # #53: a user turn carrying only a function_response part must be scanned,
         # not treated as empty text.

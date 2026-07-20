@@ -1,12 +1,14 @@
 # SDK benchmark results
 
-Date: 2026-06-15
-Guard: `unplug-ai` (unreleased), default scanners
+Date: 2026-06-15 (ML rows); regex-only neuralchemy refreshed **2026-07-20** (Phase C)
+Guard: `unplug-ai`, default scanners
 Model: `unplug-tiny-v1` (DeBERTa-v3-xsmall dual-head span model), `Guard.with_tiny()`
 Detection threshold: risk ≥ 0.5 counts as flagged (block or review)
 Methodology: **isolated single-turn sessions** — each sample is scanned in a fresh
 `ExecutionContext` (`scan_request(..., isolated=True)`), so multi-turn trajectory
 state never leaks between independent samples.
+
+Phase C gap notes and download commands: [`EVAL_PHASE_C.md`](EVAL_PHASE_C.md).
 
 ## Headline: regex vs regex + ML
 
@@ -15,12 +17,12 @@ the regex layer alone misses (especially **indirect** injection).
 
 | Dataset | Samples | Mode | F1 | Recall | FPR | Precision |
 | --- | ---: | --- | ---: | ---: | ---: | ---: |
-| neuralchemy/Prompt-injection-dataset | 4,391 | regex-only | 0.563 | 0.393 | 0.0046 | 0.992 |
+| neuralchemy/Prompt-injection-dataset | 4,391 | regex-only | 0.575 | 0.405 | 0.0052 | 0.992 |
 | neuralchemy/Prompt-injection-dataset | 4,391 | **regex + ML** | **0.987** | **0.981** | 0.0098 | 0.994 |
 | microsoft/llmail-inject (Phase1 subset, attacks) | 2,500 | regex-only | — | 0.052 | — | — |
 | microsoft/llmail-inject (Phase1 subset, attacks) | 2,500 | **regex + ML** | — | **0.907** | — | — |
 
-- **Direct injection (neuralchemy):** recall **0.39 → 0.98**, F1 **0.56 → 0.99**, precision ~0.99 in both modes, false-positive rate stays under 1%.
+- **Direct injection (neuralchemy):** recall **0.41 → 0.98**, F1 **0.58 → 0.99**, precision ~0.99 in both modes, false-positive rate stays under 1%.
 - **Indirect injection (microsoft):** recall **0.05 → 0.91**. Regex is structurally blind to indirect injection; the ML pass is what makes it detectable.
 
 ## False-positive rate on clean traffic

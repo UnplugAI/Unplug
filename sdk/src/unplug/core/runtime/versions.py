@@ -2,5 +2,5 @@
 
 from __future__ import annotations
 
-NORMALIZER_VERSION = "v12"
+NORMALIZER_VERSION = "v13"
 MODEL_VERSION_LOCAL = "regex-v1"
