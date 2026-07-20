@@ -280,6 +280,54 @@ def test_force_download_failure_preserves_old_checkpoint(
     assert store.resolve_local_path("tiny") == ckpt
 
 
+def test_failed_swap_restores_backup_checkpoint(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Failure after the old checkpoint moved to backup must roll it back."""
+    store = ModelStore(cache_root=tmp_path)
+    ckpt = tmp_path / "tiny" / "checkpoint"
+    _write_checkpoint(ckpt, config='{"model": "keep"}')
+    digest = _config_digest(ckpt)
+    store.write_manifest(
+        ModelManifest(
+            tier="tiny",
+            repo_id="Unplug-AI/test",
+            revision=load_catalog().tiers["tiny"].revision,
+            path=str(ckpt),
+            config_digest=digest,
+        )
+    )
+
+    def fake_snapshot_download(**kwargs: object) -> str:
+        local_dir = Path(str(kwargs["local_dir"]))
+        _write_checkpoint(local_dir, config='{"model": "new"}')
+        return str(local_dir)
+
+    hf = ModuleType("huggingface_hub")
+    hf.snapshot_download = fake_snapshot_download  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "huggingface_hub", hf)
+    monkeypatch.setattr(
+        "unplug.ml.store.require_huggingface_hub",
+        lambda: None,
+    )
+
+    def broken_write(manifest: ModelManifest) -> None:
+        msg = "disk full"
+        raise OSError(msg)
+
+    monkeypatch.setattr(store, "write_manifest", broken_write)
+
+    with pytest.raises(OSError, match="disk full"):
+        store.ensure_tier("tiny", force=True)
+
+    # Old checkpoint restored at the original path; manifest still matches it.
+    assert (ckpt / "config.json").read_text(encoding="utf-8") == '{"model": "keep"}'
+    assert store.resolve_local_path("tiny") == ckpt
+    leftovers = [p.name for p in (tmp_path / "tiny").iterdir() if p.name != "checkpoint"]
+    assert leftovers == ["manifest.json"]
+
+
 def test_invalid_unplug_model_path_logs_warning(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

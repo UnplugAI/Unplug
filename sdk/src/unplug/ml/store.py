@@ -22,6 +22,8 @@ _log = get_logger("ml.store")
 
 _WEIGHT_FILES = ("model.safetensors", "pytorch_model.bin")
 
+# Downloads are safetensors-only by policy (no pickle .bin fetches); .bin
+# stays in _WEIGHT_FILES so pre-existing local checkpoints still validate.
 _SNAPSHOT_ALLOW_PATTERNS = [
     "*.json",
     "*.safetensors",
@@ -165,12 +167,13 @@ class ModelStore:
 
         dest = self.tier_dir(tier) / "checkpoint"
         temp_dest = self.tier_dir(tier) / f".checkpoint-download-{os.getpid()}"
-        backup = self.tier_dir(tier) / ".checkpoint.bak"
+        backup = self.tier_dir(tier) / f".checkpoint-{os.getpid()}.bak"
 
         if temp_dest.exists():
             shutil.rmtree(temp_dest)
         temp_dest.mkdir(parents=True, exist_ok=True)
 
+        moved_to_backup = False
         try:
             local_dir = snapshot_download(
                 repo_id=tier_entry.repo_id,
@@ -198,12 +201,19 @@ class ModelStore:
                 shutil.rmtree(backup)
             if dest.exists():
                 os.replace(dest, backup)
+                moved_to_backup = True
             os.replace(ckpt, dest)
-            self.write_manifest(manifest.model_copy(update={"path": str(dest)}))
+            self.write_manifest(manifest)
             if backup.exists():
                 shutil.rmtree(backup)
             return dest
         except Exception:
+            # Roll back to the last good checkpoint so a failed swap never
+            # strands the tier without a model (manifest still matches it).
+            if moved_to_backup and backup.exists():
+                if dest.exists():
+                    shutil.rmtree(dest)
+                os.replace(backup, dest)
             if temp_dest.exists():
                 shutil.rmtree(temp_dest)
             raise
