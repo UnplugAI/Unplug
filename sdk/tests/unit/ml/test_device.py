@@ -22,6 +22,19 @@ def test_forced_cuda_unavailable_raises_config_error() -> None:
         resolve_torch_device("cuda")
 
 
+def test_forced_indexed_cuda_unavailable_raises() -> None:
+    with (
+        patch("torch.cuda.is_available", return_value=False),
+        pytest.raises(ConfigError, match="not available"),
+    ):
+        resolve_torch_device("cuda:0")
+
+
+def test_forced_indexed_device_accepted_when_backend_available() -> None:
+    with patch("torch.cuda.is_available", return_value=True):
+        assert resolve_torch_device("cuda:1") == "cuda:1"
+
+
 def test_forced_cpu_always_ok() -> None:
     assert resolve_torch_device("cpu") == "cpu"
 
@@ -33,6 +46,7 @@ def test_auto_prefers_cuda_when_available() -> None:
     ):
         assert resolve_torch_device(None) == "cuda"
         assert resolve_torch_device("auto") == "cuda"
+        assert resolve_torch_device(" auto ") == "cuda"
 
 
 def test_auto_falls_back_to_mps() -> None:
@@ -56,5 +70,5 @@ def test_auto_falls_back_to_cpu() -> None:
 
 
 def test_forced_unknown_device_raises() -> None:
-    with pytest.raises(ConfigError, match="not available"):
-        resolve_torch_device("tpu")
+    with pytest.raises(ConfigError, match="Torch device"):
+        resolve_torch_device("not-a-device")
