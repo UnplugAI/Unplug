@@ -49,7 +49,7 @@ test-ml-harness:
 	$(MAKE) smoke-ml-hooks
 
 smoke-ml:
-	uv run python scripts/smoke_local_ml.py
+	uv run python scripts/smoke_local_ml.py --require-weights
 	$(MAKE) audit-ml
 
 # Offline: synthetic checkpoint + Guard + LangGraph-style hooks (no hub download).

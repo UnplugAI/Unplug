@@ -72,10 +72,9 @@ def resolve_validation_checkpoint(*, require_weights: bool = False) -> Path | No
         tier = str(manifest.get("tier", "tiny"))
         try:
             from unplug.ml.store import default_cache_root
-
-            cached = default_cache_root() / tier / "checkpoint"
-        except Exception:
+        except ImportError:
             return None
+        cached = default_cache_root() / tier / "checkpoint"
         if is_valid_checkpoint(cached, require_weights=require_weights):
             return cached
         return None
