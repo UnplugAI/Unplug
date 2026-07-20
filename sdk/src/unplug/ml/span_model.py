@@ -211,74 +211,83 @@ class SpanInferenceModel:
     ) -> list[SpanPrediction]:
         torch = get_torch()
 
-        tokenizer, model = self._require_loaded()
+        with self._load_lock:
+            if self._model is None:
+                self._load_unlocked()
+            if self._tokenizer is None or self._model is None:
+                msg = "Model was unloaded during inference"
+                raise ModelError(msg)
+            tokenizer = self._tokenizer
+            model = self._model
 
-        if not texts:
-            return []
+            if not texts:
+                return []
 
-        out: list[SpanPrediction] = []
-        bs = max(1, batch_size)
-        for start in range(0, len(texts), bs):
-            chunk = texts[start : start + bs]
-            encoding = tokenizer(
-                chunk,
-                return_offsets_mapping=True,
-                truncation=True,
-                max_length=self._max_length,
-                stride=self._stride,
-                padding=True,
-                return_overflowing_tokens=bool(self._stride and self._stride < self._max_length),
-                return_tensors="pt",
-            )
-            if encoding.get("overflow_to_sample_mapping") is not None:
-                out.extend(self._predict_overflowing(encoding, chunk, model, tokenizer))
-                continue
-
-            offset_mappings = encoding.pop("offset_mapping")
-            skip_keys = frozenset(
-                {"offset_mapping", "overflow_to_sample_mapping", "num_overflowing_tokens"}
-            )
-            inputs = {
-                key: value.to(self._device)
-                for key, value in encoding.items()
-                if key not in skip_keys
-            }
-            with torch.no_grad():
-                outputs = model(**inputs)
-                logits = outputs.logits
-                probs = torch.softmax(logits, dim=-1)
-                doc_logits = getattr(outputs, "doc_logits", None)
-                disposition_logits = getattr(outputs, "disposition_logits", None)
-
-            for i, body in enumerate(chunk):
-                offset_mapping = offset_mappings[i].tolist()
-                row_probs = probs[i]
-                spans = decode_bioes_spans(
-                    offset_mapping,
-                    probs=row_probs,
-                    id2label=self._id2label,
-                    label2id=self._label2id,
-                    inj_threshold=self._inj_threshold,
+            out: list[SpanPrediction] = []
+            bs = max(1, batch_size)
+            for start in range(0, len(texts), bs):
+                chunk = texts[start : start + bs]
+                encoding = tokenizer(
+                    chunk,
+                    return_offsets_mapping=True,
+                    truncation=True,
+                    max_length=self._max_length,
+                    stride=self._stride,
+                    padding=True,
+                    return_overflowing_tokens=bool(
+                        self._stride and self._stride < self._max_length
+                    ),
+                    return_tensors="pt",
                 )
-                doc_prob, doc_source = self._doc_score(
-                    offset_mapping,
-                    row_probs=row_probs,
-                    doc_logits=doc_logits[i] if doc_logits is not None else None,
+                if encoding.get("overflow_to_sample_mapping") is not None:
+                    out.extend(self._predict_overflowing(encoding, chunk, model, tokenizer))
+                    continue
+
+                offset_mappings = encoding.pop("offset_mapping")
+                skip_keys = frozenset(
+                    {"offset_mapping", "overflow_to_sample_mapping", "num_overflowing_tokens"}
                 )
-                disposition_label, disposition_probs = self._disposition(
-                    disposition_logits[i] if disposition_logits is not None else None
-                )
-                out.append(
-                    SpanPrediction(
-                        text_normalized=body,
-                        spans=merge_char_spans(spans),
-                        doc_score=doc_prob,
-                        doc_score_source=doc_source,
-                        disposition_label=disposition_label,
-                        disposition_probs=disposition_probs,
+                inputs = {
+                    key: value.to(self._device)
+                    for key, value in encoding.items()
+                    if key not in skip_keys
+                }
+                with torch.no_grad():
+                    outputs = model(**inputs)
+                    logits = outputs.logits
+                    probs = torch.softmax(logits, dim=-1)
+                    doc_logits = getattr(outputs, "doc_logits", None)
+                    disposition_logits = getattr(outputs, "disposition_logits", None)
+
+                for i, body in enumerate(chunk):
+                    offset_mapping = offset_mappings[i].tolist()
+                    row_probs = probs[i]
+                    spans = decode_bioes_spans(
+                        offset_mapping,
+                        probs=row_probs,
+                        id2label=self._id2label,
+                        label2id=self._label2id,
+                        inj_threshold=self._inj_threshold,
                     )
-                )
-        return out
+                    doc_prob, doc_source = self._doc_score(
+                        offset_mapping,
+                        row_probs=row_probs,
+                        doc_logits=doc_logits[i] if doc_logits is not None else None,
+                    )
+                    disposition_label, disposition_probs = self._disposition(
+                        disposition_logits[i] if disposition_logits is not None else None
+                    )
+                    out.append(
+                        SpanPrediction(
+                            text_normalized=body,
+                            spans=merge_char_spans(spans),
+                            doc_score=doc_prob,
+                            doc_score_source=doc_source,
+                            disposition_label=disposition_label,
+                            disposition_probs=disposition_probs,
+                        )
+                    )
+            return out
 
     def _predict_overflowing(
         self,

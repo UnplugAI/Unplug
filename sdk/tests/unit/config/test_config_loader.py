@@ -144,6 +144,16 @@ class TestBuildConfig:
         with pytest.raises(ConfigError, match="Unknown \\[guard\\] config keys"):
             build_config({"guard": {"strict_scanner_allowlist_typo": True}})
 
+    def test_invalid_guard_section_type_raises(self) -> None:
+        from unplug.exceptions import ConfigError
+
+        with pytest.raises(ConfigError, match="\\[guard\\] must be a table"):
+            build_config({"guard": None})
+
+    def test_strict_scanner_allowlist_string_false(self) -> None:
+        cfg = build_config({"guard": {"strict_scanner_allowlist": "false"}})
+        assert cfg.strict_scanner_allowlist is False
+
 
 class TestLoad:
     def test_from_file(self, toml_file: Path):

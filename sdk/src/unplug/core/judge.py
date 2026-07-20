@@ -62,7 +62,7 @@ class JudgeResult(BaseModel):
         if self.action == Action.REVIEW:
             upper = min(redact_threshold, block_threshold)
             if upper <= review_threshold:
-                return min(1.0, max(score, review_threshold))
+                return max(0.0, math.nextafter(upper, 0.0)) if upper > 0 else 0.0
             floored = max(score, review_threshold)
             if floored >= upper:
                 return max(review_threshold, math.nextafter(upper, 0.0))

@@ -26,3 +26,9 @@ def test_guard_strict_allowlist_propagates_config_error() -> None:
     guard = Guard(config=GuardConfig(strict_scanner_allowlist=True))
     with pytest.raises(ConfigError, match="injection"):
         guard.scan_request(ScanRequest(text="hello", scanners=["harmful"]))
+
+
+def test_empty_scanner_list_uses_default_set() -> None:
+    guard = Guard(config=GuardConfig(scanners=["injection", "destructive", "harmful"]))
+    result = guard.scan_request(ScanRequest(text="hello world", scanners=[]))
+    assert result.safe is True

@@ -55,10 +55,26 @@ _GUARD_SECTION_KEYS: frozenset[str] = frozenset(
 )
 
 
+def _coerce_bool(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        lowered = value.strip().lower()
+        if lowered in ("true", "yes", "1"):
+            return True
+        if lowered in ("false", "no", "0"):
+            return False
+    return bool(value)
+
+
 def _reject_unknown_guard_keys(data: dict[str, Any]) -> None:
     if "guard" not in data:
         return
-    unknown = sorted(set(data["guard"]) - _GUARD_SECTION_KEYS)
+    guard = data["guard"]
+    if not isinstance(guard, dict):
+        msg = "[guard] must be a table"
+        raise ConfigError(msg)
+    unknown = sorted(set(guard) - _GUARD_SECTION_KEYS)
     if unknown:
         msg = f"Unknown [guard] config keys: {', '.join(unknown)}"
         raise ConfigError(msg)
@@ -280,7 +296,7 @@ def build_config(data: dict[str, Any]) -> GuardConfig:
     if "fail_closed" in guard_data:
         kwargs["fail_closed"] = guard_data["fail_closed"]
     if "strict_scanner_allowlist" in guard_data:
-        kwargs["strict_scanner_allowlist"] = bool(guard_data["strict_scanner_allowlist"])
+        kwargs["strict_scanner_allowlist"] = _coerce_bool(guard_data["strict_scanner_allowlist"])
 
     pipeline_data = guard_data.get("pipeline", data.get("pipeline", {}))
     if pipeline_data:

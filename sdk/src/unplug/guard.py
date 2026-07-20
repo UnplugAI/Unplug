@@ -495,9 +495,16 @@ class Guard:
     def _cache_policy_fingerprint(self, request: ScanRequest) -> str:
         """Fingerprint policy + scanner set so cache entries are not reused across configs."""
         policy = self._config.policy
+        pipeline_policy = self._config.pipeline.policy
+        ml_gate = self._config.pipeline.ml_gate
         scanners = request.scanners if request.scanners is not None else list(self._config.scanners)
+        scanner_cfg_parts = [
+            f"{name}:{cfg.base_score}:{cfg.trust_boost}:{cfg.enabled}:{cfg.normalize}"
+            for name, cfg in sorted(self._config.scanner_configs.items())
+        ]
         parts = [
             ",".join(scanners),
+            str(self._config.strict_scanner_allowlist),
             str(
                 request.block_threshold
                 if request.block_threshold is not None
@@ -520,6 +527,22 @@ class Guard:
             ),
             str(request.redact),
             str(request.redaction_mode.value if request.redaction_mode is not None else ""),
+            str(policy.sensitive_context_enabled),
+            str(policy.sensitive_context_boost),
+            str(policy.sensitive_context_block_delta),
+            str(policy.abstain_is_safe),
+            str(policy.decision_mode.value),
+            str(policy.tau_abstain_low),
+            str(policy.tau_doc_gate),
+            str(policy.scan_user_secrets),
+            str(pipeline_policy.merge_overlapping_spans),
+            str(self._config.judge_low),
+            str(self._config.judge_high),
+            str(ml_gate.always_below_high),
+            str(ml_gate.gray_low),
+            str(self._config.cache.prefix_overlap_chars),
+            str(self._config.cache.advance_prefix_on_redact),
+            ";".join(scanner_cfg_parts),
         ]
         return "|".join(parts)
 
@@ -689,10 +712,13 @@ class Guard:
                 prev_allowed = ctx.allowed_scanners
                 try:
                     if request.scanners is not None:
-                        ctx.allowed_scanners = resolve_input_scanners(
-                            list(request.scanners),
-                            strict=self._config.strict_scanner_allowlist,
-                        )
+                        if request.scanners:
+                            ctx.allowed_scanners = resolve_input_scanners(
+                                list(request.scanners),
+                                strict=self._config.strict_scanner_allowlist,
+                            )
+                        else:
+                            ctx.allowed_scanners = None
                     else:
                         ctx.allowed_scanners = None
                     if not isolated:

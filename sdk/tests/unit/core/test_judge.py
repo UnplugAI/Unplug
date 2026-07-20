@@ -62,6 +62,11 @@ class TestJudgeResult:
         score = r.enforced_score(block_threshold=0.8, redact_threshold=0.5, review_threshold=0.3)
         assert 0.3 <= score < 0.5
 
+    def test_review_action_avoids_escalation_when_band_collapsed(self):
+        r = JudgeResult(action=Action.REVIEW, category="injection", score=0.9, reason="maybe")
+        score = r.enforced_score(block_threshold=0.5, redact_threshold=0.6, review_threshold=0.7)
+        assert score < 0.5
+
 
 class TestJudgeContext:
     def test_empty_context(self):

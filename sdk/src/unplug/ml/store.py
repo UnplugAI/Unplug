@@ -137,8 +137,17 @@ class ModelStore:
             return False
         if any((path / name).is_file() for name in _WEIGHT_FILES):
             return True
-        if (path / "model.safetensors.index.json").is_file():
-            return any(path.glob("*.safetensors"))
+        index_path = path / "model.safetensors.index.json"
+        if index_path.is_file():
+            try:
+                index = json.loads(index_path.read_text(encoding="utf-8"))
+            except json.JSONDecodeError:
+                return False
+            weight_map = index.get("weight_map", {})
+            if not isinstance(weight_map, dict) or not weight_map:
+                return False
+            shard_names = set(weight_map.values())
+            return all((path / name).is_file() for name in shard_names)
         return any(path.glob("model-*-of-*.safetensors"))
 
     def _installed_checkpoint(self, tier: str) -> Path | None:
