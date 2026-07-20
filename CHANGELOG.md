@@ -2,6 +2,16 @@
 
 All notable changes to the `unplug-ai` SDK.
 
+## [Unreleased]
+
+### Fixed
+
+- Model store hardening: corrupt manifests no longer crash Guard or `unplug-models`; checkpoint validation requires weight files; atomic manifest writes and download swaps preserve existing installs on failure; `list_status` correctly reports stale revisions as upgrade-available; invalid `UNPLUG_MODEL_PATH` logs a warning; CLI download errors distinguish missing ML extras from network/repo failures
+
+### Changed
+
+- Unknown `active_model` tier names now raise `ConfigError` with valid catalog tiers instead of silently running without ML
+
 ## [0.5.1] — 2026-07-20
 
 ### Fixed
