@@ -17,7 +17,6 @@ _SKIP_PREFIXES = (
     "docs/",
     "examples/",
     "demo/",
-    ".github/",
     ".context/",
 )
 _AGENT_MARKERS = (
@@ -27,8 +26,33 @@ _AGENT_MARKERS = (
     "mcp.json",
     "claude_desktop_config",
     ".mcp/",
+    "copilot-instructions",
+    ".github/agents/",
 )
-_MAX_CHUNK = 2000
+# Whole files are scanned in a single pass (Guard's default input limit is 50k
+# chars). We deliberately do NOT window the text: any fixed-size chunk boundary
+# can split a prompt-injection phrase so neither chunk matches it, letting a
+# crafted agent file scan clean. The cap is only a DoS guard for huge files.
+_MAX_SCAN_CHARS = 50_000
+
+
+def _is_agent_file(rel: str) -> bool:
+    """True if a repo-relative path looks like in-scope agent/MCP configuration."""
+    if not rel or any(rel.startswith(p) for p in _SKIP_PREFIXES):
+        return False
+    rel_posix = rel.replace("\\", "/")
+    return any(marker in rel_posix for marker in _AGENT_MARKERS)
+
+
+def base_ref_exists(base_ref: str, repo_root: Path) -> bool:
+    """True if origin/<base_ref> resolves to a commit (needs a fetch-depth: 0 checkout)."""
+    result = subprocess.run(  # noqa: S603
+        ["git", "rev-parse", "--verify", "--quiet", f"origin/{base_ref}^{{commit}}"],  # noqa: S607
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+    )
+    return result.returncode == 0
 
 
 def changed_agent_files(base_ref: str, repo_root: Path) -> list[Path]:
@@ -43,37 +67,34 @@ def changed_agent_files(base_ref: str, repo_root: Path) -> list[Path]:
     paths: list[Path] = []
     for line in out.splitlines():
         rel = line.strip()
-        if not rel or any(rel.startswith(p) for p in _SKIP_PREFIXES):
+        if not _is_agent_file(rel):
             continue
         path = repo_root / rel
         if not path.is_file():
             continue
-        rel_posix = rel.replace("\\", "/")
-        if any(marker in rel_posix for marker in _AGENT_MARKERS):
-            paths.append(path)
+        paths.append(path)
     return paths
 
 
-def _chunks(text: str) -> list[str]:
-    text = text[:50_000]
-    return [text[i : i + _MAX_CHUNK] for i in range(0, len(text), _MAX_CHUNK)] or [text]
+def _scannable_text(text: str) -> str:
+    """Cap pathologically large files; the file is scanned whole (no windowing)."""
+    return text[:_MAX_SCAN_CHARS]
 
 
 def scan_paths(repo_root: Path, paths: list[Path]) -> list[tuple[Path, str]]:
-    """Scan files; return list of (path, message) for each blocked chunk."""
+    """Scan files whole; return list of (path, message) for each blocked file."""
     guard = Guard()
     blocked: list[tuple[Path, str]] = []
     for path in paths:
-        for chunk in _chunks(path.read_text(encoding="utf-8", errors="replace")):
-            result = guard.scan(chunk, source="user")
-            if result.action == Action.BLOCK or not result.safe:
-                try:
-                    rel = path.relative_to(repo_root)
-                except ValueError:
-                    rel = path
-                msg = f"Unplug flagged {result.action.value} (risk={result.risk_score:.2f})"
-                blocked.append((rel, msg))
-                break
+        text = _scannable_text(path.read_text(encoding="utf-8", errors="replace"))
+        result = guard.scan(text, source="user")
+        if result.action == Action.BLOCK or not result.safe:
+            try:
+                rel = path.relative_to(repo_root)
+            except ValueError:
+                rel = path
+            msg = f"Unplug flagged {result.action.value} (risk={result.risk_score:.2f})"
+            blocked.append((rel, msg))
     return blocked
 
 
@@ -100,6 +121,13 @@ def main_argv(argv: list[str] | None = None) -> int:
 
     if args.paths:
         paths = [p if p.is_absolute() else repo_root / p for p in args.paths]
+    elif not base_ref_exists(args.base_ref, repo_root):
+        print(
+            f"::error::Base ref 'origin/{args.base_ref}' not found. Check out with full history "
+            "(fetch-depth: 0) and pass the correct --base-ref; refusing to scan a possibly-empty "
+            "diff."
+        )
+        return 2
     else:
         paths = changed_agent_files(args.base_ref, repo_root)
 

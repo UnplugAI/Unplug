@@ -41,17 +41,17 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from unplug.integrations.hooks import AgentHooks, HookDecision
+from unplug.integrations.hooks import AgentHooks, HookDecision, flatten_text
 from unplug.integrations.langgraph import require_allowed
 
 
 def _coerce_text(value: Any) -> str:
+    # Flatten structured answers (dict / model / tool result) rather than trusting
+    # ``.text`` or ``str(value)`` alone, so a secret hidden in a sibling field is
+    # still scanned instead of being represented by a harmless string form.
     if isinstance(value, str):
         return value
-    text = getattr(value, "text", None)
-    if isinstance(text, str):
-        return text
-    return str(value)
+    return flatten_text(value)
 
 
 def smolagents_task_guard(

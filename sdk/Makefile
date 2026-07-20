@@ -56,7 +56,7 @@ test:
 	uv run pytest -v
 
 test-cov:
-	uv run pytest -q -m "not requires_docker and not slow" --cov=unplug --cov-report=xml:coverage.xml --cov-report=term --cov-fail-under=75 --junitxml=pytest.xml
+	uv run pytest -q -m "not requires_docker and not slow" --cov=unplug --cov-report=xml:coverage.xml --cov-report=term --cov-fail-under=80 --junitxml=pytest.xml
 
 test-security:
 	uv run pytest tests/security tests/unit/core/agent/test_agent_hardening.py -v

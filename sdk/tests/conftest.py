@@ -27,6 +27,9 @@ def pytest_configure(config: object) -> None:
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    # resolve_validation_checkpoint returns None (never raises) when the manifest
+    # is missing, so a wheel/non-editable install degrades to a skip here and in
+    # the module-level skipif decorators rather than crashing collection.
     if resolve_validation_checkpoint(require_weights=True) is None:
         skip_ml = pytest.mark.skip(reason="ML checkpoint weights not available")
         for item in items:

@@ -24,13 +24,52 @@ Every integration module lives under `unplug.integrations.*` and uses the same f
 
 ```python
 from unplug import Guard
+from unplug.api.enums import Action
 from unplug.integrations.hooks import AgentHooks
 
 hooks = AgentHooks(Guard())  # or Guard(mode="server") for hosted API
 decision = hooks.scan_user_input(user_message)
+if decision.needs_review:
+    hold_for_operator(decision)  # rare on input; see docs/AGENT_ACTIONS.md
+elif not decision.allowed:
+    raise RuntimeError(decision.message)
+```
+
+> **PyPI install?** Integration modules ship in the wheel (`unplug.integrations.*`), but
+> these markdown guides live in the GitHub repo:
+> https://github.com/UnplugAI/Unplug/tree/dev/sdk/integrations
+>
+> Also: [`docs/GETTING_STARTED.md`](../docs/GETTING_STARTED.md) · [`docs/AGENT_ACTIONS.md`](../docs/AGENT_ACTIONS.md)
+
+## Pick your path
+
+| You are… | Install | Read |
+|----------|---------|------|
+| Trying Unplug for the first time | `pip install unplug-ai` | [`docs/GETTING_STARTED.md`](../docs/GETTING_STARTED.md) |
+| Building a custom agent loop | *(core only)* | [custom-loop](custom-loop/README.md) |
+| Using LangGraph / CrewAI / OpenAI Agents / … | `pip install "unplug-ai[<extra>]"` | Guide column below |
+| Hardening an MCP host | `pip install "unplug-ai[mcp]"` + [unplug-mcp](https://github.com/UnplugAI/unplug-mcp) | [mcp](mcp/README.md) |
+| Production without local GPU | `Guard(mode="server")` | [`docs/DEPLOYMENT.md`](../docs/DEPLOYMENT.md) |
+
+**Naming:** PyPI extra uses hyphens (`openai-agents`); Python module uses underscores
+(`unplug.integrations.openai_agents`).
+
+## REVIEW vs BLOCK (agent hosts)
+
+`HookDecision.allowed` is `False` for both **review** and **block**. Side-effect tools in a
+**tainted session** (after web fetch / RAG) return **`review`** — pause for human approval,
+do not treat as a silent failure.
+
+```python
+decision = hooks.before_tool_call("send_email", args)
+if decision.needs_review:
+    # Wire Guard(approval=YourApprovalProvider()) — see docs/AGENT_ACTIONS.md
+    return pause_workflow(decision.message)
 if not decision.allowed:
     raise RuntimeError(decision.message)
 ```
+
+Full decision table and `ApprovalProvider` example: [`docs/AGENT_ACTIONS.md`](../docs/AGENT_ACTIONS.md).
 
 ## Supported frameworks
 

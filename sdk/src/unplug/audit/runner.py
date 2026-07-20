@@ -173,34 +173,52 @@ def run_audit(
 
     probe_summary: dict[str, Any] = {}
     probe_guard: Guard | None = None
-    if require_ml:
-        probe_guard = Guard(config=cfg) if cfg else Guard()
-        if not _ensure_ml_loaded(probe_guard):
-            probe_guard = None
+    candidate = Guard(config=cfg) if cfg else Guard()
+    if _ensure_ml_loaded(candidate):
+        probe_guard = candidate
 
     if include_probes:
         if fp_path.is_file():
-            fp_suite = run_fp_probe_suite(fp_path, base_config=cfg, guard=probe_guard)
-            probe_summary["fp"] = fp_suite
-            checks.append(
-                _check(
-                    "fp_probe_suite",
-                    fp_suite.get("all_passed", False),
-                    f"tp={fp_suite.get('tp')} fp={fp_suite.get('fp')} fn={fp_suite.get('fn')}",
+            if probe_guard is None:
+                checks.append(
+                    _check(
+                        "fp_probe_suite",
+                        False,
+                        "skipped (ML inactive; pip install unplug-ai[ml], "
+                        "set active_model=tiny, or use --require-ml)",
+                    )
                 )
-            )
+            else:
+                fp_suite = run_fp_probe_suite(fp_path, base_config=cfg, guard=probe_guard)
+                probe_summary["fp"] = fp_suite
+                checks.append(
+                    _check(
+                        "fp_probe_suite",
+                        fp_suite.get("all_passed", False),
+                        f"tp={fp_suite.get('tp')} fp={fp_suite.get('fp')} fn={fp_suite.get('fn')}",
+                    )
+                )
         if enc_path.is_file():
-            enc_suite = run_encoding_probe_suite(enc_path, base_config=cfg, guard=probe_guard)
-            probe_summary["encoding"] = enc_suite
-            checks.append(
-                _check(
-                    "encoding_probe_suite",
-                    enc_suite.get("encoding_probes_pass", False),
-                    f"encoding_pass={enc_suite.get('encoding_probes_pass')} "
-                    f"hits={enc_suite.get('encoding_stage_hits')} "
-                    f"control_fp={enc_suite.get('literal_control_fp')}",
+            if probe_guard is None:
+                checks.append(
+                    _check(
+                        "encoding_probe_suite",
+                        False,
+                        "skipped (ML inactive; use --probes --require-ml for full batteries)",
+                    )
                 )
-            )
+            else:
+                enc_suite = run_encoding_probe_suite(enc_path, base_config=cfg, guard=probe_guard)
+                probe_summary["encoding"] = enc_suite
+                checks.append(
+                    _check(
+                        "encoding_probe_suite",
+                        enc_suite.get("encoding_probes_pass", False),
+                        f"encoding_pass={enc_suite.get('encoding_probes_pass')} "
+                        f"hits={enc_suite.get('encoding_stage_hits')} "
+                        f"control_fp={enc_suite.get('literal_control_fp')}",
+                    )
+                )
         if bnd_path.is_file():
             boundary = run_boundary_probe_suite(bnd_path, base_config=cfg)
             probe_summary["boundary"] = boundary

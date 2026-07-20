@@ -116,7 +116,7 @@ def test_list_status_includes_all_tiers(tmp_path: Path) -> None:
     store = ModelStore(cache_root=tmp_path)
     rows = store.list_status()
     tiers = {r["tier"] for r in rows}
-    assert {"tiny", "medium", "large"}.issubset(tiers)
+    assert tiers == set(load_catalog().tier_names())
 
 
 def test_guard_survives_corrupt_checkpoint(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

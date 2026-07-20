@@ -80,6 +80,18 @@ def langchain_tool_guard(
     return guard
 
 
+def _tool_call_args(input_str: str, kwargs: dict[str, Any]) -> dict[str, Any]:
+    """Resolve the args dict to scan for an ``on_tool_start`` callback.
+
+    Newer LangChain forwards the structured tool arguments as ``inputs``; prefer
+    them so field-sensitive policy (``command`` / ``query`` / ``path`` / ``url``)
+    evaluates the real arguments instead of a single flattened string. Fall back
+    to the positional ``input_str`` when structured inputs are unavailable.
+    """
+    inputs = kwargs.get("inputs")
+    return inputs if isinstance(inputs, dict) else {"input": input_str}
+
+
 def _require_langchain_core() -> Any:
     try:
         import langchain_core
@@ -130,7 +142,7 @@ def _build_callback_handler_class() -> type:
             **kwargs: Any,
         ) -> None:
             name = (serialized or {}).get("name", "tool")
-            decision = self._hooks.before_tool_call(name, {"input": input_str})
+            decision = self._hooks.before_tool_call(name, _tool_call_args(input_str, kwargs))
             require_allowed(decision)
 
     return UnplugCallbackHandler
