@@ -100,7 +100,7 @@ class Guard:
         self,
         *,
         scanners: list[str] | None = None,
-        mode: str = "local",
+        mode: str | None = None,
         server_url: str | None = None,
         server_api_key: str | None = None,
         fail_mode: str = "closed",
@@ -123,7 +123,9 @@ class Guard:
                 DeprecationWarning,
                 stacklevel=2,
             )
-        overrides: dict[str, Any] = {"mode": mode, "fail_closed": fail_mode == "closed"}
+        overrides: dict[str, Any] = {"fail_closed": fail_mode == "closed"}
+        if mode is not None:
+            overrides["mode"] = mode
         if scanners is not None:
             overrides["scanners"] = scanners
         if server_url is not None:
