@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from unplug.ml.models import ModelProvider, ModelSpec
 from unplug.ml.span_model import SpanInferenceModel
 from unplug.ml.types import SpanPrediction
+
+logger = logging.getLogger("unplug.ml.providers")
 
 
 class TransformersSpanProvider(ModelProvider):
@@ -30,6 +33,7 @@ class TransformersSpanProvider(ModelProvider):
         )
 
     def _do_load(self) -> None:
+        logger.info("loading transformers span provider %s", self._spec.name)
         self._engine.load()
 
     def _do_unload(self) -> None:

@@ -6,9 +6,6 @@ scanners = ["injection", "destructive", "leakage", "harmful", "urls"]
 # scanners = ["injection", "destructive", "leakage", "harmful", "urls", "pii"]
 # mode: "local" (default) | "server" (hosted API)
 mode = "local"
-# fail_closed is deprecated — scanner/pipeline errors always block (fail-closed)
-fail_closed = true
-judge_enabled = false
 # server_url = "https://api.unplug.example"
 # server_api_key = "up_live_xxxxxxxx"
 

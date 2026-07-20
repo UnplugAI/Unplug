@@ -2,16 +2,24 @@
 
 from __future__ import annotations
 
+import logging
+import threading
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from unplug.exceptions import ModelError
 from unplug.ml.bioes import decode_bioes_spans
 from unplug.ml.device import resolve_torch_device
 from unplug.ml.spans_merge import merge_char_spans
 from unplug.ml.types import CharSpan, SpanPrediction
+from unplug.optional.ml import get_torch, get_transformers
 
 if TYPE_CHECKING:
     from transformers import PreTrainedModel, PreTrainedTokenizerBase
+
+logger = logging.getLogger("unplug.ml.span_model")
+
+_INJ_LABELS = ("B-INJ", "I-INJ", "E-INJ", "S-INJ")
 
 
 class SpanInferenceModel:
@@ -44,6 +52,7 @@ class SpanInferenceModel:
         self._max_length = max_length or 256
         self._has_disposition = False
         self._id2disposition: dict[int, str] = {}
+        self._load_lock = threading.Lock()
 
     @property
     def checkpoint(self) -> Path:
@@ -68,7 +77,14 @@ class SpanInferenceModel:
     def load(self) -> None:
         if self._model is not None:
             return
-        import torch
+        with self._load_lock:
+            if self._model is not None:
+                return
+            self._load_unlocked()
+
+    def _load_unlocked(self) -> None:
+        torch = get_torch()
+        get_transformers()
         from transformers import AutoConfig, AutoModelForTokenClassification, AutoTokenizer
 
         if not self._checkpoint.is_dir():
@@ -83,7 +99,12 @@ class SpanInferenceModel:
                 use_fast=True,
                 clean_up_tokenization_spaces=False,
             )
-        except Exception:
+        except Exception as exc:
+            logger.warning(
+                "fast tokenizer load failed for %s, falling back: %s",
+                self._checkpoint,
+                exc,
+            )
             if tok_json.is_file():
                 from transformers import PreTrainedTokenizerFast
 
@@ -137,8 +158,25 @@ class SpanInferenceModel:
         self._model.eval()
         self._label2id = dict(self._model.config.label2id)
         self._id2label = {int(k): v for k, v in self._model.config.id2label.items()}
+        self._validate_inj_labels()
+        logger.info("injection model loaded on %s", self._device)
+
+    def _validate_inj_labels(self) -> None:
+        if any(label in self._label2id for label in _INJ_LABELS):
+            return
+        labels = sorted(self._label2id)
+        self._clear_state()
+        raise ModelError(
+            "Checkpoint label map has no *-INJ labels "
+            "(expected BIOES scheme: B-INJ/I-INJ/E-INJ/S-INJ). "
+            f"Got labels: {labels}"
+        )
 
     def unload(self) -> None:
+        with self._load_lock:
+            self._clear_state()
+
+    def _clear_state(self) -> None:
         self._model = None
         self._tokenizer = None
         self._label2id = {}
@@ -156,7 +194,7 @@ class SpanInferenceModel:
         *,
         batch_size: int = 32,
     ) -> list[SpanPrediction]:
-        import torch
+        torch = get_torch()
 
         self.load()
         assert self._tokenizer is not None
@@ -234,7 +272,7 @@ class SpanInferenceModel:
         encoding: dict,
         bodies: list[str],
     ) -> list[SpanPrediction]:
-        import torch
+        torch = get_torch()
 
         assert self._tokenizer is not None
         assert self._model is not None
@@ -313,7 +351,7 @@ class SpanInferenceModel:
         row_probs: object,
         doc_logits: object | None,
     ) -> tuple[float, str]:
-        import torch
+        torch = get_torch()
 
         if self._is_dual_head and doc_logits is not None:
             doc_prob = float(torch.softmax(doc_logits, dim=-1)[self._doc_pos_index].item())
@@ -329,7 +367,7 @@ class SpanInferenceModel:
         self, disposition_logits: object | None
     ) -> tuple[str | None, dict[str, float] | None]:
         """Softmax the ternary head for one row; (None, None) without the head."""
-        import torch
+        torch = get_torch()
 
         if not self._has_disposition or disposition_logits is None:
             return None, None
@@ -348,7 +386,7 @@ def _token_max_inj_prob(
     probs: object,
     label2id: dict[str, int],
 ) -> float:
-    inj_cols = [label2id[t] for t in ("B-INJ", "I-INJ", "E-INJ", "S-INJ") if t in label2id]
+    inj_cols = [label2id[t] for t in _INJ_LABELS if t in label2id]
     if not inj_cols:
         return 0.0
     best = 0.0

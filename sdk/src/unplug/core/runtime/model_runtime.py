@@ -32,7 +32,11 @@ def resolve_active_model_spec(config: GuardConfig) -> ModelSpec | None:
     if spec is None:
         fallback = catalog_model_spec(config.active_model)
         if fallback is None:
-            return None
+            cat = load_catalog()
+            valid = ", ".join(cat.tier_names())
+            raise ConfigError(
+                f"Unknown active_model tier {config.active_model!r}. Valid tiers: {valid}"
+            )
         spec = fallback
     if isinstance(spec, dict):
         spec = ModelSpec.model_validate(spec)
@@ -87,13 +91,17 @@ def build_model_registry() -> ModelRegistry:
     return registry
 
 
-def load_active_model_provider(config: GuardConfig) -> ModelProvider | None:
-    spec = prepare_active_model_spec(config)
-    if spec is None:
+def load_active_model_provider(
+    config: GuardConfig,
+    *,
+    spec: ModelSpec | None = None,
+) -> ModelProvider | None:
+    resolved = spec if spec is not None else prepare_active_model_spec(config)
+    if resolved is None:
         return None
-    if spec.backend == "null":
+    if resolved.backend == "null":
         return None
-    path = spec.path
+    path = resolved.path
     if not path or not Path(path).is_dir():
         if config.require_ml:
             tier = config.active_model or "unknown"
@@ -103,7 +111,7 @@ def load_active_model_provider(config: GuardConfig) -> ModelProvider | None:
             raise ModelError(msg)
         return None
     registry = build_model_registry()
-    return registry.get(spec)
+    return registry.get(resolved)
 
 
 def model_cache_version(spec: ModelSpec | None) -> str:

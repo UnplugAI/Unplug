@@ -1,8 +1,13 @@
 """Tests for pipelines: input, output, tool call."""
 
+import logging
+
+import pytest
+
 from unplug.core.context import ExecutionContext, ToolCall
 from unplug.core.privacy.secrets import SecretsRegistry, SecretsSanitizer
 from unplug.core.taint import TaintedText, TrustLevel
+from unplug.guard import Guard
 from unplug.models import Action, Source
 from unplug.pipelines.input import InputPipeline
 from unplug.pipelines.output import OutputPipeline
@@ -226,3 +231,23 @@ class TestToolCallPipeline:
         result = pipeline.run(tc)
         assert not result.safe
         assert any(f.category == "destructive" for f in result.findings)
+
+
+class TestPipelineLogging:
+    def test_review_outcome_logs_at_info(
+        self,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        guard = Guard()
+        guard.scan("Poisoned doc", source=Source.RETRIEVED)
+        with caplog.at_level(logging.DEBUG, logger="unplug.pipelines"):
+            result = guard.check_tool_call("shell", {"command": "echo hello"})
+        assert result.action == Action.REVIEW
+        review_records = [
+            record
+            for record in caplog.records
+            if record.name == "unplug.pipelines" and "action=review" in record.getMessage()
+        ]
+        assert review_records
+        assert all(record.levelno == logging.INFO for record in review_records)
+        assert not any(record.levelno == logging.WARNING for record in review_records)

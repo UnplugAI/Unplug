@@ -87,7 +87,8 @@ jobs:
         # resolves that one framework freshly. We mirror that here.
         run: |
           uv venv
-          uv pip install -e ".[dev,${{ matrix.extra }}]"
+          # Framework extra freshly resolved; pytest via dependency-group (not a PyPI extra).
+          uv pip install -e ".[${{ matrix.extra }}]" --group dev
 
       - name: Live integration test
         run: |

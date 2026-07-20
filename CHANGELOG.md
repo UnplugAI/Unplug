@@ -2,6 +2,35 @@
 
 All notable changes to the `unplug-ai` SDK.
 
+## [Unreleased]
+
+## [0.5.2] — 2026-07-20
+
+### Added
+
+- Coverage tests for v1.0 deprecation shim re-exports (`unplug.core.*`, `guard_scan`, `scanner`, `safeguards`)
+- Offline synthetic BIOES checkpoint fixture for ML unit tests (no real weights required)
+- CI wheel-only resolve for `unplug-ai[ml]` on Python 3.13 (catches sdist-only breakage)
+
+### Removed
+
+- Dead modules: `providers/scrape.py`, `providers/content/server.py`, `optional/haystack.py` (unused; use `guards/scrape`, `providers/content/firecrawl`, `integrations/haystack`)
+- Config fields `judge_enabled`, `pipeline.judge_timeout` (no-op; pass `judge=` to `Guard()` instead)
+
+### Changed
+
+- Unknown `active_model` tier names now raise `ConfigError` with valid catalog tiers instead of silently running without ML
+- Widen `transformers` extra constraint to `>=4.44,<6` (was `<5.13`) so newer minors stay installable
+- Drop published `dev` optional-extra; test/lint tools live in the `dev` dependency-group (`uv sync --dev`)
+- Deprecated config: `judge_enabled`, `pipeline.judge_timeout`, `pipeline.fail_closed` warn and are ignored (removed in v1.0); `guard.fail_closed=false` / `fail_mode="open"` unchanged
+- Docs: `unplug-ai[scrape]` package name in Firecrawl docstring; Atomic Agents Python ≥3.12 install gate; Semantic Kernel `pybars4` wheel-only note
+
+### Fixed
+
+- Agent usability: `Guard.init()` docstring no longer claims auto-instrumentation; docs standardize on `from unplug import ...` for apps and `unplug.api.*` for server/MCP dependents; routine `REVIEW` pipeline outcomes log at INFO instead of WARNING
+- ML inference hardening: BIOES decode no longer crashes on checkpoints without `*-INJ` labels; label maps are validated at load with a clear `ModelError`; forced torch devices are validated (`ConfigError`); `ModelProvider`/`SpanInferenceModel` load is thread-safe; ML modules log device/tokenizer fallbacks and import torch via `unplug.optional.ml` helpers
+- Model store hardening: corrupt manifests no longer crash Guard or `unplug-models`; checkpoint validation requires weight files; atomic manifest writes and download swaps preserve existing installs on failure; `list_status` correctly reports stale revisions as upgrade-available; invalid `UNPLUG_MODEL_PATH` logs a warning; CLI download errors distinguish missing ML extras from network/repo failures
+
 ## [0.5.1] — 2026-07-20
 
 ### Fixed

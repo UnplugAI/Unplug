@@ -29,6 +29,7 @@ class ModelProvider(ABC):
     def __init__(self, spec: ModelSpec) -> None:
         self._spec = spec
         self._loaded = False
+        self._load_lock = threading.Lock()
 
     @property
     def spec(self) -> ModelSpec:
@@ -39,14 +40,19 @@ class ModelProvider(ABC):
         return self._loaded
 
     def load(self) -> None:
-        if not self._loaded:
-            self._do_load()
-            self._loaded = True
+        # Fast path: avoid lock when already loaded (predict stays lock-free).
+        if self._loaded:
+            return
+        with self._load_lock:
+            if not self._loaded:
+                self._do_load()
+                self._loaded = True
 
     def unload(self) -> None:
-        if self._loaded:
-            self._do_unload()
-            self._loaded = False
+        with self._load_lock:
+            if self._loaded:
+                self._do_unload()
+                self._loaded = False
 
     @abstractmethod
     def _do_load(self) -> None: ...

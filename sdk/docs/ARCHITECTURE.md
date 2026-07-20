@@ -51,7 +51,7 @@ Scanner or pipeline errors produce a full-span `Finding` with `stage="error"` an
 | `presidio` | `optional/presidio.py` | `scanners/pii.py` |
 | `yara` | `optional/yara.py` | `scanners/yara_scanner.py` |
 | `ml` | `optional/ml.py` | `ml/store.py`, span models |
-| `haystack` | `optional/haystack.py` | `integrations/haystack.py` |
+| `haystack` | `integrations/haystack.py` (lazy Haystack import) | RAG document guard |
 | `litellm` | `optional/litellm.py` | `judge/litellm_judge.py` |
 | `scrape` | `optional/scrape.py` | `providers/content/firecrawl.py` |
 

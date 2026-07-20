@@ -1,6 +1,6 @@
 [project]
 name = "unplug-ai"
-version = "0.5.1"
+version = "0.5.2"
 description = "Unplug the bad AI. Fast prompt injection detection and redaction for LLM apps, agents, and RAG pipelines."
 readme = "README.md"
 license = "Apache-2.0"
@@ -30,7 +30,7 @@ dependencies = [
 ml = [
     "huggingface_hub>=0.23",
     "onnxruntime>=1.17",
-    "transformers>=4.44,<5.13",
+    "transformers>=4.44,<6",
     "sentencepiece>=0.2",
     "numpy>=1.26",
     "torch>=2.0",
@@ -116,12 +116,6 @@ integrations = [
 # unrelated dependency trees. Live framework coverage runs in the dedicated
 # `integrations-live` CI job (see integrations/TESTING.md).
 all = ["unplug-ai[ml,scrape,litellm,yara,haystack,presidio]"]
-dev = [
-    "pytest>=8.0",
-    "pytest-asyncio>=0.23",
-    "pytest-cov>=7.1.0",
-    "ruff>=0.4",
-]
 
 [project.urls]
 Homepage = "https://unplug-ai.org"
@@ -272,6 +266,10 @@ dev = [
     "datasets>=4.8.5",
     "mypy>=2.1.0",
     "pyarrow>=24.0.0",
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "pytest-cov>=7.1.0",
     "pyyaml>=6.0.3",
+    "ruff>=0.4",
     "types-pyyaml>=6.0.12.20260518",
 ]

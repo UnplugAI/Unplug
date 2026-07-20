@@ -37,7 +37,6 @@ class TestGuardJudge:
             scanners=["injection"],
             judge=CallableJudge(fake_judge),
             config=__import__("unplug.core.config", fromlist=["GuardConfig"]).GuardConfig(
-                judge_enabled=True,
                 judge_low=0.0,
                 judge_high=1.0,
             ),
