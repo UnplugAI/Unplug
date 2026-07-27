@@ -126,6 +126,10 @@ _PIPE_SPLIT_PATTERNS = (
     re.compile(r"(?<=[a-zA-Z])\|(?=\s)"),
     re.compile(r"(?<=\s)\|(?=[a-zA-Z])"),
 )
+# Digit-leet must not rewrite hex/unicode escape payloads: \x69 / \u0069 contain
+# leet-mapped digits (0,1,4,5,7) that would corrupt the escape detectors.
+_HEX_ESCAPE_SPAN = re.compile(r"\\x[0-9a-fA-F]{2}", re.IGNORECASE)
+_UNICODE_ESCAPE_SPAN = re.compile(r"\\u[0-9a-fA-F]{4}")
 
 _ALL_STAGES = [
     "unicode_tags",
@@ -211,9 +215,22 @@ class Normalizer:
         )
 
 
+def _leet_protected_mask(text: str) -> list[bool]:
+    """True for chars inside \\xNN / \\uNNNN spans that digit-leet must skip."""
+    protected = [False] * len(text)
+    for pattern in (_HEX_ESCAPE_SPAN, _UNICODE_ESCAPE_SPAN):
+        for match in pattern.finditer(text):
+            for i in range(match.start(), match.end()):
+                protected[i] = True
+    return protected
+
+
 def _normalize_leet(text: str, offset_table: list[int]) -> tuple[str, list[int]]:
     chars = list(text)
+    protected = _leet_protected_mask(text)
     for i, ch in enumerate(chars):
+        if protected[i]:
+            continue
         if ch in _LEET_MAP:
             chars[i] = _LEET_MAP[ch]
     return "".join(chars), list(offset_table)
