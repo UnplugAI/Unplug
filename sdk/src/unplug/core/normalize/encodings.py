@@ -1,4 +1,4 @@
-"""Extract encoding blobs from original text (Base64 v1)."""
+"""Extract encoding blobs from original text (Base64 and ROT13 v1)."""
 
 from __future__ import annotations
 
@@ -7,7 +7,16 @@ import re
 from typing import TYPE_CHECKING, Protocol
 
 from unplug.api.types import Finding
-from unplug.core.normalize.normalize import _MAX_BASE64_DECODED_SIZE, Normalizer
+from unplug.core.normalize.normalize import (
+    _MAX_BASE64_DECODED_SIZE,
+    _MIN_ROT13_BLOB_LEN,
+    _ROT13_BLOB_PATTERN,
+    Normalizer,
+    _english_word_hint_count,
+    _is_likely_rot13_payload,
+    _is_plausible_decoded_payload,
+    _rot13,
+)
 from unplug.core.pattern_loader import injection_patterns
 
 # Core-owned injection patterns (same data the injection scanner loads), imported
@@ -19,6 +28,8 @@ if TYPE_CHECKING:
 
 # Same charset as normalize._decode_base64.
 BASE64_BLOB_PATTERN = re.compile(r"[A-Za-z0-9+/]{20,}={0,2}")
+# Same pattern as normalize._decode_rot13.
+ROT13_BLOB_PATTERN = _ROT13_BLOB_PATTERN
 _SECRET_CONTEXT_BEFORE = re.compile(
     r"(?i)(?:"
     r"(?:sk|pk|ghp|gho|ghu|ghs|ghr|AKIA|eyJ)[-_]?|"
@@ -34,12 +45,14 @@ def _is_probable_base64_blob(text: str, start: int, raw: str) -> bool:
     return _SECRET_CONTEXT_BEFORE.search(prefix) is None
 
 
-def _is_plausible_decoded_payload(decoded: str) -> bool:
-    """Skip decoded blobs that are not meaningful UTF-8 text (e.g. null-byte runs)."""
-    if not decoded.strip():
+def _is_probable_rot13_blob(raw: str) -> bool:
+    """Skip alphabetic runs that already look like plain English."""
+    if len(raw) < _MIN_ROT13_BLOB_LEN:
         return False
-    printable = sum(1 for ch in decoded if ch.isprintable() or ch in "\n\t\r")
-    return printable / len(decoded) >= 0.8
+    if _english_word_hint_count(raw) >= 2:
+        return False
+    decoded = _rot13(raw)
+    return _is_likely_rot13_payload(raw, decoded)
 
 
 class EncodingBlob:
@@ -166,15 +179,33 @@ def iter_base64_blobs(text: str, *, max_blobs: int = 5) -> list[EncodingBlob]:
     return blobs
 
 
-def scan_encoding_blobs(
-    text: str,
-    classifier: EncodingClassifier | None = None,
-) -> list[Finding]:
-    """Stage 1a: extract → decode → classify → findings on original blob spans."""
-    backend = classifier or HeuristicEncodingClassifier()
-    findings: list[Finding] = []
+def iter_rot13_blobs(text: str, *, max_blobs: int = 5) -> list[EncodingBlob]:
+    blobs: list[EncodingBlob] = []
+    for match in ROT13_BLOB_PATTERN.finditer(text):
+        if len(blobs) >= max_blobs:
+            break
+        raw = match.group(0)
+        if not _is_probable_rot13_blob(raw):
+            continue
+        decoded = _rot13(raw)
+        blobs.append(
+            EncodingBlob(
+                start=match.start(),
+                end=match.end(),
+                raw=raw,
+                decoded=decoded,
+            )
+        )
+    return blobs
 
-    for blob in iter_base64_blobs(text):
+
+def _append_encoding_findings(
+    text: str,
+    blobs: list[EncodingBlob],
+    backend: EncodingClassifier,
+    findings: list[Finding],
+) -> None:
+    for blob in blobs:
         if blob.decoded is None:
             continue
 
@@ -192,5 +223,17 @@ def scan_encoding_blobs(
                     replacement="[BLOCKED:injection]",
                 )
             )
+
+
+def scan_encoding_blobs(
+    text: str,
+    classifier: EncodingClassifier | None = None,
+) -> list[Finding]:
+    """Stage 1a: extract → decode → classify → findings on original blob spans."""
+    backend = classifier or HeuristicEncodingClassifier()
+    findings: list[Finding] = []
+
+    _append_encoding_findings(text, iter_base64_blobs(text), backend, findings)
+    _append_encoding_findings(text, iter_rot13_blobs(text), backend, findings)
 
     return findings

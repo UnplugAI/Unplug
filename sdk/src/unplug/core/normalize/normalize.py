@@ -3,14 +3,18 @@
 from __future__ import annotations
 
 import base64
+import codecs
 import re
 import unicodedata
 
 from pydantic import BaseModel, Field
 
+from unplug.core.pattern_loader import injection_patterns
 from unplug.data.maps_loader import load_normalize_maps
 
 _MAX_BASE64_DECODED_SIZE = 10_000  # 10KB max per decoded chunk
+_MIN_ROT13_BLOB_LEN = 20
+_INJECTION_PATTERNS = injection_patterns()
 
 
 class NormalizeResult(BaseModel):
@@ -120,6 +124,19 @@ _OVERRIDE_PATTERN = re.compile(
 _COLLAPSE_SPACING_PATTERN = re.compile(r"\b([a-zA-Z])((?:\s[a-zA-Z]){2,})\b")
 _CROSS_LINE_PATTERN = re.compile(r"([a-z])\n([a-z])")
 _BASE64_BLOB_PATTERN = re.compile(r"[A-Za-z0-9+/]{20,}={0,2}")
+_ROT13_BLOB_PATTERN = re.compile(r"\b[a-zA-Z]+(?: [a-zA-Z]+)+\b")
+_ENGLISH_WORD_HINT = re.compile(
+    r"\b(?:"
+    r"the|and|for|that|this|with|from|please|your|have|are|was|were|been|will|"
+    r"would|could|should|about|into|what|when|where|which|their|there|other|"
+    r"some|than|them|then|these|those|such|every|after|before|being|under|"
+    r"while|during|without|within|against|between|through|summary|summarize|"
+    r"quarterly|finance|weather|report|team|today|help|send|make|take|"
+    r"give|find|know|think|want|need|work|look|good|great|best|"
+    r"ignore|previous|instructions"
+    r")\b",
+    re.IGNORECASE,
+)
 _DOTTED_LETTERS_PATTERN = re.compile(r"\b([a-zA-Z])([.\-_|])([a-zA-Z])(?:\2[a-zA-Z]){2,}\b")
 _PIPE_SPLIT_PATTERNS = (
     re.compile(r"(?<=[a-zA-Z])\|(?=[a-zA-Z])"),
@@ -135,6 +152,7 @@ _ALL_STAGES = [
     "unicode_tags",
     "zero_width",
     "base64",
+    "rot13",
     "fullwidth",
     "enclosed",
     "homoglyphs",
@@ -184,6 +202,7 @@ class Normalizer:
             "homoglyphs": _normalize_homoglyphs,
             "fullwidth": _normalize_fullwidth,
             "base64": _decode_base64,
+            "rot13": _decode_rot13,
             "reversed": None,
             "enclosed": _normalize_enclosed,
             "delimiters": _strip_delimiters,
@@ -399,6 +418,73 @@ def _normalize_fullwidth(text: str, offset_table: list[int]) -> tuple[str, list[
         new_offsets.append(new_offsets[-1] if new_offsets else 0)
 
     return normalized, new_offsets[:norm_len]
+
+
+def _rot13(text: str) -> str:
+    return codecs.decode(text, "rot13")
+
+
+def _english_word_hint_count(text: str) -> int:
+    return len(_ENGLISH_WORD_HINT.findall(text))
+
+
+def _is_plausible_decoded_payload(decoded: str) -> bool:
+    """Skip decoded blobs that are not meaningful UTF-8 text (e.g. null-byte runs)."""
+    if not decoded.strip():
+        return False
+    printable = sum(1 for ch in decoded if ch.isprintable() or ch in "\n\t\r")
+    return printable / len(decoded) >= 0.8
+
+
+def _is_likely_rot13_payload(raw: str, decoded: str) -> bool:
+    """Heuristic: ROT13 ciphertext has fewer English hints than its plaintext."""
+    if not _is_plausible_decoded_payload(decoded):
+        return False
+    if len(decoded) > _MAX_BASE64_DECODED_SIZE:
+        return False
+    return _english_word_hint_count(decoded) > _english_word_hint_count(raw)
+
+
+def _decoded_matches_injection(decoded: str) -> bool:
+    return any(pattern.search(decoded) for _subcategory, pattern in _INJECTION_PATTERNS)
+
+
+def _decode_rot13(text: str, offset_table: list[int]) -> tuple[str, list[int]]:
+    pattern = _ROT13_BLOB_PATTERN
+    result_chars: list[str] = []
+    result_offsets: list[int] = []
+    last_end = 0
+
+    for m in pattern.finditer(text):
+        raw = m.group(0)
+        if len(raw) < _MIN_ROT13_BLOB_LEN:
+            continue
+        if _english_word_hint_count(raw) >= 2:
+            continue
+        decoded = _rot13(raw)
+        if not _is_likely_rot13_payload(raw, decoded):
+            continue
+        if not _decoded_matches_injection(decoded):
+            continue
+
+        for i in range(last_end, m.start()):
+            result_chars.append(text[i])
+            result_offsets.append(offset_table[i])
+
+        orig_start = offset_table[m.start()]
+        for ch in decoded:
+            result_chars.append(ch)
+            result_offsets.append(orig_start)
+        last_end = m.end()
+
+    if last_end == 0:
+        return text, offset_table
+
+    for i in range(last_end, len(text)):
+        result_chars.append(text[i])
+        result_offsets.append(offset_table[i])
+
+    return "".join(result_chars), result_offsets
 
 
 def _decode_base64(text: str, offset_table: list[int]) -> tuple[str, list[int]]:
