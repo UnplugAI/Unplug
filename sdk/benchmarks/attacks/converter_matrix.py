@@ -95,7 +95,11 @@ CONVERTERS: dict[str, Callable[[str], str]] = {
 
 # Families with no normalizer stage today. A catch here is a bonus; a miss is
 # documented, not a regression. Remove entries as stages are added.
-EXPECTED_GAPS: frozenset[str] = frozenset({"rot13", "hex", "url_encode", "morse"})
+#
+# `rot13` removed 2026-07-28: a ROT13 decode stage now exists and this matrix measures it
+# at 3/3. Note `hex` here is BARE hex ("69676e6f..."), which is still uncovered — distinct
+# from the `\xNN` / `\uNNNN` escape sequences, which ARE handled by the normalizer.
+EXPECTED_GAPS: frozenset[str] = frozenset({"hex", "url_encode", "morse"})
 
 
 @dataclass
