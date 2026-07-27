@@ -48,8 +48,8 @@ elif not decision.allowed:
 | Trying Unplug for the first time | `pip install unplug-ai` | [`docs/GETTING_STARTED.md`](../docs/GETTING_STARTED.md) |
 | Building a custom agent loop | *(core only)* | [custom-loop](custom-loop/README.md) |
 | Using LangGraph / CrewAI / OpenAI Agents / … | `pip install "unplug-ai[<extra>]"` | Guide column below |
-| Hardening an MCP host | `pip install "unplug-ai[mcp]"` + [unplug-mcp](https://github.com/UnplugAI/unplug-mcp) | [mcp](mcp/README.md) |
-| Production without local GPU | `Guard(mode="server")` | [`docs/DEPLOYMENT.md`](../docs/DEPLOYMENT.md) |
+| Hardening an MCP host | [unplug-mcp](https://github.com/UnplugAI/unplug-mcp) *(separate package)* | [mcp](mcp/README.md) |
+| Production without local GPU | `Guard(mode="server")` — *hosted API not yet live* | [`docs/DEPLOYMENT.md`](../docs/DEPLOYMENT.md) |
 
 **Naming:** PyPI extra uses hyphens (`openai-agents`); Python module uses underscores
 (`unplug.integrations.openai_agents`).
@@ -73,28 +73,44 @@ Full decision table and `ApprovalProvider` example: [`docs/AGENT_ACTIONS.md`](..
 
 ## Supported frameworks
 
-| Framework | Extra | Guide | Code module |
-|-----------|-------|-------|-------------|
-| **Custom loop** | *(none)* | [custom-loop](custom-loop/README.md) | `hooks.py` |
-| **LangGraph** | `langgraph` | [langgraph](langgraph/README.md) | `langgraph.py` |
-| **OpenAI Agents SDK** | `openai-agents` | [openai-agents](openai-agents/README.md) | `openai_agents.py` |
-| **LangChain** | `langchain` | [langchain](langchain/README.md) | `langchain.py` |
-| **Google ADK** | `google-adk` | [google-adk](google-adk/README.md) | `google_adk.py` |
-| **smolagents** | `smolagents` | [smolagents](smolagents/README.md) | `smolagents.py` |
-| **DSPy** | `dspy` | [dspy](dspy/README.md) | `dspy.py` |
-| **Strands Agents** | `strands` | [strands](strands/README.md) | `strands.py` |
-| **Letta** | `letta` | [letta](letta/README.md) | `letta.py` |
-| **Griptape** | `griptape` | [griptape](griptape/README.md) | `griptape.py` |
-| **AG2** | `ag2` | [ag2](ag2/README.md) | `ag2.py` |
-| **Atomic Agents** | `atomic-agents` | [atomic-agents](atomic-agents/README.md) | `atomic_agents.py` |
-| **Agno** | `agno` | [agno](agno/README.md) | `agno.py` |
-| **Haystack** | `haystack` | [haystack](haystack/README.md) | `haystack.py` |
-| **LlamaIndex** | `llama-index` | [llama-index](llama-index/README.md) | `llama_index.py` |
-| **CrewAI** | `crewai` | [crewai](crewai/README.md) | `crewai.py` |
-| **AutoGen** | `autogen` | [autogen](autogen/README.md) | `autogen.py` |
-| **Pydantic AI** | `pydantic-ai` | [pydantic-ai](pydantic-ai/README.md) | `pydantic_ai.py` |
-| **Semantic Kernel** | `semantic-kernel` | [semantic-kernel](semantic-kernel/README.md) | `semantic_kernel.py` |
-| **MCP clients** | `mcp` | [mcp](mcp/README.md) | [unplug-mcp](https://github.com/UnplugAI/unplug-mcp) |
+**What "supported" means here.** Every integration is built on the same `AgentHooks` core, but
+they differ in how deeply they bind to the framework. Be guided by the **Depth** column:
+
+- **Adapter** — binds real framework contracts (native types, lazy imports, component/guardrail
+  registration) and its live tests exercise real framework objects.
+- **Recipe** — a thin (~50 LOC) set of callables you wire in yourself. Correct and useful, but
+  *not* a drop-in plugin: it does not register into the framework's plugin system, and its live
+  test typically asserts the framework imports rather than running an end-to-end agent.
+
+Neither tier is "fake" — but if you expected `pip install` to hard-wire Unplug into your
+framework's middleware, only the Adapter tier comes close. LOC is from the module source.
+
+| Framework | Extra | Depth | ~LOC | Guide | Code module |
+|-----------|-------|-------|-----:|-------|-------------|
+| **Custom loop** | *(none)* | Adapter (core) | 147 | [custom-loop](custom-loop/README.md) | `hooks.py` |
+| **Haystack** | `haystack` | Adapter | 296 | [haystack](haystack/README.md) | `haystack.py` |
+| **OpenAI Agents SDK** | `openai-agents` | Adapter | 181 | [openai-agents](openai-agents/README.md) | `openai_agents.py` |
+| **AG2** | `ag2` | Adapter | 178 | [ag2](ag2/README.md) | `ag2.py` |
+| **LangChain** | `langchain` | Adapter | 167 | [langchain](langchain/README.md) | `langchain.py` |
+| **DSPy** | `dspy` | Adapter | 157 | [dspy](dspy/README.md) | `dspy.py` |
+| **Google ADK** | `google-adk` | Adapter | 156 | [google-adk](google-adk/README.md) | `google_adk.py` |
+| **Atomic Agents** | `atomic-agents` | Adapter | 142 | [atomic-agents](atomic-agents/README.md) | `atomic_agents.py` |
+| **Griptape** | `griptape` | Adapter | 133 | [griptape](griptape/README.md) | `griptape.py` |
+| **Strands Agents** | `strands` | Adapter | 127 | [strands](strands/README.md) | `strands.py` |
+| **LlamaIndex** | `llama-index` | Adapter | 127 | [llama-index](llama-index/README.md) | `llama_index.py` |
+| **Letta** | `letta` | Adapter | 116 | [letta](letta/README.md) | `letta.py` |
+| **smolagents** | `smolagents` | Adapter | 100 | [smolagents](smolagents/README.md) | `smolagents.py` |
+| **LangGraph** | `langgraph` | Adapter | 62 | [langgraph](langgraph/README.md) | `langgraph.py` |
+| **Agno** | `agno` | Recipe | 68 | [agno](agno/README.md) | `agno.py` |
+| **CrewAI** | `crewai` | Recipe | 57 | [crewai](crewai/README.md) | `crewai.py` |
+| **AutoGen** | `autogen` | Recipe | 56 | [autogen](autogen/README.md) | `autogen.py` |
+| **Pydantic AI** | `pydantic-ai` | Recipe | 49 | [pydantic-ai](pydantic-ai/README.md) | `pydantic_ai.py` |
+| **Semantic Kernel** | `semantic-kernel` | Recipe | 49 | [semantic-kernel](semantic-kernel/README.md) | `semantic_kernel.py` |
+| **MCP clients** | `mcp` | **Dependency only** | — | [mcp](mcp/README.md) | [unplug-mcp](https://github.com/UnplugAI/unplug-mcp) — *separate package* |
+
+> **`unplug-ai[mcp]` does not ship an MCP integration module.** The extra installs the `mcp`
+> PyPI dependency only; there is no `unplug.integrations.mcp`. MCP support lives in the
+> separate [unplug-mcp](https://github.com/UnplugAI/unplug-mcp) package.
 
 Demos (no framework install required for LangGraph / Agno patterns):
 

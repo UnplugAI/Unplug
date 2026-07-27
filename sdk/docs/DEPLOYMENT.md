@@ -1,5 +1,16 @@
 # Deployment architecture
 
+> **Status (2026-07-28).** Only the **local embedded** path is generally available today.
+> The **hosted** path is not live: `api.unplug-ai.org` does not currently resolve, and the
+> public site lists it as "coming soon (founding waitlist)". The **local sidecar** path
+> depends on `unplug-server`, which is not yet public.
+>
+> `Guard(mode="server")`, `UnplugClient` and the `unplug-sidecar` CLI are implemented and
+> tested in the SDK — they are clients waiting on a service. This document describes the
+> intended architecture; treat the hosted and sidecar sections as forward-looking.
+>
+> Integrating today? Use **local embedded**: `Guard()` or `Guard.with_tiny()`.
+
 Unplug has **one HTTP API** (`unplug-server`) and **one SDK** (`unplug-ai`). Who runs the server and where the ML model loads depends on the deployment path.
 
 ```mermaid
@@ -35,7 +46,10 @@ flowchart TB
 | **Local embedded** | Nobody | Same Python process as `Guard` | SDK + `[ml]` + checkpoint |
 | **Local sidecar** | Customer (Docker/local) | Local `unplug-server` | SDK + sidecar container |
 
-### Hosted (production default)
+### Hosted (planned — not yet available)
+
+> Not live today: the endpoint does not resolve and there is no public sign-up beyond the
+> waitlist. The design below is the intended shape, not a path you can adopt now.
 
 **You** deploy `unplug-server` behind TLS, issue API keys, and bill/meter usage.
 
@@ -96,9 +110,10 @@ Use `unplug-sidecar doctor` to verify the sidecar is reachable before starting a
 
 | Requirement | Path |
 |-------------|------|
-| Production, no GPU on customer side | Hosted |
+| **Anything you need working today** | **Local embedded** (the only GA path) |
+| Production, no GPU on customer side | Hosted *(planned, not yet available)* |
 | Offline / air-gapped single agent | Local embedded |
-| Multiple local agents, one GPU | Local sidecar |
+| Multiple local agents, one GPU | Local sidecar *(needs unpublished `unplug-server`)* |
 | Switch hosted <-> local without code changes | Local sidecar or hosted (both use `mode=server`) |
 | Regex only, zero ML deps | Local embedded, no `active_model` |
 
@@ -121,4 +136,5 @@ Use `unplug-sidecar doctor` to verify the sidecar is reachable before starting a
 
 - [`examples/hosted_client.py`](../examples/hosted_client.py): hosted API key flow
 - [`examples/local_sidecar_client.py`](../examples/local_sidecar_client.py): localhost server flow
-- [`repos/unplug-server`](../../../repos/unplug-server): server source and `docker-compose.sidecar.yml`
+- `unplug-server`: server source and `docker-compose.sidecar.yml` — separate repository, not
+  yet public (the previous relative link here pointed outside this repo and did not resolve)

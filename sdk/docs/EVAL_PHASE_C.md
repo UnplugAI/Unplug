@@ -11,7 +11,9 @@ re-measured in this phase.
 cd sdk
 uv sync --all-extras --dev
 
-# Datasets are already under benchmarks/data/. To refresh from Hugging Face:
+# Fetch the datasets first — this step is REQUIRED on a fresh clone. Only benign_ci.jsonl
+# and garak_attacks.jsonl are committed; neuralchemy.jsonl and microsoft_indirect.jsonl are
+# gitignored downloads (see .gitignore: sdk/benchmarks/data/*.jsonl).
 uv run python -m benchmarks.download --dataset all --out benchmarks/data
 # neuralchemy: full train export; microsoft: streaming Phase1 subset (default --limit 5000)
 

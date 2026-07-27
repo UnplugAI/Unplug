@@ -73,7 +73,7 @@ single-turn sessions:
 
 | Dataset | Mode | Recall | F1 | FPR |
 | --- | --- | ---: | ---: | ---: |
-| neuralchemy (direct, 4,391) | regex-only | 0.41 | 0.58 | <1% |
+| neuralchemy (direct, 4,391) | regex-only | 0.405 | 0.575 | <1% |
 | neuralchemy (direct, 4,391) | **regex + ML** | **0.98** | **0.99** | <1% |
 | microsoft llmail (indirect, 2,500) | regex-only | 0.05 | — | — |
 | microsoft llmail (indirect, 2,500) | **regex + ML** | **0.91** | — | — |

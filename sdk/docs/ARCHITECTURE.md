@@ -83,5 +83,8 @@ Everything else: submodule imports (`from unplug.scanners.injection import Injec
 
 ## Related docs
 
-- [RESTRUCTURE_PLAN.md](RESTRUCTURE_PLAN.md): migration checklist
-- [LOGIC_AUDIT.md](LOGIC_AUDIT.md): correctness review backlog
+- [BENCHMARKS.md](BENCHMARKS.md): measured detection performance and methodology
+- [DEPLOYMENT.md](DEPLOYMENT.md): deployment paths and what is actually available today
+
+<!-- Removed 2026-07-28: links to RESTRUCTURE_PLAN.md and LOGIC_AUDIT.md, neither of which
+     was ever committed to this repo. Restore them if those docs are actually written. -->
