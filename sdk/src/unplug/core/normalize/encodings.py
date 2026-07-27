@@ -2,20 +2,20 @@
 
 from __future__ import annotations
 
-import base64
 import re
 from typing import TYPE_CHECKING, Protocol
 
 from unplug.api.types import Finding
 from unplug.core.normalize.normalize import (
-    _MAX_BASE64_DECODED_SIZE,
+    _BASE64_BLOB_PATTERN,
     _MIN_ROT13_BLOB_LEN,
     _ROT13_BLOB_PATTERN,
     Normalizer,
     _english_word_hint_count,
     _is_likely_rot13_payload,
-    _is_plausible_decoded_payload,
+    _iter_base64_blob_spans,
     _rot13,
+    _try_decode_base64_payload,
 )
 from unplug.core.pattern_loader import injection_patterns
 
@@ -26,8 +26,8 @@ INJECTION_PATTERNS = injection_patterns()
 if TYPE_CHECKING:
     from unplug.core.models import ModelProvider
 
-# Same charset as normalize._decode_base64.
-BASE64_BLOB_PATTERN = re.compile(r"[A-Za-z0-9+/]{20,}={0,2}")
+# Same pattern as normalize._decode_base64.
+BASE64_BLOB_PATTERN = _BASE64_BLOB_PATTERN
 # Same pattern as normalize._decode_rot13.
 ROT13_BLOB_PATTERN = _ROT13_BLOB_PATTERN
 _SECRET_CONTEXT_BEFORE = re.compile(
@@ -152,26 +152,18 @@ def default_encoding_classifier(model: ModelProvider | None = None) -> EncodingC
 
 def iter_base64_blobs(text: str, *, max_blobs: int = 5) -> list[EncodingBlob]:
     blobs: list[EncodingBlob] = []
-    for match in BASE64_BLOB_PATTERN.finditer(text):
+    for start, end, raw in _iter_base64_blob_spans(text):
         if len(blobs) >= max_blobs:
             break
-        raw = match.group(0)
-        if not _is_probable_base64_blob(text, match.start(), raw):
+        if not _is_probable_base64_blob(text, start, raw):
             continue
-        decoded: str | None = None
-        try:
-            decoded_bytes = base64.b64decode(raw, validate=True)
-            if len(decoded_bytes) > _MAX_BASE64_DECODED_SIZE:
-                continue
-            decoded = decoded_bytes.decode("utf-8")
-        except Exception:  # noqa: S112 - malformed/non-base64 blob: skip silently
-            continue
-        if not _is_plausible_decoded_payload(decoded):
+        decoded = _try_decode_base64_payload(raw)
+        if decoded is None:
             continue
         blobs.append(
             EncodingBlob(
-                start=match.start(),
-                end=match.end(),
+                start=start,
+                end=end,
                 raw=raw,
                 decoded=decoded,
             )

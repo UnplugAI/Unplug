@@ -13,6 +13,7 @@ from unplug.core.pattern_loader import injection_patterns
 from unplug.data.maps_loader import load_normalize_maps
 
 _MAX_BASE64_DECODED_SIZE = 10_000  # 10KB max per decoded chunk
+_MIN_BASE64_BLOB_LEN = 8
 _MIN_ROT13_BLOB_LEN = 20
 _INJECTION_PATTERNS = injection_patterns()
 
@@ -123,7 +124,12 @@ _OVERRIDE_PATTERN = re.compile(
 )
 _COLLAPSE_SPACING_PATTERN = re.compile(r"\b([a-zA-Z])((?:\s[a-zA-Z]){2,})\b")
 _CROSS_LINE_PATTERN = re.compile(r"([a-z])\n([a-z])")
-_BASE64_BLOB_PATTERN = re.compile(r"[A-Za-z0-9+/]{20,}={0,2}")
+_BASE64_CHARSET = r"A-Za-z0-9+/\-_="
+_BASE64_CONTIGUOUS_PATTERN = re.compile(rf"[{_BASE64_CHARSET}]{{{_MIN_BASE64_BLOB_LEN},}}")
+_BASE64_CHUNK_TOKEN = re.compile(rf"[{_BASE64_CHARSET}]+")
+_BASE64_BLOB_PATTERN = _BASE64_CONTIGUOUS_PATTERN
+_BASE64_WS_COLLAPSE = re.compile(r"\s+")
+_BASE64_ASSIGNMENT_PREFIX = re.compile(r"^[a-z]+=")
 _ROT13_BLOB_PATTERN = re.compile(r"\b[a-zA-Z]+(?: [a-zA-Z]+)+\b")
 _ENGLISH_WORD_HINT = re.compile(
     r"\b(?:"
@@ -449,6 +455,92 @@ def _decoded_matches_injection(decoded: str) -> bool:
     return any(pattern.search(decoded) for _subcategory, pattern in _INJECTION_PATTERNS)
 
 
+def _is_base64_chunk_token(token: str) -> bool:
+    """Reject lowercase word tokens that share the base64 alphabet."""
+    return not (len(token) >= 3 and token.isalpha() and token.islower())
+
+
+def _iter_base64_blob_spans(text: str) -> list[tuple[int, int, str]]:
+    """Yield non-overlapping contiguous and whitespace-chunked base64 spans."""
+    spans: list[tuple[int, int, str]] = []
+    occupied: list[tuple[int, int]] = []
+
+    def _overlaps(start: int, end: int) -> bool:
+        return any(not (end <= lo or start >= hi) for lo, hi in occupied)
+
+    def _add(start: int, end: int) -> None:
+        raw = text[start:end]
+        if len(_collapse_base64_whitespace(raw)) < _MIN_BASE64_BLOB_LEN:
+            return
+        if _overlaps(start, end):
+            return
+        spans.append((start, end, raw))
+        occupied.append((start, end))
+
+    for match in _BASE64_CONTIGUOUS_PATTERN.finditer(text):
+        _add(match.start(), match.end())
+
+    idx = 0
+    length = len(text)
+    while idx < length:
+        token_match = _BASE64_CHUNK_TOKEN.match(text, idx)
+        if token_match is None or not _is_base64_chunk_token(token_match.group(0)):
+            idx += 1
+            continue
+
+        start = idx
+        end = token_match.end()
+        token_count = 1
+        scan = end
+        while scan < length:
+            ws = scan
+            while ws < length and text[ws] in " \t\r\n":
+                ws += 1
+            if ws >= length:
+                break
+            next_token = _BASE64_CHUNK_TOKEN.match(text, ws)
+            if next_token is None or not _is_base64_chunk_token(next_token.group(0)):
+                break
+            token_count += 1
+            end = next_token.end()
+            scan = end
+
+        if token_count >= 2:
+            _add(start, end)
+            idx = end
+        else:
+            idx += 1
+
+    spans.sort(key=lambda item: item[0])
+    return spans
+
+
+def _collapse_base64_whitespace(raw: str) -> str:
+    return _BASE64_WS_COLLAPSE.sub("", raw)
+
+
+def _try_decode_base64_payload(raw: str) -> str | None:
+    """Decode standard or URL-safe base64 after collapsing internal whitespace."""
+    collapsed = _collapse_base64_whitespace(raw)
+    assignment = _BASE64_ASSIGNMENT_PREFIX.match(collapsed)
+    if assignment:
+        collapsed = collapsed[assignment.end() :]
+    if len(collapsed) < _MIN_BASE64_BLOB_LEN:
+        return None
+    padded = collapsed + "=" * ((4 - len(collapsed) % 4) % 4)
+    for decode_fn in (base64.b64decode, base64.urlsafe_b64decode):
+        try:
+            decoded_bytes = decode_fn(padded, validate=True)
+            if len(decoded_bytes) > _MAX_BASE64_DECODED_SIZE:
+                return None
+            decoded = decoded_bytes.decode("utf-8")
+        except Exception:  # noqa: S112 - malformed/non-base64 candidate: skip silently
+            continue
+        if _is_plausible_decoded_payload(decoded):
+            return decoded
+    return None
+
+
 def _decode_rot13(text: str, offset_table: list[int]) -> tuple[str, list[int]]:
     pattern = _ROT13_BLOB_PATTERN
     result_chars: list[str] = []
@@ -488,30 +580,26 @@ def _decode_rot13(text: str, offset_table: list[int]) -> tuple[str, list[int]]:
 
 
 def _decode_base64(text: str, offset_table: list[int]) -> tuple[str, list[int]]:
-    pattern = _BASE64_BLOB_PATTERN
     result_chars: list[str] = []
     result_offsets: list[int] = []
     last_end = 0
 
-    for m in pattern.finditer(text):
-        candidate = m.group(0)
-        try:
-            decoded_bytes = base64.b64decode(candidate, validate=True)
-            if len(decoded_bytes) > _MAX_BASE64_DECODED_SIZE:
-                continue
-            decoded = decoded_bytes.decode("utf-8")
-        except Exception:  # noqa: S112 - malformed/non-base64 candidate: skip silently
+    for start, end, raw in _iter_base64_blob_spans(text):
+        decoded = _try_decode_base64_payload(raw)
+        if decoded is None:
+            continue
+        if not _decoded_matches_injection(decoded):
             continue
 
-        for i in range(last_end, m.start()):
+        for i in range(last_end, start):
             result_chars.append(text[i])
             result_offsets.append(offset_table[i])
 
-        orig_start = offset_table[m.start()]
+        orig_start = offset_table[start]
         for ch in decoded:
             result_chars.append(ch)
             result_offsets.append(orig_start)
-        last_end = m.end()
+        last_end = end
 
     if last_end == 0:
         return text, offset_table
