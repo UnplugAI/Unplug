@@ -34,9 +34,9 @@ class NormalizeResult(BaseModel):
         orig_end = max(orig_start, min(orig_end, orig_len))
         # Include adjacent stripped invisible/bidi controls so redaction does not
         # leave U+202E / ZW chars sitting next to a matched span.
-        while orig_start > 0 and self.original[orig_start - 1] in _ZERO_WIDTH_CHARS:
+        while orig_start > 0 and _is_invisible_format(self.original[orig_start - 1]):
             orig_start -= 1
-        while orig_end < orig_len and self.original[orig_end] in _ZERO_WIDTH_CHARS:
+        while orig_end < orig_len and _is_invisible_format(self.original[orig_end]):
             orig_end += 1
         return (orig_start, orig_end)
 
@@ -45,9 +45,55 @@ class NormalizeResult(BaseModel):
 
 _normalize_maps = load_normalize_maps()
 _LEET_MAP: dict[str, str] = _normalize_maps.leet
+# Bundled allowlist (legacy / docs); stripping uses Unicode categories instead.
 _ZERO_WIDTH_CHARS = set(_normalize_maps.zero_width_chars)
+# Default-ignorable Mn used for grapheme smuggling (not Cf).
+_EXTRA_INVISIBLE_CHARS = frozenset({"\u034f"})  # COMBINING GRAPHEME JOINER
+# When both alpha runs around a glue point are at least this long, insert a
+# space instead of deleting the delimiter so `\s+` patterns still match.
+_WORD_GLUE_MIN_RUN = 3
 _HOMOGLYPH_MAP: dict[str, str] = _normalize_maps.homoglyphs
 _OVERRIDE_VERBS: dict[str, str] = _normalize_maps.override_verbs
+
+
+def _is_invisible_format(ch: str) -> bool:
+    """True for format/invisible code points that should be stripped.
+
+    Uses Unicode category Cf (format) rather than a fixed allowlist so newly
+    assigned invisible operators (e.g. U+2061-U+2064) are covered. Also strips
+    U+034F (Mn, combining grapheme joiner), which is default-ignorable but not
+    Cf. Does not strip Cc (keeps newlines/tabs) or other Mn (keeps accents).
+    """
+    return unicodedata.category(ch) == "Cf" or ch in _EXTRA_INVISIBLE_CHARS
+
+
+def _ascii_alpha_run_len_before(text: str, idx: int) -> int:
+    """Length of the ASCII alphabetic run ending at idx - 1."""
+    n = 0
+    i = idx - 1
+    while i >= 0 and text[i].isascii() and text[i].isalpha():
+        n += 1
+        i -= 1
+    return n
+
+
+def _ascii_alpha_run_len_after(text: str, idx: int) -> int:
+    """Length of the ASCII alphabetic run starting at idx + 1."""
+    n = 0
+    i = idx + 1
+    length = len(text)
+    while i < length and text[i].isascii() and text[i].isalpha():
+        n += 1
+        i += 1
+    return n
+
+
+def _should_insert_word_boundary(text: str, delim_idx: int) -> bool:
+    """Insert a space when gluing would concatenate two word-length tokens."""
+    left = _ascii_alpha_run_len_before(text, delim_idx)
+    right = _ascii_alpha_run_len_after(text, delim_idx)
+    return left >= _WORD_GLUE_MIN_RUN and right >= _WORD_GLUE_MIN_RUN
+
 
 _ENCLOSED_MAP: dict[str, str] = {}
 
@@ -233,7 +279,7 @@ def _strip_zero_width(text: str, offset_table: list[int]) -> tuple[str, list[int
     result_chars: list[str] = []
     result_offsets: list[int] = []
     for i, ch in enumerate(text):
-        if ch not in _ZERO_WIDTH_CHARS:
+        if not _is_invisible_format(ch):
             result_chars.append(ch)
             result_offsets.append(offset_table[i])
     new_text = "".join(result_chars)
@@ -243,6 +289,7 @@ def _strip_zero_width(text: str, offset_table: list[int]) -> tuple[str, list[int
 
 
 def _join_cross_line(text: str, offset_table: list[int]) -> tuple[str, list[int]]:
+    """Join letter\\nletter splits; preserve spaces between word-length tokens."""
     pattern = _CROSS_LINE_PATTERN
     result_chars: list[str] = []
     result_offsets: list[int] = []
@@ -253,6 +300,9 @@ def _join_cross_line(text: str, offset_table: list[int]) -> tuple[str, list[int]
             result_chars.append(text[i])
             result_offsets.append(offset_table[i])
             i += 1
+        if _should_insert_word_boundary(text, nl_pos):
+            result_chars.append(" ")
+            result_offsets.append(offset_table[nl_pos])
         i += 1  # skip the newline
 
     while i < len(text):
@@ -420,6 +470,11 @@ def _strip_delimiters(text: str, offset_table: list[int]) -> tuple[str, list[int
         result_offsets = []
         for i, ch in enumerate(current_text):
             if ch == "|" and pattern.match(current_text, i):
+                # Word|word → space so `\s+` patterns still match; letter|letter
+                # (short runs) still glue for dotted/pipe letter-split evasion.
+                if _should_insert_word_boundary(current_text, i):
+                    result_chars.append(" ")
+                    result_offsets.append(current_offsets[i])
                 continue
             result_chars.append(ch)
             result_offsets.append(current_offsets[i])
