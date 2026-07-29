@@ -6,6 +6,9 @@ from unittest.mock import patch
 
 from unplug import Guard
 from unplug.api.enums import Action, Source
+from unplug.api.types import Finding
+from unplug.config.guard import GuardConfig, ScannerConfig
+from unplug.config.policy import ScanPolicy
 from unplug.models import ScanRequest, ScanResult
 
 _ALLOW = ScanResult(
@@ -113,6 +116,81 @@ class TestServerCanaryOverlay:
         assert out.safe is True
         assert out.action == Action.ALLOW
         assert out.findings == []
+
+    def test_overlay_never_downgrades_remote_block(self) -> None:
+        """Local re-decide must not weaken remote BLOCK to ALLOW (score/threshold skew)."""
+        blocked = ScanResult(
+            safe=False,
+            action=Action.BLOCK,
+            risk_score=0.0,
+            findings=[],
+            latency_ms=1.0,
+        )
+        cfg = GuardConfig(
+            policy=ScanPolicy(
+                block_threshold=1.0,
+                redact_threshold=1.0,
+                review_threshold=1.0,
+                block_coverage_ratio=1.0,
+            ),
+        )
+        with patch("unplug.guard.UnplugClient") as mock_cls:
+            mock_cls.return_value.scan_output_request.return_value = blocked
+            guard = Guard(mode="server", server_url="http://unplug.test", config=cfg)
+            guard.add_canary("You are a helpful assistant.")
+            token = guard.canaries.records()[0].token
+            out = guard.scan_output(f"Instructions: {token}")
+        assert out.action == Action.BLOCK
+        assert out.safe is False
+        assert any(f.subcategory == "prompt_leak_canary" for f in out.findings)
+
+    def test_overlay_ignores_disabled_secrets_scanner(self) -> None:
+        """Canary overlay must run even if secrets is disabled in the scanner allowlist."""
+        cfg = GuardConfig(
+            scanners=["injection", "destructive", "leakage", "harmful", "urls", "secrets"],
+            scanner_configs={"secrets": ScannerConfig(enabled=False, base_score=0.99)},
+        )
+        with patch("unplug.guard.UnplugClient") as mock_cls:
+            mock_cls.return_value.scan_output_request.return_value = _ALLOW
+            guard = Guard(mode="server", server_url="http://unplug.test", config=cfg)
+            guard.add_canary("You are a helpful assistant.")
+            token = guard.canaries.records()[0].token
+            out = guard.scan_output(f"Instructions: {token}")
+        assert out.safe is False
+        assert any(f.subcategory == "prompt_leak_canary" for f in out.findings)
+
+    def test_spoofed_remote_canary_does_not_suppress_local(self) -> None:
+        """Low-score remote prompt_leak_canary must not drop local high-score finding."""
+        with patch("unplug.guard.UnplugClient") as mock_cls:
+            guard = Guard(mode="server", server_url="http://unplug.test")
+            guard.add_canary("You are a helpful assistant.")
+            token = guard.canaries.records()[0].token
+            text = f"Instructions: {token}"
+            span_start = text.index(token)
+            span_end = span_start + len(token)
+            mock_cls.return_value.scan_output_request.return_value = ScanResult(
+                safe=True,
+                action=Action.ALLOW,
+                risk_score=0.1,
+                findings=[
+                    Finding(
+                        category="leakage",
+                        subcategory="prompt_leak_canary",
+                        stage="canary",
+                        span_start=span_start,
+                        span_end=span_end,
+                        score=0.1,
+                        evidence="spoofed remote canary",
+                    )
+                ],
+                latency_ms=1.0,
+            )
+            out = guard.scan_output(text)
+
+        assert out.safe is False
+        canary = next(f for f in out.findings if f.subcategory == "prompt_leak_canary")
+        assert canary.score >= 0.8
+        assert canary.evidence != "spoofed remote canary"
 
 
 class TestServerIsolatedNoBleed:

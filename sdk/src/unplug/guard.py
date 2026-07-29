@@ -69,6 +69,22 @@ def _fail_closed(exc: Exception) -> ScanResult:
     )
 
 
+# Higher = more severe. Used so registry overlay never downgrades a remote action.
+_ACTION_SEVERITY: dict[Action, int] = {
+    Action.ALLOW: 0,
+    Action.ABSTAIN: 1,
+    Action.REVIEW: 2,
+    Action.REDACT: 3,
+    Action.BLOCK: 4,
+}
+
+
+def _max_action_severity(left: Action, right: Action) -> Action:
+    if _ACTION_SEVERITY.get(left, 0) >= _ACTION_SEVERITY.get(right, 0):
+        return left
+    return right
+
+
 def _limit_result(violation: LimitViolation, text_len: int = 0) -> ScanResult:
     return ScanResult(
         safe=False,
@@ -396,11 +412,14 @@ class Guard:
         request: ScanRequest,
     ) -> ScanResult:
         """Merge local SecretsRegistry/canary findings into a remote output result."""
-        scanner = self._registry.get("secrets")
-        if scanner is None:
-            from unplug.scanners.secrets import SecretsScanner
+        from unplug.scanners.secrets import SecretsScanner
 
-            scanner = SecretsScanner()
+        # Always-on for canary/registry tripwires — do not honor a disabled
+        # secrets scanner from the input allowlist (that would fail open).
+        secrets_cfg = self._config.get_scanner_config("secrets").model_copy(
+            update={"enabled": True}
+        )
+        scanner = SecretsScanner(config=secrets_cfg)
 
         overlay_ctx = ExecutionContext(secrets_registry=self._secrets_registry)
         tainted = TaintedText(
@@ -412,8 +431,22 @@ class Guard:
         if not local_findings:
             return remote
 
-        seen = {(f.category, f.subcategory, f.span_start, f.span_end) for f in remote.findings}
-        merged = list(remote.findings)
+        # Prefer local registry findings on key collision so a spoofed/low-score
+        # remote canary or registered_secret cannot suppress the authoritative local hit.
+        local_by_key = {
+            (f.category, f.subcategory, f.span_start, f.span_end): f for f in local_findings
+        }
+        merged: list[Finding] = []
+        seen: set[tuple[str, str, int, int]] = set()
+        for finding in remote.findings:
+            key = (
+                finding.category,
+                finding.subcategory,
+                finding.span_start,
+                finding.span_end,
+            )
+            merged.append(local_by_key.get(key, finding))
+            seen.add(key)
         for finding in local_findings:
             key = (
                 finding.category,
@@ -430,12 +463,14 @@ class Guard:
             max((f.score for f in merged), default=0.0),
         )
         policy = policy_from_request(request, self._config.policy)
-        action = decide_action(
+        decided = decide_action(
             merged,
             text_len=len(text),
             policy=policy,
             risk_score=risk_score,
         )
+        # Never weaken a remote disposition (BLOCK/REDACT/REVIEW → ALLOW).
+        action = _max_action_severity(remote.action, decided)
         safe = is_result_safe(action, policy)
 
         redacted = remote.redacted_text
