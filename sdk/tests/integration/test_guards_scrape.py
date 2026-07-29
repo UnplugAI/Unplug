@@ -6,9 +6,13 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from unplug import Guard
 from unplug.api.messages import ScrapeOutcome
+from unplug.core.privacy.secrets import SecretsRegistry
 from unplug.guards.scrape import ScrapeGuard, scrape
 from unplug.providers.content.protocol import ScrapedContent
+
+_REGISTRY_SECRET = "my-internal-registry-token-xyz-999"
 
 
 class TestScrapeGuard:
@@ -39,6 +43,24 @@ class TestScrapeGuard:
         out = ScrapeGuard(api_key="fc-test-key").scrape("https://evil.example")
         assert out.safe is False
         assert out.agent_message is not None
+
+    @patch("unplug.providers.content.firecrawl.FirecrawlProvider.scrape_sync")
+    def test_scrape_blocks_registered_secret(self, mock_scrape: MagicMock) -> None:
+        mock_scrape.return_value = ScrapedContent(
+            url="https://leaky.example",
+            markdown=f"Docs mention token {_REGISTRY_SECRET} in the body.",
+            title="Leak",
+            word_count=8,
+            scrape_ms=10.0,
+        )
+        registry = SecretsRegistry()
+        registry.register("INTERNAL", _REGISTRY_SECRET)
+        out = ScrapeGuard(guard=Guard(secrets_registry=registry), api_key="fc-test-key").scrape(
+            "https://leaky.example",
+        )
+        assert out.safe is False
+        assert out.scan is not None
+        assert any(f.subcategory.startswith("registered_secret:") for f in out.scan.findings)
 
     @patch("unplug.providers.content.firecrawl.FirecrawlProvider.scrape_sync")
     def test_one_liner(self, mock_scrape: MagicMock) -> None:
