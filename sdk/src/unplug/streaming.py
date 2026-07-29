@@ -98,15 +98,19 @@ class StreamScanner:
         return result
 
 
+# Untrusted external text may carry registry secrets / canaries; dual-scan OutputPipeline.
+_DUAL_SCAN_SOURCES = frozenset({Source.TOOL_OUTPUT, Source.RETRIEVED})
+
+
 def _scan_stream_request(
     guard: Guard,
     request: ScanRequest,
     *,
     source: Source,
 ) -> ScanResult:
-    """Input scan always; dual-scan OutputPipeline when source is tool output."""
+    """Input scan always; dual-scan OutputPipeline for untrusted external sources."""
     input_result = guard.scan_request(request, isolated=True)
-    if source != Source.TOOL_OUTPUT:
+    if source not in _DUAL_SCAN_SOURCES:
         return input_result
     output_result = guard.scan_output_request(request, isolated=True)
     return merge_scan_results(input_result, output_result)
@@ -116,10 +120,14 @@ def scan_stream(
     guard: Guard,
     chunks: Iterable[str],
     *,
-    source: Source | str = Source.USER,
+    source: Source | str = Source.TOOL_OUTPUT,
     document_id: str | None = None,
 ) -> ScanResult:
-    """Scan an iterable of text chunks as one document (full coverage via sliding windows)."""
+    """Scan an iterable of text chunks as one document (full coverage via sliding windows).
+
+    Defaults to ``TOOL_OUTPUT`` so streamed tool/LLM text gets registry/canary
+    coverage. Pass ``source=USER`` for trusted user turns (skips output pipeline).
+    """
     src = Source(source) if isinstance(source, str) else source
     request = guard._build_scan_request("".join(chunks), src)
     if document_id is not None:

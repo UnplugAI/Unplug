@@ -5,11 +5,12 @@ from __future__ import annotations
 from unplug.api.enums import Action
 from unplug.api.types import Finding, ScanResult
 
+# Keep aligned with Guard._ACTION_SEVERITY (server canary overlay).
 _ACTION_RANK: dict[Action, int] = {
     Action.ALLOW: 0,
-    Action.REDACT: 1,
+    Action.ABSTAIN: 1,
     Action.REVIEW: 2,
-    Action.ABSTAIN: 3,
+    Action.REDACT: 3,
     Action.BLOCK: 4,
 }
 
@@ -23,7 +24,7 @@ def merge_scan_results(*results: ScanResult) -> ScanResult:
         return results[0]
 
     findings: list[Finding] = []
-    seen: set[tuple[str, str, int, int]] = set()
+    by_key: dict[tuple[str, str, int, int], Finding] = {}
     for result in results:
         for finding in result.findings:
             key = (
@@ -32,24 +33,39 @@ def merge_scan_results(*results: ScanResult) -> ScanResult:
                 finding.span_start,
                 finding.span_end,
             )
-            if key in seen:
-                continue
-            findings.append(finding)
-            seen.add(key)
+            existing = by_key.get(key)
+            # Prefer higher score (and a defined replacement) so a weak/spoofed
+            # remote hit cannot suppress an authoritative local registry/canary finding.
+            if existing is None or finding.score > existing.score:
+                by_key[key] = finding
+            elif (
+                finding.score == existing.score
+                and existing.replacement is None
+                and finding.replacement is not None
+            ):
+                by_key[key] = finding
+    findings = list(by_key.values())
 
     action = max((r.action for r in results), key=lambda a: _ACTION_RANK[a])
     risk_score = max(
         max(r.risk_score for r in results),
         max((f.score for f in findings), default=0.0),
     )
-    safe = all(r.safe for r in results)
-    if action in (Action.BLOCK, Action.REVIEW, Action.ABSTAIN):
-        safe = False
+    # Fail closed: only ALLOW (+ all parts safe) is safe. REDACT/REVIEW/ABSTAIN
+    # must not inherit safe=True from a buggy or spoofed remote result.
+    safe = action == Action.ALLOW and all(r.safe for r in results)
 
+    # Prefer redacted text from the most severe result; ties prefer later pipelines
+    # (output/registry sanitizer runs after input).
     redacted: str | None = None
-    for result in results:
+    for _, result in sorted(
+        enumerate(results),
+        key=lambda ir: (_ACTION_RANK[ir[1].action], ir[0]),
+        reverse=True,
+    ):
         if result.redacted_text is not None:
             redacted = result.redacted_text
+            break
 
     stages: list[str] = []
     for result in results:

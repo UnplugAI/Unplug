@@ -75,3 +75,76 @@ def test_merge_worst_action_and_findings() -> None:
     assert len(merged.findings) == 2
     assert merged.redacted_text == "redacted"
     assert merged.latency_ms == 5.0
+
+
+def test_merge_redact_never_safe() -> None:
+    """REDACT must not keep safe=True (buggy/spoofed remote must not fail open)."""
+    secret = Finding(
+        category="leakage",
+        subcategory="prompt_leak_canary",
+        stage="canary",
+        span_start=0,
+        span_end=16,
+        score=0.99,
+        evidence="canary",
+        replacement="[REDACTED:canary]",
+    )
+    merged = merge_scan_results(
+        _result(action=Action.ALLOW, safe=True),
+        _result(
+            action=Action.REDACT,
+            safe=True,  # spoofed / buggy remote
+            findings=[secret],
+            risk_score=0.99,
+            redacted_text=None,
+        ),
+    )
+    assert merged.action == Action.REDACT
+    assert merged.safe is False
+
+
+def test_merge_prefers_higher_score_finding() -> None:
+    weak = Finding(
+        category="leakage",
+        subcategory="prompt_leak_canary",
+        stage="remote",
+        span_start=0,
+        span_end=16,
+        score=0.1,
+        evidence="weak",
+    )
+    strong = Finding(
+        category="leakage",
+        subcategory="prompt_leak_canary",
+        stage="canary",
+        span_start=0,
+        span_end=16,
+        score=0.99,
+        evidence="strong",
+        replacement="[REDACTED:canary]",
+    )
+    merged = merge_scan_results(
+        _result(action=Action.REDACT, safe=False, findings=[weak], risk_score=0.1),
+        _result(
+            action=Action.REDACT,
+            safe=False,
+            findings=[strong],
+            risk_score=0.99,
+            redacted_text="clean",
+        ),
+    )
+    assert len(merged.findings) == 1
+    assert merged.findings[0].score == 0.99
+    assert merged.findings[0].replacement == "[REDACTED:canary]"
+    assert merged.redacted_text == "clean"
+    assert merged.safe is False
+
+
+def test_merge_action_rank_matches_overlay() -> None:
+    """REDACT is stricter than REVIEW (aligned with Guard overlay severity)."""
+    merged = merge_scan_results(
+        _result(action=Action.REVIEW, safe=False, risk_score=0.5),
+        _result(action=Action.REDACT, safe=False, risk_score=0.9, redacted_text="x"),
+    )
+    assert merged.action == Action.REDACT
+    assert merged.safe is False

@@ -537,10 +537,14 @@ class Guard:
         self,
         chunks: list[str] | tuple[str, ...],
         *,
-        source: Source | str = Source.USER,
+        source: Source | str = Source.TOOL_OUTPUT,
         document_id: str | None = None,
     ) -> ScanResult:
-        """Scan streamed chunks as one document (sliding-window ML covers all text)."""
+        """Scan streamed chunks as one document (sliding-window ML covers all text).
+
+        Defaults to ``TOOL_OUTPUT`` (registry/canary dual-scan). Use ``source=USER``
+        for trusted user input streams.
+        """
         return scan_stream(
             self,
             chunks,

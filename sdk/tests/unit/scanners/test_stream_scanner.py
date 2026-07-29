@@ -66,6 +66,25 @@ def test_scan_stream_tool_output_blocks_canary() -> None:
     assert any(f.subcategory == "prompt_leak_canary" for f in result.findings)
 
 
+def test_scan_stream_default_blocks_canary() -> None:
+    """Default source is TOOL_OUTPUT so LLM/tool streams are not canary-hollow."""
+    guard = Guard()
+    guard.add_canary("system prompt body")
+    token = guard.canaries.records()[0].token
+    result = scan_stream(guard, [f"echo {token}"])
+    assert result.safe is False
+    assert any(f.subcategory == "prompt_leak_canary" for f in result.findings)
+
+
+def test_scan_stream_retrieved_blocks_canary() -> None:
+    guard = Guard()
+    guard.add_canary("system prompt body")
+    token = guard.canaries.records()[0].token
+    result = scan_stream(guard, [f"doc {token}"], source=Source.RETRIEVED)
+    assert result.safe is False
+    assert any(f.subcategory == "prompt_leak_canary" for f in result.findings)
+
+
 def test_scan_stream_user_skips_output_pipeline() -> None:
     guard = Guard()
     with (
@@ -75,3 +94,10 @@ def test_scan_stream_user_skips_output_pipeline() -> None:
         scan_stream(guard, ["benign user text"], source=Source.USER)
         assert mock_in.call_count == 1
         assert mock_out.call_count == 0
+
+    guard.add_canary("system prompt body")
+    token = guard.canaries.records()[0].token
+    # Explicit USER remains input-only (canary not enforced on trusted turns).
+    result = scan_stream(guard, [f"user typed {token}"], source=Source.USER)
+    assert result.safe is True
+    assert not any(f.subcategory == "prompt_leak_canary" for f in result.findings)
