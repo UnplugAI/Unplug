@@ -148,3 +148,42 @@ def test_merge_action_rank_matches_overlay() -> None:
     )
     assert merged.action == Action.REDACT
     assert merged.safe is False
+
+
+def test_merge_redacted_last_non_none_wins() -> None:
+    """Ordered pipelines: later redaction composes on the prior base."""
+    merged = merge_scan_results(
+        _result(action=Action.BLOCK, safe=False, redacted_text="inj-clean secret-still-here"),
+        _result(action=Action.BLOCK, safe=False, redacted_text="inj-clean secret-gone"),
+    )
+    assert merged.redacted_text == "inj-clean secret-gone"
+
+
+def test_merge_keeps_earlier_redacted_when_later_absent() -> None:
+    merged = merge_scan_results(
+        _result(action=Action.REDACT, safe=False, redacted_text="only-input"),
+        _result(action=Action.ALLOW, safe=True, redacted_text=None),
+    )
+    assert merged.action == Action.REDACT
+    assert merged.redacted_text == "only-input"
+    assert merged.safe is False
+
+
+def test_merge_empty_findings_allow() -> None:
+    merged = merge_scan_results(
+        _result(action=Action.ALLOW, safe=True),
+        _result(action=Action.ALLOW, safe=True),
+    )
+    assert merged.action == Action.ALLOW
+    assert merged.safe is True
+    assert merged.findings == []
+    assert merged.redacted_text is None
+
+
+def test_merge_abstain_not_safe() -> None:
+    merged = merge_scan_results(
+        _result(action=Action.ALLOW, safe=True),
+        _result(action=Action.ABSTAIN, safe=True, risk_score=0.4),
+    )
+    assert merged.action == Action.ABSTAIN
+    assert merged.safe is False

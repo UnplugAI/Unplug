@@ -55,17 +55,13 @@ def merge_scan_results(*results: ScanResult) -> ScanResult:
     # must not inherit safe=True from a buggy or spoofed remote result.
     safe = action == Action.ALLOW and all(r.safe for r in results)
 
-    # Prefer redacted text from the most severe result; ties prefer later pipelines
-    # (output/registry sanitizer runs after input).
+    # Last non-None wins. Call sites must scan later pipelines on the prior
+    # redacted base (input → output) so this composes rather than overwriting
+    # with a parallel view of the original text.
     redacted: str | None = None
-    for _, result in sorted(
-        enumerate(results),
-        key=lambda ir: (_ACTION_RANK[ir[1].action], ir[0]),
-        reverse=True,
-    ):
+    for result in results:
         if result.redacted_text is not None:
             redacted = result.redacted_text
-            break
 
     stages: list[str] = []
     for result in results:

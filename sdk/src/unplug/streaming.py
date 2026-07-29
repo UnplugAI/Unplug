@@ -108,11 +108,21 @@ def _scan_stream_request(
     *,
     source: Source,
 ) -> ScanResult:
-    """Input scan always; dual-scan OutputPipeline for untrusted external sources."""
+    """Input scan always; dual-scan OutputPipeline for untrusted external sources.
+
+    Output runs on the input redacted base so secrets/canary sanitization composes
+    with injection redaction instead of replacing it.
+    """
     input_result = guard.scan_request(request, isolated=True)
     if source not in _DUAL_SCAN_SOURCES:
         return input_result
-    output_result = guard.scan_output_request(request, isolated=True)
+    base = (
+        input_result.redacted_text
+        if input_result.redacted_text is not None
+        else request.text
+    )
+    output_request = request if base == request.text else request.model_copy(update={"text": base})
+    output_result = guard.scan_output_request(output_request, isolated=True)
     return merge_scan_results(input_result, output_result)
 
 

@@ -24,9 +24,12 @@ class ToolOutputOrchestrator:
 
     def run(self, text: str) -> OrchestratorResult:
         # Input: injection (and related) on untrusted tool returns.
-        # Output: registry secrets, canaries, leakage, PII.
+        # Output: registry secrets, canaries, leakage, PII — run on the input
+        # redacted base so merge last-wins composes both layers (never a parallel
+        # view of the original that reintroduces injection spans).
         input_scan = self._guard.scan(text, source="tool_output")
-        output_scan = self._guard.scan_output(text)
+        base = input_scan.redacted_text if input_scan.redacted_text is not None else text
+        output_scan = self._guard.scan_output(base)
         scan = merge_scan_results(input_scan, output_scan)
         outcome = scan_result_to_outcome(
             scan,
