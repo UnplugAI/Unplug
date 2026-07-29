@@ -61,7 +61,7 @@ guard = Guard(mode="server")  # UNPLUG_SERVER_URL + UNPLUG_API_KEY
 
 They never clone `unplug-server`, never download checkpoints, and never need a GPU.
 
-Tool enforcement (`check_tool_call`, toolchain, collusion) **always runs in the SDK** today: hosted mode covers text scan/output only.
+Tool enforcement (`check_tool_call`, toolchain, collusion) **always runs in the SDK** today: hosted mode covers text scan/output only. After each remote scan, the SDK syncs local session taint, user intent, and risk trajectory so tool policy stays correct; client-planted canaries and `secrets.register` values are checked locally on output (they never leave the process).
 
 ### Local embedded (simplest offline ML)
 

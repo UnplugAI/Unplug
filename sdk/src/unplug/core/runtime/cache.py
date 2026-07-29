@@ -143,12 +143,14 @@ class ScanCache:
         self.set_chunk(chunk_storage_key(parts), result)
 
     @staticmethod
-    def should_advance_prefix(action: Action, *, advance_on_redact: bool) -> bool:
-        if action == Action.BLOCK:
-            return False
-        if action == Action.REDACT:
-            return advance_on_redact
-        return action in (Action.ALLOW, Action.REVIEW)
+    def should_advance_prefix(
+        action: Action,
+        *,
+        advance_on_redact: bool = False,  # ignored; retained for call-site compat
+        safe: bool = True,
+    ) -> bool:
+        """Advance verified-clean prefix only on ALLOW (+ safe), matching StreamScanner."""
+        return action == Action.ALLOW and safe
 
 
 def offset_findings(findings: list[Finding], offset: int) -> list[Finding]:

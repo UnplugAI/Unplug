@@ -15,7 +15,13 @@ class CacheConfig(BaseModel):
 
     enabled: bool = True
     max_chunk_entries: int = Field(default=256, ge=1)
-    advance_prefix_on_redact: bool = True
+    advance_prefix_on_redact: bool = Field(
+        default=True,
+        description=(
+            "Deprecated no-op. Safe-prefix cache advances only on Action.ALLOW "
+            "(+ safe), matching StreamScanner. Kept for TOML/API compatibility."
+        ),
+    )
     # Re-scan this many chars at the safe-prefix boundary (StreamScanner-aligned).
     # Floor matches the default: smaller values let split injections complete outside
     # the re-scan window after a cached ALLOW prefix.

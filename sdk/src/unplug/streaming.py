@@ -76,7 +76,7 @@ class StreamScanner:
         if (
             self._safe_prefix_len > 0
             and self._last_result is not None
-            and self._last_result.action in (Action.ALLOW, Action.REVIEW)
+            and self._last_result.action == Action.ALLOW
             and self._last_result.safe
         ):
             prefix_len = effective_prefix_skip(self._safe_prefix_len, self._overlap)

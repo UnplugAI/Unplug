@@ -28,11 +28,25 @@ class TestGuardServerMode:
         mock_cls.return_value.scan_request.assert_called_once()
         assert guard.is_server_mode is True
 
-    def test_scan_output_stays_local(self) -> None:
-        with patch("unplug.guard.UnplugClient"):
+    def test_scan_output_delegates_then_overlays_local_registry(self) -> None:
+        """Output scans go to the server; local canaries still overlay the result."""
+        mock_result = ScanResult(
+            safe=True,
+            action=Action.ALLOW,
+            risk_score=0.0,
+            findings=[],
+            latency_ms=1.0,
+        )
+        with patch("unplug.guard.UnplugClient") as mock_cls:
+            mock_cls.return_value.scan_output_request.return_value = mock_result
             guard = Guard(mode="server", server_url="http://unplug.test")
-            out = guard.scan_output("Contact us at user@example.com")
-        assert out.findings or not out.safe
+            guard.add_canary("You are a helpful assistant.")
+            token = guard.canaries.records()[0].token
+            out = guard.scan_output(f"Contact us; instructions: {token}")
+
+        mock_cls.return_value.scan_output_request.assert_called_once()
+        assert out.safe is False
+        assert any(f.subcategory == "prompt_leak_canary" for f in out.findings)
 
     def test_scan_request_uses_client(self) -> None:
         from unplug.models import ScanRequest

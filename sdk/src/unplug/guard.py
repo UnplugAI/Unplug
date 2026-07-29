@@ -11,7 +11,7 @@ from unplug.api.types import Finding, ScanRequest, ScanResult
 from unplug.client import UnplugClient
 from unplug.config.guard import GuardConfig, resolve_input_scanners
 from unplug.config.limits import LimitConfig, LimitViolation
-from unplug.config.policy import MlGateConfig, ScanPolicy
+from unplug.config.policy import MlGateConfig, RedactionMode, ScanPolicy
 from unplug.core.agent.approval import ApprovalProvider, NullApprovalProvider
 from unplug.core.agent.boundaries import maybe_wrap_untrusted
 from unplug.core.agent.canary import CanaryRegistry
@@ -19,7 +19,7 @@ from unplug.core.context import ExecutionContext, ToolCall
 from unplug.core.judge import JudgeProvider
 from unplug.core.normalize import Normalizer
 from unplug.core.normalize.encodings import EncodingClassifier, default_encoding_classifier
-from unplug.core.policy import policy_from_request
+from unplug.core.policy import decide_action, is_result_safe, policy_from_request
 from unplug.core.privacy import NullPrivacyFilter, PrivacyFilterService
 from unplug.core.privacy.secrets import SecretsRegistry, SecretsSanitizer
 from unplug.core.runtime.cache import (
@@ -359,6 +359,106 @@ class Guard:
                 origin="user_message",
             )
 
+    def _sync_session_after_remote_input(
+        self,
+        request: ScanRequest,
+        result: ScanResult,
+        *,
+        isolated: bool,
+    ) -> None:
+        """Apply local session side-effects after a remote input scan."""
+        if isolated:
+            return
+        self._apply_request_context(request)
+        self._capture_user_intent(request)
+        self._maybe_mark_session_tainted_from_scan(request.source)
+        self._context.update_risk(result.risk_score)
+
+    def _sync_session_after_remote_output(
+        self,
+        request: ScanRequest,
+        result: ScanResult,
+        *,
+        isolated: bool,
+    ) -> None:
+        """Apply local session side-effects after a remote output scan."""
+        if isolated:
+            return
+        self._apply_request_context(request)
+        self._maybe_mark_session_tainted_from_scan(Source.TOOL_OUTPUT)
+        self._context.update_risk(result.risk_score)
+
+    def _overlay_local_registry_findings(
+        self,
+        text: str,
+        remote: ScanResult,
+        *,
+        request: ScanRequest,
+    ) -> ScanResult:
+        """Merge local SecretsRegistry/canary findings into a remote output result."""
+        scanner = self._registry.get("secrets")
+        if scanner is None:
+            from unplug.scanners.secrets import SecretsScanner
+
+            scanner = SecretsScanner()
+
+        overlay_ctx = ExecutionContext(secrets_registry=self._secrets_registry)
+        tainted = TaintedText(
+            text=text,
+            trust_level=TrustLevel.TOOL_OUTPUT,
+            origin="server_registry_overlay",
+        )
+        local_findings = list(scanner.scan(tainted, overlay_ctx))
+        if not local_findings:
+            return remote
+
+        seen = {(f.category, f.subcategory, f.span_start, f.span_end) for f in remote.findings}
+        merged = list(remote.findings)
+        for finding in local_findings:
+            key = (
+                finding.category,
+                finding.subcategory,
+                finding.span_start,
+                finding.span_end,
+            )
+            if key not in seen:
+                merged.append(finding)
+                seen.add(key)
+
+        risk_score = max(
+            remote.risk_score,
+            max((f.score for f in merged), default=0.0),
+        )
+        policy = policy_from_request(request, self._config.policy)
+        action = decide_action(
+            merged,
+            text_len=len(text),
+            policy=policy,
+            risk_score=risk_score,
+        )
+        safe = is_result_safe(action, policy)
+
+        redacted = remote.redacted_text
+        if merged and policy.redaction_mode != RedactionMode.NONE:
+            base = remote.redacted_text if remote.redacted_text is not None else text
+            redacted = SecretsSanitizer(self._secrets_registry).sanitize(base).clean_text
+
+        stages = list(remote.stages_run)
+        for category in (f.category for f in local_findings):
+            if category not in stages:
+                stages.append(category)
+
+        return remote.model_copy(
+            update={
+                "safe": safe,
+                "action": action,
+                "risk_score": risk_score,
+                "findings": merged,
+                "redacted_text": redacted,
+                "stages_run": stages,
+            }
+        )
+
     @property
     def config(self) -> GuardConfig:
         return self._config
@@ -596,6 +696,7 @@ class Guard:
         if cache.should_advance_prefix(
             result.action,
             advance_on_redact=self._config.cache.advance_prefix_on_redact,
+            safe=result.safe,
         ):
             cache.set_safe_prefix(
                 parts,
@@ -624,7 +725,18 @@ class Guard:
         try:
             with correlation_scope():
                 if self._server_client is not None:
-                    return self._server_client.scan_output_request(request)
+                    result = self._server_client.scan_output_request(request)
+                    result = self._overlay_local_registry_findings(
+                        request.text,
+                        result,
+                        request=request,
+                    )
+                    self._sync_session_after_remote_output(
+                        request,
+                        result,
+                        isolated=isolated,
+                    )
+                    return result
                 ctx = self._request_context(request, isolated=isolated)
                 body: str | TaintedText = request.text
                 result = self._output_pipeline.run(body, context=ctx)
@@ -707,7 +819,13 @@ class Guard:
         try:
             with correlation_scope():
                 if self._server_client is not None:
-                    return self._server_client.scan_request(request)
+                    result = self._server_client.scan_request(request)
+                    self._sync_session_after_remote_input(
+                        request,
+                        result,
+                        isolated=isolated,
+                    )
+                    return result
                 ctx = self._request_context(request, isolated=isolated)
                 prev_allowed = ctx.allowed_scanners
                 try:
