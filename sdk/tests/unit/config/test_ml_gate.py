@@ -35,3 +35,28 @@ def test_recall_preset_runs_ml_below_high() -> None:
         )
         is True
     )
+
+
+def test_preset_expands_when_constructed_in_python() -> None:
+    """A preset set in Python must behave the same as one set in unplug.toml."""
+    for preset, always_below_high, gray_low in (
+        ("recall", True, 0.0),
+        ("balanced", False, 0.3),
+        ("latency", False, 0.5),
+    ):
+        gate = MlGateConfig(preset=preset)  # type: ignore[arg-type]
+        assert gate.always_below_high is always_below_high, preset
+        assert gate.gray_low == gray_low, preset
+
+
+def test_python_and_toml_presets_agree() -> None:
+    from unplug.config.loader import _apply_ml_gate_preset
+
+    for preset in ("recall", "balanced", "latency"):
+        via_loader = _apply_ml_gate_preset({"preset": preset})
+        assert (
+            MlGateConfig(preset=preset).model_dump()
+            == MlGateConfig(  # type: ignore[arg-type]
+                **{k: v for k, v in via_loader.items() if k in MlGateConfig.model_fields}
+            ).model_dump()
+        ), preset

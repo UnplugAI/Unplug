@@ -3,9 +3,29 @@
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
+
+# Single source of truth for ml_gate presets. The loader and the model validator
+# both read this, so a TOML config and an equivalent Python config agree.
+ML_GATE_PRESETS: dict[str, dict[str, float | bool]] = {
+    "recall": {"always_below_high": True, "gray_low": 0.0},
+    "balanced": {"always_below_high": False, "gray_low": 0.3},
+    "latency": {"always_below_high": False, "gray_low": 0.5},
+}
+
+
+def apply_ml_gate_preset(data: dict[str, Any]) -> dict[str, Any]:
+    """Expand a preset name into the fields it stands for.
+
+    The preset wins over sibling values, matching how the TOML loader has always
+    behaved. Set the fields directly if you want to override one of them.
+    """
+    values = ML_GATE_PRESETS.get(str(data.get("preset", "")))
+    if values is None:
+        return data
+    return {**data, **values}
 
 
 class RedactionMode(StrEnum):
@@ -57,6 +77,13 @@ class MlGateConfig(BaseModel):
         default=None,
         description="Optional preset: recall=always_below_high, balanced/latency=gray-band only",
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _expand_preset(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            return apply_ml_gate_preset(data)
+        return data
 
 
 class ScanPolicy(BaseModel):

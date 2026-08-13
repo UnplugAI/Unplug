@@ -19,7 +19,7 @@ from unplug.config.cache import CacheConfig
 from unplug.config.guard import GuardConfig, PipelineConfig, ScannerConfig, ThresholdConfig
 from unplug.config.limits import LimitConfig
 from unplug.config.messages import MessageConfig
-from unplug.config.policy import MlGateConfig, ScanPolicy
+from unplug.config.policy import MlGateConfig, ScanPolicy, apply_ml_gate_preset
 from unplug.config.tools import ToolPolicyConfig
 from unplug.exceptions import ConfigError
 
@@ -146,14 +146,8 @@ def _build_policy(data: dict[str, Any]) -> ScanPolicy:
 
 
 def _apply_ml_gate_preset(data: dict[str, Any]) -> dict[str, Any]:
-    preset = data.get("preset")
-    if preset == "recall":
-        return {**data, "always_below_high": True, "gray_low": 0.0}
-    if preset == "balanced":
-        return {**data, "always_below_high": False, "gray_low": 0.3}
-    if preset == "latency":
-        return {**data, "always_below_high": False, "gray_low": 0.5}
-    return data
+    """Kept for callers that expand a preset before building the model."""
+    return apply_ml_gate_preset(data)
 
 
 def _build_pipeline(data: dict[str, Any]) -> PipelineConfig:

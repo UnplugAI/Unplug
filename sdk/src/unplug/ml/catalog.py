@@ -26,6 +26,13 @@ class CatalogTier(BaseModel):
     backend: str = "transformers_span"
     description: str = ""
     config: dict[str, Any] = Field(default_factory=dict)
+    gate: dict[str, Any] = Field(
+        default_factory=dict,
+        description=(
+            "Recommended pipeline.ml_gate for this tier, applied when the caller has "
+            "not set one. Gate tuning belongs with the weights it was measured against."
+        ),
+    )
 
     def to_model_spec(self, *, path: str | None = None) -> ModelSpec:
         return ModelSpec(
@@ -70,7 +77,9 @@ def load_catalog(path: Path | None = None) -> ModelCatalog:
         if not isinstance(entry, dict):
             continue
         cfg = entry.get("config", {})
+        gate = entry.get("gate", {})
         tiers[tier_id] = CatalogTier(
+            gate=dict(gate) if isinstance(gate, dict) else {},
             tier=tier_id,
             name=str(entry.get("name", tier_id)),
             repo_id=str(entry["repo_id"]),

@@ -12,6 +12,12 @@ revision = "19b7d6701bea1f6d9f03ec7bcaeeea390dff43be"
 backend = "transformers_span"
 description = "Default dual-head span injection model (DeBERTa-v3-xsmall)"
 
+# Recall gating is part of this tier's tuning, not a Guard default. With the
+# stock gray-band gate the model only runs when regex is already uncertain, which
+# measured ~0 added recall (docs/BENCHMARKS.md).
+[catalog.tiers.tiny.gate]
+preset = "recall"
+
 [catalog.tiers.tiny.config]
 # inj_threshold tuned to 0.60 — the recall/FPR knee measured on neuralchemy plus
 # a clean benign corpus (recall ~0.97 at ~1% benign false positives, vs ~2% at 0.45).

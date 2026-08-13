@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 
 from unplug.config.guard import GuardConfig
+from unplug.config.policy import MlGateConfig
 from unplug.core.models import ModelProvider, ModelRegistry, ModelSpec
 from unplug.core.runtime.versions import MODEL_VERSION_LOCAL
 from unplug.exceptions import ConfigError, ModelError
@@ -23,6 +24,24 @@ def merge_catalog_models(config: GuardConfig) -> GuardConfig:
         if tier_id not in models:
             models[tier_id] = entry.to_model_spec()
     return config.model_copy(update={"models": models})
+
+
+def apply_catalog_gate(config: GuardConfig) -> GuardConfig:
+    """Apply the active tier's recommended ml_gate when the caller left it default.
+
+    Gate tuning is measured against specific weights, so it travels with the tier
+    in catalog.toml rather than being hardcoded per model in Guard. An explicit
+    ml_gate from the caller always wins.
+    """
+    if not config.active_model:
+        return config
+    if config.pipeline.ml_gate != MlGateConfig():
+        return config
+    entry = load_catalog().get(config.active_model)
+    if entry is None or not entry.gate:
+        return config
+    pipeline = config.pipeline.model_copy(update={"ml_gate": MlGateConfig(**entry.gate)})
+    return config.model_copy(update={"pipeline": pipeline})
 
 
 def resolve_active_model_spec(config: GuardConfig) -> ModelSpec | None:
