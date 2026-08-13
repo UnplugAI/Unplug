@@ -29,8 +29,17 @@ in any release).
 | `judge_enabled` | `judge=` on `Guard()` | config flag was a no-op without a provider; removed in v1.0 |
 | `pipeline.judge_timeout` | (removed) | never wired; removed in v1.0 |
 | `pipeline.fail_closed` | (removed) | duplicate of deprecated `guard.fail_closed`; removed in v1.0 |
+| `Guard.with_tiny(...)` | `Guard(model="tiny", ...)` | emits a `DeprecationWarning`; produces an identical config. `auto_download` is now `auto_download_model` |
 
 ## Notes / known follow-ups
+
+- **Model selection is now one argument.** `Guard(model="tiny")` replaces
+  `Guard.with_tiny()`, so adding a tier does not add a constructor. Gate tuning
+  moved with it: each tier declares its recommended `pipeline.ml_gate` under
+  `[catalog.tiers.<tier>.gate]` in `data/catalog.toml`, applied only when the
+  caller has not set one. Previously `with_tiny()` hardcoded the recall gate while
+  `active_model="tiny"` silently got the weaker default, which the docs described
+  as equivalent. They now genuinely are.
 
 - **`refresh_scan_result`** now has a stable home at `unplug.api.results`. The old
   `unplug.guard_scan` path still works (back-compat shim, emits a `DeprecationWarning`).

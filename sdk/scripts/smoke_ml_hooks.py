@@ -74,7 +74,7 @@ def main() -> int:
         from unplug.integrations.langgraph import langgraph_input_node, langgraph_tool_guard
 
         # Random weights: require_ml only asserts the scanner loaded, not recall.
-        guard = Guard.with_tiny(auto_download=False, require_ml=True)
+        guard = Guard(model="tiny", auto_download_model=False, require_ml=True)
         print(f"scanners: {guard.scanners_loaded}")
         print(f"ml_loaded: {guard.ml_model_loaded}")
         print(f"checkpoint: {ckpt}")

@@ -44,9 +44,9 @@ def main() -> None:
     from unplug.api.enums import Source
     from unplug.api.types import ScanRequest
 
-    # with_tiny() defaults to the recall ML gate so the model second-passes
-    # every scan (including confident regex misses like exfil probes).
-    guard = Guard.with_tiny(auto_download=False, require_ml=args.require_weights)
+    # The tiny tier ships a recall ML gate in catalog.toml so the model
+    # second-passes every scan (including confident regex misses like exfil probes).
+    guard = Guard(model="tiny", auto_download_model=False, require_ml=args.require_weights)
     print(f"scanners: {guard.scanners_loaded}")
     print(f"ml_loaded: {guard.ml_model_loaded}")
     print(f"checkpoint: {ckpt}")

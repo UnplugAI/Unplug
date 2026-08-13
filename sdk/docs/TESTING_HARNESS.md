@@ -100,6 +100,6 @@ make smoke-ml-hooks
 # → scripts/smoke_ml_hooks.py
 ```
 
-Builds a tiny random BIOES checkpoint in a temp dir, loads `Guard.with_tiny`, and
+Builds a tiny random BIOES checkpoint in a temp dir, loads `Guard(model="tiny")`, and
 runs LangGraph-style input/tool hooks. Proves wiring without hub access or
 `langgraph` installed. Does **not** assert ML recall (weights are random).

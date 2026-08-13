@@ -59,7 +59,7 @@ U+2066–U+2069) stripped in the normalizer zero-width stage.
 
 | Gap | Why regex struggles | Recommended path |
 | --- | --- | --- |
-| Indirect injection (microsoft ~95% miss) | Natural-language instructions in email/tool bodies | Keep `Guard.with_tiny()` / ML second-pass (prior recall **0.91**) |
+| Indirect injection (microsoft ~95% miss) | Natural-language instructions in email/tool bodies | Keep `Guard(model="tiny")` / ML second-pass (prior recall **0.91**) |
 | Jailbreak / adversarial paraphrases | Open-ended persona and policy-bypass wording | ML + optional `JudgeProvider` gray band |
 | Encoding (ROT13 / hex / URL / Morse) | Documented converter expected gaps | Add decode stages only if product needs them; today tracked in `EXPECTED_GAPS` |
 | Crescendo / many-shot | Multi-turn; single-turn eval cannot catch | Trajectory / scenario replay (`benchmarks/scenarios/`) |

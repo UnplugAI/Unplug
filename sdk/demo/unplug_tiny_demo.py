@@ -108,7 +108,7 @@ def _get_guard(*, use_ml: bool) -> Guard:
     with _guard_lock:
         if use_ml:
             if _guard_ml is None:
-                _guard_ml = Guard.with_tiny(auto_download=True, require_ml=True)
+                _guard_ml = Guard(model="tiny", auto_download_model=True, require_ml=True)
             return _guard_ml
         if _guard_regex is None:
             _guard_regex = Guard(

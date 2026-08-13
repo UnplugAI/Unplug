@@ -10,7 +10,7 @@ its evidence at every step. Unplug returns the decision; the host enforces
 it (a side-effect call in a tainted session requires human approval).
 
 Runs offline on regex + taint tracking alone (zero ML dependencies).
-`Guard.with_tiny()` adds the ML span model for harder, indirect injections
+`Guard(model="tiny")` adds the ML span model for harder, indirect injections
 (see docs/BENCHMARKS.md).
 
 Run:
@@ -141,7 +141,7 @@ def main() -> int:
         print("The injection is cut from the content (the rest kept), the exfil")
         print("call is held for approval, and the destructive command is blocked.")
         print("\nThis ran on regex + taint alone (offline, zero ML deps).")
-        print("Guard.with_tiny() adds the ML span model -- see docs/BENCHMARKS.md.")
+        print('Guard(model="tiny") adds the ML span model -- see docs/BENCHMARKS.md.')
         return 0
 
     _banner("FAIL: an attack slipped through")

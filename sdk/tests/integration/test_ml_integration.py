@@ -36,7 +36,7 @@ def ml_guard(ml_checkpoint_with_weights: Path) -> Iterator:
 
     # Use the recommended recall gate (the default conservative gate only runs ML
     # in the regex gray band and misses confident-regex-miss attacks like exfil).
-    guard = Guard.with_tiny(auto_download=False, require_ml=True)
+    guard = Guard(model="tiny", auto_download_model=False, require_ml=True)
     assert guard.ml_model_loaded, "injection_ml must load with checkpoint weights"
     yield guard
 

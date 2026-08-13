@@ -66,8 +66,8 @@ def main() -> None:
     if args.ml:
         from unplug import Guard
 
-        print("Loading Guard.with_tiny() (ML)...", file=sys.stderr)
-        guard = Guard.with_tiny(require_ml=True)
+        print('Loading Guard(model="tiny") (ML)...', file=sys.stderr)
+        guard = Guard(model="tiny", require_ml=True)
 
     print(
         f"Evaluating {len(samples)} samples (threshold={args.threshold}, ml={args.ml}, "

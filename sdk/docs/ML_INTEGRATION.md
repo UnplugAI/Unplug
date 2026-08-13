@@ -32,7 +32,7 @@ Or in Python:
 ```python
 from unplug import Guard
 
-guard = Guard.with_tiny(auto_download=True, require_ml=False)
+guard = Guard(model="tiny", auto_download_model=True, require_ml=False)
 result = guard.scan(user_text)
 ```
 

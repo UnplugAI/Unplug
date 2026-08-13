@@ -2,7 +2,7 @@
 
 Date: 2026-06-15 (ML rows); regex-only neuralchemy refreshed **2026-07-20** (Phase C)
 Guard: `unplug-ai`, default scanners
-Model: `unplug-tiny-v1` (DeBERTa-v3-xsmall dual-head span model), `Guard.with_tiny()`
+Model: `unplug-tiny-v1` (DeBERTa-v3-xsmall dual-head span model), `Guard(model="tiny")`
 Detection threshold: risk ≥ 0.5 counts as flagged (block or review)
 Methodology: **isolated single-turn sessions** — each sample is scanned in a fresh
 `ExecutionContext` (`scan_request(..., isolated=True)`), so multi-turn trajectory
@@ -12,7 +12,7 @@ Phase C gap notes and download commands: [`EVAL_PHASE_C.md`](EVAL_PHASE_C.md).
 
 ## Headline: regex vs regex + ML
 
-`with_tiny()` second-passes every scan with the ML model, so it catches injections
+The tiny tier second-passes every scan with the ML model, so it catches injections
 the regex layer alone misses (especially **indirect** injection).
 
 | Dataset | Samples | Mode | F1 | Recall | FPR | Precision |
@@ -41,9 +41,9 @@ recall/FPR knee) to keep this rate low without sacrificing recall.
 
 ## Honest caveats
 
-- **The model only helps when it runs.** Before this tuning, `with_tiny()` shipped a
+- **The model only helps when it runs.** Before this tuning, the tiny tier shipped a
   conservative gate that only invoked ML when regex was *already* suspicious, so the
-  model added ~0 recall out of the box. `with_tiny()` now defaults to recall mode
+  model added ~0 recall out of the box. The tier now ships recall mode in `catalog.toml`
   (`ml_gate.always_below_high = true`).
 - **Numbers are single-turn.** Trajectory/crescendo detection (a multi-turn feature)
   is intentionally not exercised here; it is measured separately.

@@ -58,7 +58,7 @@ if not result.safe:
 Upgrade to the ML span model. Weights download once from [Unplug-AI/unplug-tiny-v1](https://huggingface.co/Unplug-AI/unplug-tiny-v1) and cache locally:
 
 ```python
-guard = Guard.with_tiny()
+guard = Guard(model="tiny")
 result = guard.scan(rag_chunk, source="retrieved")
 ```
 
@@ -151,7 +151,7 @@ guard.scan_stream(["part1", "part2", "part3"])
 | Mode | When to use | Init | ML runs where |
 |------|-------------|------|---------------|
 | **Local regex** | Dev, air-gapped, zero deps | `Guard()` | Nowhere |
-| **Local + ML** | Single agent, offline | `Guard.with_tiny()` or `active_model="tiny"` | Agent process |
+| **Local + ML** | Single agent, offline | `Guard(model="tiny")` | Agent process |
 | **Hosted** | Production, no GPU on client | `Guard(mode="server")` + API key | Unplug API |
 | **Local sidecar** | Many local agents, one model load | Sidecar + `Guard(mode="server")` to localhost | Local server |
 
@@ -190,7 +190,7 @@ The dual-head checkpoint has a document classifier (recall) and a BIOES span hea
 
 ```bash
 pip install "unplug-ai[ml]"
-unplug-models download tiny   # optional; Guard.with_tiny() auto-downloads too
+unplug-models download tiny   # optional; auto_download_model=True does it too
 ```
 
 ```toml

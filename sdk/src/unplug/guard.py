@@ -101,6 +101,9 @@ class Guard:
         self,
         *,
         scanners: list[str] | None = None,
+        model: str | None = None,
+        auto_download_model: bool | None = None,
+        require_ml: bool | None = None,
         mode: str | None = None,
         server_url: str | None = None,
         server_api_key: str | None = None,
@@ -129,6 +132,12 @@ class Guard:
             overrides["mode"] = mode
         if scanners is not None:
             overrides["scanners"] = scanners
+        if model is not None:
+            overrides["active_model"] = model
+        if auto_download_model is not None:
+            overrides["auto_download_model"] = auto_download_model
+        if require_ml is not None:
+            overrides["require_ml"] = require_ml
         if server_url is not None:
             overrides["server_url"] = server_url
         if server_api_key is not None:
@@ -373,23 +382,27 @@ class Guard:
         require_ml: bool = False,
         **kwargs: Any,
     ) -> Guard:
-        """Local guard with unplug-tiny from Hugging Face (Unplug-AI/unplug-tiny-v1).
+        """Deprecated. Use ``Guard(model="tiny")``.
 
-        The ML gate comes from the tier's entry in ``data/catalog.toml``, which sets
-        recall mode so the model second-passes every scan and can catch injections
-        the regex layer misses (not only the gray band). Pass an explicit
-        ``pipeline.ml_gate`` in ``config=`` to keep your own.
+        Kept so code written against 0.6.x keeps working. Every model tier is
+        selected the same way now, so there is no per-model constructor to learn.
         """
-        cfg = kwargs.pop("config", None) or GuardConfig()
-        cfg = cfg.model_copy(
-            update={
-                "active_model": "tiny",
-                "auto_download_model": auto_download,
-                "require_ml": require_ml,
-                "mode": "local",
-            }
+        import warnings
+
+        warnings.warn(
+            'Guard.with_tiny() is deprecated; use Guard(model="tiny") instead',
+            DeprecationWarning,
+            stacklevel=2,
         )
-        return cls(config=cfg, **kwargs)
+        cfg = kwargs.pop("config", None) or GuardConfig()
+        cfg = cfg.model_copy(update={"mode": "local"})
+        return cls(
+            config=cfg,
+            model="tiny",
+            auto_download_model=auto_download,
+            require_ml=require_ml,
+            **kwargs,
+        )
 
     def scan(self, text: str, source: Source | str = Source.USER) -> ScanResult:
         """Scan text and return findings with optional redaction."""
