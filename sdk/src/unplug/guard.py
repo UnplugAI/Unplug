@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import os
 import threading
 from typing import Any, ClassVar
@@ -47,6 +49,27 @@ from unplug.scanners.injection_ml import InjectionSpanScanner
 from unplug.streaming import StreamScanner, scan_stream
 
 _log = get_logger("guard")
+
+# GuardConfig fields deliberately left out of the scan cache fingerprint because
+# they cannot change what a scan of the same text returns. Everything else on the
+# config is folded in, including fields added later.
+#
+#   server_url / server_api_key / mode  server mode short-circuits before the cache
+#   auto_download_model / require_ml    load-time only; whether a model loaded is
+#                                       already covered by the model cache version
+#   models                              tier specs carry machine-local paths; the
+#                                       active model's identity is likewise covered
+#                                       by the model cache version
+CACHE_IRRELEVANT_CONFIG_FIELDS: frozenset[str] = frozenset(
+    {
+        "server_url",
+        "server_api_key",
+        "mode",
+        "auto_download_model",
+        "require_ml",
+        "models",
+    }
+)
 
 
 def _fail_closed(exc: Exception) -> ScanResult:
@@ -493,58 +516,40 @@ class Guard:
         return self._model_cache_version
 
     def _cache_policy_fingerprint(self, request: ScanRequest) -> str:
-        """Fingerprint policy + scanner set so cache entries are not reused across configs."""
-        policy = self._config.policy
-        pipeline_policy = self._config.pipeline.policy
-        ml_gate = self._config.pipeline.ml_gate
-        scanners = request.scanners if request.scanners is not None else list(self._config.scanners)
-        scanner_cfg_parts = [
-            f"{name}:{cfg.base_score}:{cfg.trust_boost}:{cfg.enabled}:{cfg.normalize}"
-            for name, cfg in sorted(self._config.scanner_configs.items())
-        ]
-        parts = [
-            ",".join(scanners),
-            str(self._config.strict_scanner_allowlist),
-            str(
-                request.block_threshold
-                if request.block_threshold is not None
-                else policy.block_threshold
+        """Fingerprint config + per-request overrides so cache entries are never
+        reused across configurations that would scan the same text differently.
+
+        Derived from ``GuardConfig`` rather than a hand-written field list. A new
+        config field is included automatically, so one that changes results cannot
+        be forgotten here. Only the exclusions below are a judgement call, and
+        ``tests/unit/test_cache_fingerprint.py`` fails when a field is added to
+        ``GuardConfig`` without deciding which side it belongs on.
+
+        Being wrong in the inclusive direction costs a cache miss. Being wrong in
+        the other direction serves a scan result computed under someone else's
+        policy, so unknown fields default to included.
+        """
+        config_payload = self._config.model_dump(
+            mode="json",
+            exclude=set(CACHE_IRRELEVANT_CONFIG_FIELDS),
+        )
+        request_payload = {
+            "scanners": request.scanners,
+            "redact": request.redact,
+            "redaction_mode": (
+                request.redaction_mode.value if request.redaction_mode is not None else None
             ),
-            str(
-                request.redact_threshold
-                if request.redact_threshold is not None
-                else policy.redact_threshold
-            ),
-            str(
-                request.review_threshold
-                if request.review_threshold is not None
-                else policy.review_threshold
-            ),
-            str(
-                request.block_coverage_ratio
-                if request.block_coverage_ratio is not None
-                else policy.block_coverage_ratio
-            ),
-            str(request.redact),
-            str(request.redaction_mode.value if request.redaction_mode is not None else ""),
-            str(policy.sensitive_context_enabled),
-            str(policy.sensitive_context_boost),
-            str(policy.sensitive_context_block_delta),
-            str(policy.abstain_is_safe),
-            str(policy.decision_mode.value),
-            str(policy.tau_abstain_low),
-            str(policy.tau_doc_gate),
-            str(policy.scan_user_secrets),
-            str(pipeline_policy.merge_overlapping_spans),
-            str(self._config.judge_low),
-            str(self._config.judge_high),
-            str(ml_gate.always_below_high),
-            str(ml_gate.gray_low),
-            str(self._config.cache.prefix_overlap_chars),
-            str(self._config.cache.advance_prefix_on_redact),
-            ";".join(scanner_cfg_parts),
-        ]
-        return "|".join(parts)
+            "block_threshold": request.block_threshold,
+            "redact_threshold": request.redact_threshold,
+            "review_threshold": request.review_threshold,
+            "block_coverage_ratio": request.block_coverage_ratio,
+        }
+        blob = json.dumps(
+            {"config": config_payload, "request": request_payload},
+            sort_keys=True,
+            default=str,
+        )
+        return hashlib.sha256(blob.encode("utf-8")).hexdigest()
 
     def _run_input_with_cache(self, request: ScanRequest, ctx: ExecutionContext) -> ScanResult:
         cache = ctx.scan_cache
