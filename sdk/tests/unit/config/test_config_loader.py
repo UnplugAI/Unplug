@@ -184,6 +184,16 @@ class TestLoad:
             for w in caught
         )
 
+    def test_fail_closed_is_not_a_config_field(self) -> None:
+        """The key is accepted for back-compat but no longer materialises on the model."""
+        import warnings
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            cfg = build_config({"guard": {"fail_closed": False}})
+        assert "fail_closed" not in GuardConfig.model_fields
+        assert not hasattr(cfg, "fail_closed")
+
     def test_judge_enabled_warns(self) -> None:
         import warnings
 
@@ -223,9 +233,9 @@ class TestLoad:
         assert cfg == GuardConfig()
 
     def test_env_only(self):
-        with patch.dict(os.environ, {"UNPLUG_GUARD__FAIL_CLOSED": "false"}):
+        with patch.dict(os.environ, {"UNPLUG_GUARD__STRICT_SCANNER_ALLOWLIST": "true"}):
             cfg = load()
-        assert cfg.fail_closed is False
+        assert cfg.strict_scanner_allowlist is True
 
     def test_env_model_path_sets_active_model(self, tmp_path: Path) -> None:
         ckpt = tmp_path / "ckpt"

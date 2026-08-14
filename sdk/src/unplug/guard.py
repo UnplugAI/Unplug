@@ -123,7 +123,7 @@ class Guard:
                 DeprecationWarning,
                 stacklevel=2,
             )
-        overrides: dict[str, Any] = {"fail_closed": fail_mode == "closed"}
+        overrides: dict[str, Any] = {}
         if mode is not None:
             overrides["mode"] = mode
         if scanners is not None:

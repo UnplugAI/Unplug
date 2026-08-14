@@ -54,7 +54,6 @@ class TestGuardConfig:
         c = GuardConfig()
         assert "injection" in c.scanners
         assert c.mode == "local"
-        assert c.fail_closed is True
 
     def test_get_scanner_config_default(self):
         c = GuardConfig()

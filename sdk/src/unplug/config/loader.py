@@ -31,6 +31,9 @@ _GUARD_SECTION_KEYS: frozenset[str] = frozenset(
         "server_api_key",
         "policy",
         "cache",
+        # Removed from GuardConfig, but still accepted here so an existing
+        # unplug.toml gets the deprecation warning below rather than a
+        # hard "unknown key" ConfigError.
         "fail_closed",
         "pipeline",
         "scanners_config",
@@ -293,8 +296,6 @@ def build_config(data: dict[str, Any]) -> GuardConfig:
         kwargs["cache"] = CacheConfig(
             **{k: v for k, v in guard_data["cache"].items() if k in CacheConfig.model_fields}
         )
-    if "fail_closed" in guard_data:
-        kwargs["fail_closed"] = guard_data["fail_closed"]
     if "strict_scanner_allowlist" in guard_data:
         kwargs["strict_scanner_allowlist"] = _coerce_bool(guard_data["strict_scanner_allowlist"])
 
