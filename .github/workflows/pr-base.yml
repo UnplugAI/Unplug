@@ -1,0 +1,26 @@
+name: PR base check
+
+# main is the release branch: it only ever receives dev. Anything else targeting
+# it is a contributor who missed that dev is the integration branch, and saying so
+# here is faster than finding out in review.
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  base:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Only release PRs may target main
+        if: github.head_ref != 'dev'
+        run: |
+          echo "::error title=Wrong base branch::This PR targets 'main', the release branch. Retarget it to 'dev'. You can change the base from the PR page without reopening: click 'Edit' next to the title. See .github/BRANCHING.md."
+          exit 1
+
+      - name: Release PR
+        if: github.head_ref == 'dev'
+        run: echo "dev -> main release PR, base is correct."

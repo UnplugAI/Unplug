@@ -2,7 +2,10 @@ name: CI
 
 on:
   pull_request:
-    branches: [dev]
+    # main is included so a PR opened against the release branch by mistake still
+    # gets checked. Without it such a PR shows no checks at all, which reads as
+    # passing. pr-base.yml is what tells the author to retarget.
+    branches: [dev, main]
   push:
     branches: [dev, main]
 
