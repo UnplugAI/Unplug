@@ -105,7 +105,7 @@ atomic-agents = [
     "atomic-agents>=2.0; python_version >= '3.12'",
 ]
 mcp = [
-    "mcp>=1.0,<2",
+    "mcp>=1.0,<3",
 ]
 integrations = [
     "unplug-ai[langgraph,agno,crewai,autogen,llama-index,pydantic-ai,semantic-kernel,openai-agents,langchain,google-adk,smolagents,dspy,strands,letta,griptape,ag2,atomic-agents,haystack,mcp]",
