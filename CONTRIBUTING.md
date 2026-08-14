@@ -49,6 +49,27 @@ Integration guides: [`sdk/integrations/README.md`](sdk/integrations/README.md). 
 
 4. Verify your environment: `make check` (lint + format + tests).
 
+## Claiming an issue
+
+Comment on the issue saying you want it, and wait for a maintainer to assign it
+to you. Assignment usually happens within a day.
+
+Do not start writing code before the issue is assigned. It is the only way we can
+stop two people building the same thing, and we would rather tell you an issue is
+already spoken for than have you find out at review time.
+
+Keep one open PR at a time until your first one is merged. After that, take as
+many as you like.
+
+If an issue is already assigned, leave it alone, even if it has been quiet for a
+while. Ask on the issue if you think something has stalled.
+
+Maintainers assign issues to themselves directly, since there is nobody for them
+to collide with.
+
+If you go quiet for a couple of weeks we will ask whether you are still on it
+before freeing it up. We will always ask you first.
+
 ## Branching and PRs
 
 - Do **not** push directly to `main`.
