@@ -541,7 +541,8 @@ class Guard:
             str(ml_gate.always_below_high),
             str(ml_gate.gray_low),
             str(self._config.cache.prefix_overlap_chars),
-            str(self._config.cache.advance_prefix_on_redact),
+            # advance_prefix_on_redact deprecated; keep stable fingerprint value.
+            str(True),
             ";".join(scanner_cfg_parts),
         ]
         return "|".join(parts)
@@ -593,10 +594,7 @@ class Guard:
                 context=ctx,
             )
 
-        if cache.should_advance_prefix(
-            result.action,
-            advance_on_redact=self._config.cache.advance_prefix_on_redact,
-        ):
+        if cache.should_advance_prefix(result.action, advance_on_redact=False):
             cache.set_safe_prefix(
                 parts,
                 SafePrefixState.from_text(request.text, len(request.text)),

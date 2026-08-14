@@ -144,11 +144,17 @@ class ScanCache:
 
     @staticmethod
     def should_advance_prefix(action: Action, *, advance_on_redact: bool) -> bool:
-        if action == Action.BLOCK:
-            return False
-        if action == Action.REDACT:
-            return advance_on_redact
-        return action in (Action.ALLOW, Action.REVIEW)
+        """Return True only when *action* is ALLOW.
+
+        A safe-prefix entry represents a **verified-clean** prefix.  Only
+        ``Action.ALLOW`` satisfies that invariant; REDACT, REVIEW, BLOCK,
+        and ABSTAIN all indicate a non-clean result and must not create or
+        advance the safe prefix.
+
+        The ``advance_on_redact`` parameter is retained for signature
+        compatibility but has no effect — it is intentionally ignored.
+        """
+        return action == Action.ALLOW
 
 
 def offset_findings(findings: list[Finding], offset: int) -> list[Finding]:
