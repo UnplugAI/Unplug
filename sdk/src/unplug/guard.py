@@ -188,15 +188,7 @@ class Guard:
                         f"require_ml=true but model tier {tier!r} could not be loaded: "
                         f"{type(exc).__name__}: {exc}"
                     ) from exc
-                _log.warning(
-                    "active_model=%s configured but injection_ml failed to load (%s). "
-                    'Fix: pip install "unplug-ai[ml]", then unplug-models download %s '
-                    "(or set UNPLUG_MODEL_PATH). Continuing with regex scanners only.",
-                    cfg.active_model,
-                    type(exc).__name__,
-                    cfg.active_model,
-                )
-                self._ml_degraded = True
+                self._mark_ml_degraded(cfg.active_model, exc=exc)
             if provider is not None and spec is not None:
                 self._ml_provider = provider
                 self._model_cache_version = model_cache_version(spec)
@@ -206,14 +198,7 @@ class Guard:
                     f"Run: unplug-models download {cfg.active_model}"
                 )
             elif load_error is None:
-                _log.warning(
-                    "active_model=%s configured but injection_ml is not loaded. "
-                    'Fix: pip install "unplug-ai[ml]", then unplug-models download %s '
-                    "(or set UNPLUG_MODEL_PATH). Continuing with regex scanners only.",
-                    cfg.active_model,
-                    cfg.active_model,
-                )
-                self._ml_degraded = True
+                self._mark_ml_degraded(cfg.active_model)
 
         v2_scanners = self._registry.get_many(scanner_names, configs=cfg.scanner_configs)
         if self._ml_provider is not None:
@@ -267,6 +252,24 @@ class Guard:
             trajectory_config=cfg.trajectory,
             degradation_config=cfg.degradation,
         )
+
+    def _mark_ml_degraded(self, tier: str, *, exc: Exception | None = None) -> None:
+        """Record that ML scanning is unavailable and say so once.
+
+        `exc` distinguishes a model that raised while loading from one that
+        simply never materialised; everything else about the warning is the
+        same, so it is written in one place.
+        """
+        reason = f"failed to load ({type(exc).__name__})" if exc is not None else "is not loaded"
+        _log.warning(
+            "active_model=%s configured but injection_ml %s. "
+            'Fix: pip install "unplug-ai[ml]", then unplug-models download %s '
+            "(or set UNPLUG_MODEL_PATH). Continuing with regex scanners only.",
+            tier,
+            reason,
+            tier,
+        )
+        self._ml_degraded = True
 
     @property
     def context(self) -> ExecutionContext:
