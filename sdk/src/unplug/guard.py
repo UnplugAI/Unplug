@@ -617,7 +617,20 @@ class Guard:
         *,
         isolated: bool = False,
     ) -> ScanResult:
-        """Scan output from a ScanRequest (hosted server or local pipeline)."""
+        """Scan output from a ScanRequest (hosted server or local pipeline).
+
+        `request.scanners` is **not** honoured here, unlike in `scan_request`.
+        That field selects from the input scanner registry — `resolve_input_scanners`
+        unions it with `MANDATORY_INPUT_SCANNERS` — whereas the output path runs a
+        fixed `OutputPipeline` composed at construction time (secrets sanitizer,
+        leakage, secrets, urls, and pii when configured). There is no per-request
+        set to narrow, and narrowing it is not something callers should be able to
+        do: the output stage is what keeps secrets from leaving.
+
+        Passing `scanners` on an output request is therefore silently ignored
+        rather than an error, so that one `ScanRequest` can be handed to both
+        entry points. See `test_output_ignores_request_scanners`.
+        """
         violation = self._limits.check_input_length(request.text)
         if violation is not None:
             return _limit_result(violation, len(request.text))
