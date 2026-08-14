@@ -18,6 +18,12 @@ on:
     - cron: "0 6 * * *"
   workflow_dispatch:
 
+# Superseded PR runs are cancelled; nightly and manual runs are left to finish,
+# because a cancelled nightly leaves no live-integration signal for that day.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
 

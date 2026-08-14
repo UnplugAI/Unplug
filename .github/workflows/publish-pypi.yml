@@ -9,6 +9,12 @@ on:
     types: [published]
   workflow_dispatch:
 
+# Never cancel a publish in progress: a release killed between the build and the
+# upload is worse than a stale one finishing.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
