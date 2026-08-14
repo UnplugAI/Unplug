@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import threading
+import time
 from typing import Any, ClassVar
 
 from unplug.api.enums import Action, Source
@@ -49,7 +50,13 @@ from unplug.streaming import StreamScanner, scan_stream
 _log = get_logger("guard")
 
 
-def _fail_closed(exc: Exception) -> ScanResult:
+def _fail_closed(exc: Exception, started: float) -> ScanResult:
+    """Blocking result for an internal guard error.
+
+    `started` is a `time.perf_counter()` reading taken before the work that
+    raised, so the result reports how long the caller actually waited rather
+    than claiming the block was instantaneous.
+    """
     return ScanResult(
         safe=False,
         action=Action.BLOCK,
@@ -65,7 +72,8 @@ def _fail_closed(exc: Exception) -> ScanResult:
                 evidence=f"Guard failed: {type(exc).__name__}",
             )
         ],
-        latency_ms=0.0,
+        latency_ms=(time.perf_counter() - started) * 1000,
+        stages_run=["error"],
     )
 
 
@@ -621,6 +629,7 @@ class Guard:
         violation = self._limits.check_input_length(request.text)
         if violation is not None:
             return _limit_result(violation, len(request.text))
+        started = time.perf_counter()
         try:
             with correlation_scope():
                 if self._server_client is not None:
@@ -633,7 +642,7 @@ class Guard:
                 return result
         except Exception as exc:
             _log.error("guard.scan_output_request failed: %s", exc)
-            return _fail_closed(exc)
+            return _fail_closed(exc, started)
 
     def check_tool_call(
         self,
@@ -674,6 +683,7 @@ class Guard:
             taint_sources=taint_sources or [],
             approved=None,
         )
+        started = time.perf_counter()
         try:
             with correlation_scope():
                 result = self._tool_pipeline.run(tc, context=self._context)
@@ -692,7 +702,7 @@ class Guard:
                 return result
         except Exception as exc:
             _log.error("guard.check_tool_call failed: %s", exc)
-            return _fail_closed(exc)
+            return _fail_closed(exc, started)
 
     def scan_request(
         self,
@@ -704,6 +714,7 @@ class Guard:
         violation = self._limits.check_input_length(request.text)
         if violation is not None:
             return _limit_result(violation, len(request.text))
+        started = time.perf_counter()
         try:
             with correlation_scope():
                 if self._server_client is not None:
@@ -733,7 +744,7 @@ class Guard:
             raise
         except Exception as exc:
             _log.error("guard.scan_request failed: %s", exc)
-            return _fail_closed(exc)
+            return _fail_closed(exc, started)
 
     @property
     def is_server_mode(self) -> bool:

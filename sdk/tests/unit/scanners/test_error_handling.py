@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from collections.abc import Generator
 from unittest.mock import patch
 
@@ -78,3 +79,40 @@ class TestGuardFailClosed:
             result = guard.check_tool_call("rm", {"-rf": "/"})
         assert result.safe is False
         assert result.action == Action.BLOCK
+
+    def test_scan_error_is_labelled_as_the_error_stage(self):
+        guard = Guard(scanners=["injection"])
+        with patch.object(guard._input_pipeline, "run", side_effect=RuntimeError("fatal")):
+            result = guard.scan("test")
+        assert result.stages_run == ["error"]
+        assert result.findings[0].stage == "error"
+
+    def test_scan_output_error_is_labelled_as_the_error_stage(self):
+        guard = Guard(scanners=["injection"])
+        with patch.object(guard._output_pipeline, "run", side_effect=RuntimeError("fatal")):
+            result = guard.scan_output("test")
+        assert result.stages_run == ["error"]
+
+    def test_check_tool_call_error_is_labelled_as_the_error_stage(self):
+        guard = Guard(scanners=["injection"])
+        with patch.object(guard._tool_pipeline, "run", side_effect=RuntimeError("fatal")):
+            result = guard.check_tool_call("rm", {"-rf": "/"})
+        assert result.stages_run == ["error"]
+
+    def test_error_result_reports_the_time_actually_spent(self):
+        """A slow failure must not be indistinguishable from an instant block."""
+        guard = Guard(scanners=["injection"])
+
+        def slow_boom(*_args, **_kwargs):
+            time.sleep(0.02)
+            raise RuntimeError("fatal")
+
+        with patch.object(guard._input_pipeline, "run", side_effect=slow_boom):
+            result = guard.scan("test")
+        assert result.latency_ms >= 20.0
+
+    def test_fast_error_still_reports_a_real_measurement(self):
+        guard = Guard(scanners=["injection"])
+        with patch.object(guard._input_pipeline, "run", side_effect=RuntimeError("fatal")):
+            result = guard.scan("test")
+        assert result.latency_ms > 0.0
