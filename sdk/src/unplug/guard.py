@@ -541,8 +541,6 @@ class Guard:
             str(ml_gate.always_below_high),
             str(ml_gate.gray_low),
             str(self._config.cache.prefix_overlap_chars),
-            # advance_prefix_on_redact deprecated; keep stable fingerprint value.
-            str(True),
             ";".join(scanner_cfg_parts),
         ]
         return "|".join(parts)
