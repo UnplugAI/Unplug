@@ -83,6 +83,12 @@ separate hard-benign corpus (95 prompts) regex flags 0 and regex + ML flags 2,
 i.e. **2.1%** (one of which is a *review*, not a block). `inj_threshold` is tuned
 to the recall/FPR knee.
 
+**Language support.** Regex + normalization detection is tuned for English today.
+Ordinary non-English input (Cyrillic, CJK, etc.) is *not* treated as an evasion
+signal — only genuine zero-width/bidi control characters and mixed-script
+homoglyph smuggling are flagged. Robust multi-language injection detection is
+tracked as a separate work item.
+
 Reproduce (downloads `unplug-tiny-v1` from Hugging Face on first ML run):
 
 ```bash

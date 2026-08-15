@@ -75,6 +75,12 @@ Try it without installing anything: [live demo](https://huggingface.co/spaces/Un
 
 On the neuralchemy prompt-injection set, regex-only detection reaches **F1 0.56 / recall 0.39** — a fast first line, not sufficient alone. Adding the ML span model (`Guard.with_tiny()`) takes that to **F1 0.99 / recall 0.98**, and lifts recall on *indirect* injection from **0.05 → 0.91**. False-positive rate stays under 1% on the injection set (2.1% on a separate hard-benign corpus). Full tables, methodology, and honest caveats: [`sdk/docs/BENCHMARKS.md`](sdk/docs/BENCHMARKS.md). Per-axis model metrics (including failure modes) are on the [model card](https://huggingface.co/Unplug-AI/unplug-tiny-v1).
 
+**Language support.** Regex + normalization detection is tuned for English today.
+Ordinary non-English input (Cyrillic, CJK, etc.) is *not* treated as an evasion
+signal — only genuine zero-width/bidi control characters and mixed-script
+homoglyph smuggling are flagged. Robust multi-language injection detection is
+tracked as a separate work item.
+
 ## Agent host checklist
 
 1. Scan user input: `guard.scan(text, source="user")`
