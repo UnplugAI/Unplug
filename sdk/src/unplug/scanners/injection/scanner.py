@@ -121,6 +121,12 @@ class InjectionScanner(RegexScanner):
             if _EVASION_STAGES.intersection(norm_result.stages_applied)
             else []
         )
+        # When several evasion spans sit in one run (e.g. a word interleaved
+        # with zero-width chars, "he\u200bl\u200bl\u200bo"), replace the whole
+        # run with a single finding so redaction emits one BLOCKED tag instead
+        # of one per offending character.
+        if len(evasion_spans) > 1:
+            evasion_spans = [(evasion_spans[0][0], evasion_spans[-1][1])]
         stages_used = ", ".join(sorted(_EVASION_STAGES.intersection(norm_result.stages_applied)))
         for span_start, span_end in evasion_spans:
             yield Finding(

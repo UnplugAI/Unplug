@@ -81,6 +81,26 @@ class TestInjectionScanner:
         assert len(invisible) == 1
         assert (invisible[0].span_start, invisible[0].span_end) == (11, 12)
 
+    def test_interleaved_zero_width_emits_single_outer_span(self):
+        raw = "h\u200be\u200bl\u200bl\u200bo w\u200bo\u200br\u200bl\u200bd"
+        findings = self.scanner.scan(_make_text(raw), self.ctx)
+        invisible = [f for f in findings if f.subcategory == "invisible_text"]
+        assert len(invisible) == 1
+        assert (invisible[0].span_start, invisible[0].span_end) == (1, 18)
+
+    def test_interleaved_zero_width_redacts_as_one_block(self):
+        from unplug.config.policy import RedactionMode, ScanPolicy
+        from unplug.core.redaction import apply_span_redactions
+
+        raw = "h\u200be\u200bl\u200bl\u200bo w\u200bo\u200br\u200bl\u200bd"
+        findings = self.scanner.scan(_make_text(raw), self.ctx)
+        redacted = apply_span_redactions(
+            raw, findings, ScanPolicy(redaction_mode=RedactionMode.BLOCKED_TAGS)
+        )
+        assert redacted is not None
+        assert redacted.count("[BLOCKED:injection]") == 1
+        assert redacted == "h[BLOCKED:injection]d"
+
     def test_cjk_text_not_invisible_text(self):
         text = _make_text("今天北京的天气很好，我想去公园散步。")
         findings = self.scanner.scan(text, self.ctx)

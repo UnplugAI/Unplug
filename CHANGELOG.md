@@ -6,7 +6,7 @@ All notable changes to the `unplug-ai` SDK.
 
 ### Fixed
 
-- `injection` scanner no longer flags ordinary non-English text (Cyrillic, CJK) as `invisible_text`; the trigger is narrowed to genuine zero-width/bidi control characters and mixed-script homoglyph smuggling, and the finding span is scoped to the offending characters instead of the whole message (#121)
+- `injection` scanner no longer flags ordinary non-English text (Cyrillic, CJK) as `invisible_text`; the trigger is narrowed to genuine zero-width/bidi control characters and mixed-script homoglyph smuggling, the finding span is scoped to the offending characters instead of the whole message, and an interleaved evasion run (e.g. zero-width chars between every letter) emits one finding covering the outer span so redaction replaces it with a single BLOCKED tag (#121)
 
 ## [0.6.0] — 2026-07-20
 
