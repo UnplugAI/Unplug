@@ -1,7 +1,7 @@
 name: Triage
 
 # Issue forms apply needs-triage themselves. Blank issues do not, and those are the
-# ones most likely to get lost.
+# ones most likely to get lost. Anything a maintainer opens is triaged by definition.
 
 on:
   issues:
@@ -12,6 +12,9 @@ permissions:
 
 jobs:
   label:
+    if: >
+      !contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'),
+      github.event.issue.author_association)
     runs-on: ubuntu-latest
     steps:
       - name: Add needs-triage
@@ -20,16 +23,3 @@ jobs:
         run: |
           gh issue edit "${{ github.event.issue.number }}" \
             --repo "${{ github.repository }}" --add-label needs-triage
-
-  clear:
-    # Anything a maintainer opens is already triaged by definition.
-    if: contains(fromJSON('["OWNER","MEMBER"]'), github.event.issue.author_association)
-    needs: label
-    runs-on: ubuntu-latest
-    steps:
-      - name: Remove needs-triage
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh issue edit "${{ github.event.issue.number }}" \
-            --repo "${{ github.repository }}" --remove-label needs-triage
