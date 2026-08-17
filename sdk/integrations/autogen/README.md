@@ -1,6 +1,6 @@
 # Microsoft AutoGen
 
-**Extra:** `pip install "unplug-ai[autogen]"`  
+**Extra:** `pip install "unplug-ai[autogen]"`
 **Module:** `unplug.integrations.autogen`
 
 ## Wire Unplug into AutoGen agents

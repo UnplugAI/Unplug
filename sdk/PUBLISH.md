@@ -14,7 +14,7 @@ Package: **`unplug-ai`** | Import: **`from unplug import Guard`**
 
 ## Publish
 
-**CI (recommended):** Actions -> **Publish to PyPI** -> Run workflow  
+**CI (recommended):** Actions -> **Publish to PyPI** -> Run workflow
 Or tag a GitHub Release: workflow runs on `release: published`.
 
 **Local:**

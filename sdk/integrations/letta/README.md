@@ -1,6 +1,6 @@
 # Letta
 
-**Extra:** `pip install "unplug-ai[letta]"`  
+**Extra:** `pip install "unplug-ai[letta]"`
 **Module:** `unplug.integrations.letta`
 
 [Letta](https://docs.letta.com/) (formerly MemGPT) runs persistent, stateful

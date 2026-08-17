@@ -1,6 +1,6 @@
 # Google ADK
 
-**Extra:** `pip install "unplug-ai[google-adk]"`  
+**Extra:** `pip install "unplug-ai[google-adk]"`
 **Module:** `unplug.integrations.google_adk`
 
 Google's [Agent Development Kit](https://google.github.io/adk-docs/) exposes

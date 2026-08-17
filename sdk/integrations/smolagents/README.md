@@ -1,6 +1,6 @@
 # smolagents
 
-**Extra:** `pip install "unplug-ai[smolagents]"`  
+**Extra:** `pip install "unplug-ai[smolagents]"`
 **Module:** `unplug.integrations.smolagents`
 
 Hugging Face [smolagents](https://huggingface.co/docs/smolagents) runs code and

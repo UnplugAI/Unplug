@@ -1,6 +1,6 @@
 # Griptape
 
-**Extra:** `pip install "unplug-ai[griptape]"`  
+**Extra:** `pip install "unplug-ai[griptape]"`
 **Module:** `unplug.integrations.griptape`
 
 [Griptape](https://griptape.ai/) structures (Agent, Pipeline, Workflow) run Tasks.

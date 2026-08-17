@@ -1,6 +1,6 @@
 # LangChain
 
-**Extra:** `pip install "unplug-ai[langchain]"`  
+**Extra:** `pip install "unplug-ai[langchain]"`
 **Module:** `unplug.integrations.langchain`
 
 > For **LangGraph** graphs, use the dedicated [`langgraph`](../langgraph/README.md)

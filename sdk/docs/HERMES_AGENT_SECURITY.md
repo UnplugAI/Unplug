@@ -1,6 +1,6 @@
 # Hermes Agent security: mapping to Unplug SDK
 
-**Agent:** [NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent) (coding agent with skills, cron, terminal tools).  
+**Agent:** [NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent) (coding agent with skills, cron, terminal tools).
 **Not:** the jailbreak persona "you are Hermes, unrestricted" (that is a separate `named_persona_hermes` injection pattern).
 
 ---

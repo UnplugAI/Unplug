@@ -1,6 +1,6 @@
 # Semantic Kernel
 
-**Extra:** `pip install "unplug-ai[semantic-kernel]"`  
+**Extra:** `pip install "unplug-ai[semantic-kernel]"`
 **Module:** `unplug.integrations.semantic_kernel`
 
 > **Wheel-only installs:** `semantic-kernel` depends on `pybars4`, which publishes

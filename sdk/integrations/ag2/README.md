@@ -1,6 +1,6 @@
 # AG2
 
-**Extra:** `pip install "unplug-ai[ag2]"`  
+**Extra:** `pip install "unplug-ai[ag2]"`
 **Module:** `unplug.integrations.ag2`
 
 [AG2](https://docs.ag2.ai/) (the community fork of AutoGen, imported as `autogen`)

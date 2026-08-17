@@ -1,6 +1,6 @@
 # Strands Agents
 
-**Extra:** `pip install "unplug-ai[strands]"`  
+**Extra:** `pip install "unplug-ai[strands]"`
 **Module:** `unplug.integrations.strands`
 
 [Strands Agents](https://strandsagents.com/) (AWS) exposes a strongly-typed

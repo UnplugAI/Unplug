@@ -1,6 +1,6 @@
 # OpenAI Agents SDK
 
-**Extra:** `pip install "unplug-ai[openai-agents]"`  
+**Extra:** `pip install "unplug-ai[openai-agents]"`
 **Module:** `unplug.integrations.openai_agents`
 
 The [OpenAI Agents SDK](https://openai.github.io/openai-agents-python/) has a

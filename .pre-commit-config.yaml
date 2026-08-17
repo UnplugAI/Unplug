@@ -1,0 +1,30 @@
+# Install once:  uv tool install pre-commit && pre-commit install
+# Run manually:  pre-commit run --all-files
+#
+# These hooks are the fast half of `make check`. They will not catch mypy or
+# test failures, so run `cd sdk && make check-ci` before opening a PR.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^sdk/tests/.*/fixtures/
+      - id: end-of-file-fixer
+        exclude: ^sdk/tests/.*/fixtures/
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=512]
+      - id: detect-private-key
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.2
+    hooks:
+      # Ruff resolves sdk/pyproject.toml by walking up from each file.
+      - id: ruff-check
+        args: [--fix]
+        files: ^sdk/
+      - id: ruff-format
+        files: ^sdk/

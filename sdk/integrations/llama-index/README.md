@@ -1,6 +1,6 @@
 # LlamaIndex
 
-**Extra:** `pip install "unplug-ai[llama-index]"`  
+**Extra:** `pip install "unplug-ai[llama-index]"`
 **Module:** `unplug.integrations.llama_index`
 
 Uses the same scanning core as Haystack (`scan_document`) — no LlamaIndex import at load time.

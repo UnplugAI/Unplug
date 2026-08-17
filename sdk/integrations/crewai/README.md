@@ -1,6 +1,6 @@
 # CrewAI
 
-**Extra:** `pip install "unplug-ai[crewai]"`  
+**Extra:** `pip install "unplug-ai[crewai]"`
 **Module:** `unplug.integrations.crewai`
 
 ## Wire Unplug into a Crew

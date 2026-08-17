@@ -1,6 +1,6 @@
 # Agent flow security: Hermes Agent, OpenClaw, and Unplug SDK
 
-**Updated:** 2026-06-01  
+**Updated:** 2026-06-01
 **Scope:** Techniques for securing LLM agent *flows* (not host sandboxing). Maps external patterns to SDK hooks.
 
 **Deep dive:** [HERMES_AGENT_SECURITY.md](./HERMES_AGENT_SECURITY.md) (NousResearch/hermes-agent).

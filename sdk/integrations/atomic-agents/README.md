@@ -1,6 +1,6 @@
 # Atomic Agents
 
-**Extra:** `pip install "unplug-ai[atomic-agents]"`  
+**Extra:** `pip install "unplug-ai[atomic-agents]"`
 **Module:** `unplug.integrations.atomic_agents`
 
 [Atomic Agents](https://brainblend-ai.github.io/atomic-agents/) (v2) is a

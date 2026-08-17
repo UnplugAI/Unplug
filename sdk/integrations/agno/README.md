@@ -1,6 +1,6 @@
 # Agno
 
-**Extra:** `pip install "unplug-ai[agno]"`  
+**Extra:** `pip install "unplug-ai[agno]"`
 **Module:** `unplug.integrations.agno`
 
 ## Wire Unplug into Agno Agent

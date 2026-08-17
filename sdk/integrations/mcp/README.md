@@ -1,6 +1,6 @@
 # MCP (Model Context Protocol)
 
-**Extra:** `pip install "unplug-ai[mcp]"` for client-side MCP tooling tests.  
+**Extra:** `pip install "unplug-ai[mcp]"` for client-side MCP tooling tests.
 **Server:** use the standalone [`unplug-mcp`](https://github.com/UnplugAI/unplug-mcp) package for Claude Code / Cursor.
 
 ## Hosted MCP server (recommended)

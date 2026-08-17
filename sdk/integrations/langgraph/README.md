@@ -1,6 +1,6 @@
 # LangGraph
 
-**Extra:** `pip install "unplug-ai[langgraph]"`  
+**Extra:** `pip install "unplug-ai[langgraph]"`
 **Module:** `unplug.integrations.langgraph`
 
 ## Wire Unplug into a graph

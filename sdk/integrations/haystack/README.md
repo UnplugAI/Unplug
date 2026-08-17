@@ -1,6 +1,6 @@
 # Haystack (RAG)
 
-**Extra:** `pip install "unplug-ai[haystack]"`  
+**Extra:** `pip install "unplug-ai[haystack]"`
 **Module:** `unplug.integrations.haystack`
 
 Defend the **retrieval path** — poisoned documents are the most common indirect injection vector.

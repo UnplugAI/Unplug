@@ -1,6 +1,6 @@
 # Pydantic AI
 
-**Extra:** `pip install "unplug-ai[pydantic-ai]"`  
+**Extra:** `pip install "unplug-ai[pydantic-ai]"`
 **Module:** `unplug.integrations.pydantic_ai`
 
 ## Validators around Agent.run

@@ -1,6 +1,6 @@
 # DSPy
 
-**Extra:** `pip install "unplug-ai[dspy]"`  
+**Extra:** `pip install "unplug-ai[dspy]"`
 **Module:** `unplug.integrations.dspy`
 
 [DSPy](https://dspy.ai/) programs are `dspy.Module` subclasses with a `forward`
