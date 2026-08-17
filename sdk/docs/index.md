@@ -34,7 +34,7 @@ Try it without installing anything:
 | Building on a framework | [Integrations](INTEGRATIONS.md) |
 | Deciding whether to trust it | [Benchmarks](BENCHMARKS.md) and [Limits](LIMITS_AND_JUDGE.md) |
 | Deploying | [Deployment](DEPLOYMENT.md) |
-| Contributing | [CONTRIBUTING.md](https://github.com/UnplugAI/Unplug/blob/dev/CONTRIBUTING.md) |
+| Contributing | [Contributing guide](https://github.com/UnplugAI/Unplug/blob/dev/CONTRIBUTING.md) |
 
 ## Language support
 

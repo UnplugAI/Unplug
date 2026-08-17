@@ -1,12 +1,12 @@
 # SDK benchmark results
 
-Date: 2026-06-15 (ML rows); regex-only neuralchemy refreshed **2026-07-20** (Phase C)
-Guard: `unplug-ai`, default scanners
-Model: `unplug-tiny-v1` (DeBERTa-v3-xsmall dual-head span model), `Guard(model="tiny")`
-Detection threshold: risk ≥ 0.5 counts as flagged (block or review)
-Methodology: **isolated single-turn sessions** — each sample is scanned in a fresh
-`ExecutionContext` (`scan_request(..., isolated=True)`), so multi-turn trajectory
-state never leaks between independent samples.
+- **Date:** 2026-06-15 (ML rows); regex-only neuralchemy refreshed **2026-07-20** (Phase C)
+- **Guard:** `unplug-ai`, default scanners
+- **Model:** `unplug-tiny-v1` (DeBERTa-v3-xsmall dual-head span model), `Guard(model="tiny")`
+- **Detection threshold:** risk ≥ 0.5 counts as flagged (block or review)
+- **Methodology:** isolated single-turn sessions. Each sample is scanned in a fresh
+  `ExecutionContext` (`scan_request(..., isolated=True)`), so multi-turn trajectory
+  state never leaks between independent samples.
 
 Phase C gap notes and download commands: [`EVAL_PHASE_C.md`](EVAL_PHASE_C.md).
 

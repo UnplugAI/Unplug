@@ -97,9 +97,9 @@ guard = Guard(
 LiteLLM helper (optional extra):
 
 ```python
-from unplug.judge.litellm_judge import make_litellm_judge
+from unplug.judge.litellm_judge import create_litellm_judge
 
-guard = Guard(judge=make_litellm_judge(model="gpt-4o-mini"))
+guard = Guard(judge=create_litellm_judge(model="gpt-4o-mini"))
 ```
 
 ### TOML thresholds only
