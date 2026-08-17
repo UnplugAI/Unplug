@@ -58,7 +58,7 @@ print(result.findings) # evidence with span offsets
 One line upgrades detection to the ML span model (downloads [unplug-tiny-v1](https://huggingface.co/Unplug-AI/unplug-tiny-v1) once, cached):
 
 ```python
-guard = Guard(model="tiny", auto_download_model=True)
+guard = Guard(model="tiny", auto_download_model=True, require_ml=True)
 ```
 
 Try it without installing anything: [live demo](https://huggingface.co/spaces/Unplug-AI/unplug-tiny-demo).
