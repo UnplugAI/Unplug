@@ -1,0 +1,76 @@
+name: Stale claims
+
+# CONTRIBUTING.md promises we ask before freeing an issue up. This is that promise,
+# automated: a nudge at 21 days of silence, unassignment 7 days after the nudge.
+# Maintainers are exempt (nobody is waiting on their issue).
+
+on:
+  schedule:
+    - cron: "0 6 * * 1" # Mondays, 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      MAINTAINERS: chiruu12
+      NUDGE_DAYS: "21"
+      FREE_DAYS: "7"
+    steps:
+      - name: Nudge or free claimed issues
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          now=$(date -u +%s)
+          nudge_cutoff=$(( now - NUDGE_DAYS * 86400 ))
+          free_cutoff=$(( now - FREE_DAYS * 86400 ))
+
+          gh issue list --repo "$REPO" --state open --label claimed \
+            --limit 200 --json number,updatedAt,assignees,labels > issues.json
+
+          jq -c '.[]' issues.json | while read -r issue; do
+            number=$(jq -r '.number' <<<"$issue")
+            updated=$(date -u -d "$(jq -r '.updatedAt' <<<"$issue")" +%s)
+            assignees=$(jq -r '[.assignees[].login] | join(" ")' <<<"$issue")
+            is_stale=$(jq -r '[.labels[].name] | index("stale") != null' <<<"$issue")
+
+            [ -z "$assignees" ] && continue
+
+            # Skip if every assignee is a maintainer.
+            others=""
+            for a in $assignees; do
+              case " $MAINTAINERS " in
+                *" $a "*) ;;
+                *) others="$others $a" ;;
+              esac
+            done
+            [ -z "${others// /}" ] && continue
+
+            mentions=$(for a in $others; do printf '@%s ' "$a"; done)
+
+            if [ "$is_stale" = "true" ] && [ "$updated" -lt "$free_cutoff" ]; then
+              echo "freeing #$number"
+              gh issue comment "$number" --repo "$REPO" --body \
+          "Freeing this up so someone else can take it. No hard feelings, and if you
+          were mid-way through, say so and it is yours again."
+              for a in $others; do
+                gh issue edit "$number" --repo "$REPO" --remove-assignee "$a"
+              done
+              gh issue edit "$number" --repo "$REPO" \
+                --remove-label claimed --remove-label stale --add-label "help wanted"
+
+            elif [ "$is_stale" != "true" ] && [ "$updated" -lt "$nudge_cutoff" ]; then
+              echo "nudging #$number"
+              gh issue comment "$number" --repo "$REPO" --body \
+          "${mentions}still on this one? No rush and no pressure to say yes. If we do not
+          hear back in a week we will unassign it so it does not sit blocked, and you
+          can pick it straight back up whenever you want."
+              gh issue edit "$number" --repo "$REPO" --add-label stale
+            fi
+          done

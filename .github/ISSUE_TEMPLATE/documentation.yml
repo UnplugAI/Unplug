@@ -1,0 +1,38 @@
+name: Documentation problem
+description: Something in the docs is wrong, missing, or out of date.
+labels: ["documentation", "needs-triage"]
+body:
+  - type: input
+    id: location
+    attributes:
+      label: Where
+      description: File path or URL. A line number helps.
+      placeholder: sdk/docs/GETTING_STARTED.md, or README.md:60
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is wrong
+      description: >
+        Quote the text if it is short. If the docs describe an API that does not
+        exist any more, paste the error you got when you followed them.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What it should say
+      description: A rough draft is fine. We are not expecting finished prose.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: offer
+    attributes:
+      label: Fixing it
+      options:
+        - label: I would like to fix this myself (a maintainer will assign it to you)
+          required: false

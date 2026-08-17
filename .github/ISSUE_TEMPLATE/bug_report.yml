@@ -1,6 +1,6 @@
 name: Bug report
 description: Something in the SDK doesn't work as documented
-labels: ["bug"]
+labels: ["bug", "needs-triage"]
 body:
   - type: markdown
     attributes:

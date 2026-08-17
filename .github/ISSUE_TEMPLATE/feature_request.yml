@@ -1,6 +1,6 @@
 name: Feature request
 description: Suggest a new scanner, integration, or SDK capability
-labels: ["enhancement"]
+labels: ["enhancement", "needs-triage"]
 body:
   - type: textarea
     id: problem

@@ -3,3 +3,9 @@ contact_links:
   - name: Security vulnerability
     url: https://github.com/UnplugAI/Unplug/security/advisories/new
     about: Report security issues privately — never in a public issue.
+  - name: Question about using Unplug
+    url: https://github.com/UnplugAI/Unplug/discussions/categories/q-a
+    about: How do I scan X, why did this get blocked, does it work with Y. Ask in Q&A.
+  - name: Idea or feedback
+    url: https://github.com/UnplugAI/Unplug/discussions/categories/ideas
+    about: Half-formed ideas welcome. Issues are for things we have agreed to build.
