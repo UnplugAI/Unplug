@@ -37,30 +37,32 @@ jobs:
           nudge_cutoff=$(( now - NUDGE_DAYS * 86400 ))
           free_cutoff=$(( now - FREE_DAYS * 86400 ))
 
-          limit=1000
-          gh issue list --repo "$REPO" --state open --label claimed \
-            --limit "$limit" --json number,updatedAt,assignees,labels > issues.json
+          # Fully paginated: no cap, so no claim can age out of the sweep. The REST
+          # issues endpoint also returns PRs, hence the pull_request filter. One JSON
+          # object per line.
+          gh api --paginate \
+            "repos/$REPO/issues?state=open&labels=claimed&per_page=100" \
+            --jq '.[]
+                  | select(.pull_request == null)
+                  | {number, updatedAt: .updated_at,
+                     assignees: [.assignees[].login],
+                     labels: [.labels[].name]}' > issues.jsonl
 
           # Read into an array first. A `while read` over a pipe runs in a subshell,
           # which makes failures inside it easy to lose.
           rows=()
-          while IFS= read -r line; do rows+=("$line"); done < <(jq -c '.[]' issues.json)
+          while IFS= read -r line; do rows+=("$line"); done < issues.jsonl
           echo "claimed issues: ${#rows[@]:-0}"
           if [ "${#rows[@]:-0}" -eq 0 ]; then
             echo "nothing to sweep"
             exit 0
           fi
-          # Never truncate quietly. If we ever hit the cap, the oldest claims are the
-          # ones dropped, and those are exactly the ones this job exists to catch.
-          if [ "${#rows[@]}" -ge "$limit" ]; then
-            echo "::warning::Hit the $limit issue cap. Older claims were not swept; paginate this query."
-          fi
 
           for row in "${rows[@]}"; do
             number=$(jq -r '.number' <<<"$row")
             updated=$(date -u -d "$(jq -r '.updatedAt' <<<"$row")" +%s)
-            assignees=$(jq -r '[.assignees[].login] | join(" ")' <<<"$row")
-            is_stale=$(jq -r '[.labels[].name] | index("stale") != null' <<<"$row")
+            assignees=$(jq -r '.assignees | join(" ")' <<<"$row")
+            is_stale=$(jq -r '.labels | index("stale") != null' <<<"$row")
 
             if [ -z "$assignees" ]; then
               echo "#$number: claimed but unassigned, skipping"
