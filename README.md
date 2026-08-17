@@ -83,8 +83,6 @@ signal — only genuine zero-width/bidi control characters and mixed-script
 homoglyph smuggling are flagged. Robust multi-language injection detection is
 tracked as a separate work item.
 
-On the neuralchemy prompt-injection set, regex-only detection reaches **F1 0.56 / recall 0.39** — a fast first line, not sufficient alone. Adding the ML span model (`Guard(model="tiny")`) takes that to **F1 0.99 / recall 0.98**, and lifts recall on *indirect* injection from **0.05 → 0.91**. False-positive rate stays under 1% on the injection set (2.1% on a separate hard-benign corpus). Full tables, methodology, and honest caveats: [`sdk/docs/BENCHMARKS.md`](sdk/docs/BENCHMARKS.md). Per-axis model metrics (including failure modes) are on the [model card](https://huggingface.co/Unplug-AI/unplug-tiny-v1).
->>>>>>> b27d848 (docs: replaced remaining Guard.with_tiny() references with Guard(model='tiny'))
 
 ## Agent host checklist
 
