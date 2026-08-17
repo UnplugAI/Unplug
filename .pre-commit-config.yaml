@@ -12,6 +12,10 @@ repos:
       - id: end-of-file-fixer
         exclude: ^sdk/tests/.*/fixtures/
       - id: check-yaml
+        # mkdocs.yml uses !!python/name: for the mermaid fence, which mkdocs
+        # parses with its own loader but plain safe_load cannot. mkdocs build
+        # --strict in the docs workflow is what validates this file.
+        exclude: ^mkdocs\.yml$
       - id: check-toml
       - id: check-json
       - id: check-merge-conflict
