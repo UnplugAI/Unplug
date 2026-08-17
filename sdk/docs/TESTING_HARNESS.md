@@ -40,7 +40,7 @@ Notes:
   pulls **capability** extras (`ml`, `scrape`, …) but **not** every agent framework.
   Agent SDKs install via the `integrations` meta-extra or one framework at a time.
 - Live framework coverage is a separate workflow (`.github/workflows/integrations-live.yml`).
-  Details: [`integrations/TESTING.md`](../integrations/TESTING.md).
+  Details: [`integrations/TESTING.md`](https://github.com/UnplugAI/Unplug/blob/dev/sdk/integrations/TESTING.md).
 
 ## CI vs local-only
 

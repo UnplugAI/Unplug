@@ -95,10 +95,10 @@ python -c "from unplug import Guard; print(Guard().scan('hello', source='user').
 
 | Goal | Doc |
 |------|-----|
-| Wire Unplug into **your** agent loop | [`integrations/custom-loop/README.md`](../integrations/custom-loop/README.md) |
-| LangGraph, CrewAI, OpenAI Agents, … | [`integrations/README.md`](../integrations/README.md) |
+| Wire Unplug into **your** agent loop | [`integrations/custom-loop/README.md`](https://github.com/UnplugAI/Unplug/blob/dev/sdk/integrations/custom-loop/README.md) |
+| LangGraph, CrewAI, OpenAI Agents, … | [`integrations/README.md`](https://github.com/UnplugAI/Unplug/blob/dev/sdk/integrations/README.md) |
 | **REVIEW** vs **BLOCK** (human approval) | [`docs/AGENT_ACTIONS.md`](AGENT_ACTIONS.md) |
-| Full SDK reference | [`README.md`](../README.md) |
+| Full SDK reference | [`README.md`](https://github.com/UnplugAI/Unplug/blob/dev/sdk/README.md) |
 | Hosted API / sidecar | [`docs/DEPLOYMENT.md`](DEPLOYMENT.md) |
 
 ## Common mistakes

@@ -119,6 +119,6 @@ Use `unplug-sidecar doctor` to verify the sidecar is reachable before starting a
 
 ## Related
 
-- [`examples/hosted_client.py`](../examples/hosted_client.py): hosted API key flow
-- [`examples/local_sidecar_client.py`](../examples/local_sidecar_client.py): localhost server flow
-- [`repos/unplug-server`](../../../repos/unplug-server): server source and `docker-compose.sidecar.yml`
+- [`examples/hosted_client.py`](https://github.com/UnplugAI/Unplug/blob/dev/sdk/examples/hosted_client.py): hosted API key flow
+- [`examples/local_sidecar_client.py`](https://github.com/UnplugAI/Unplug/blob/dev/sdk/examples/local_sidecar_client.py): localhost server flow
+- [`repos/unplug-server`](https://github.com/UnplugAI/unplug-server): server source and `docker-compose.sidecar.yml`

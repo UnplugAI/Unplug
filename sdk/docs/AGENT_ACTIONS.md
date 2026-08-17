@@ -108,4 +108,4 @@ else:
 6. `scan_agent_output` before returning to user
 7. `reset_session_taint` between users / tenants
 
-See also: [`README.md`](../README.md#protect-an-agent), [`integrations/custom-loop/README.md`](../integrations/custom-loop/README.md).
+See also: [`README.md`](https://github.com/UnplugAI/Unplug/blob/dev/sdk/README.md#protect-an-agent), [`integrations/custom-loop/README.md`](https://github.com/UnplugAI/Unplug/blob/dev/sdk/integrations/custom-loop/README.md).

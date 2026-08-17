@@ -83,5 +83,6 @@ Everything else: submodule imports (`from unplug.scanners.injection import Injec
 
 ## Related docs
 
-- [RESTRUCTURE_PLAN.md](RESTRUCTURE_PLAN.md): migration checklist
-- [LOGIC_AUDIT.md](LOGIC_AUDIT.md): correctness review backlog
+- [PUBLIC_API.md](PUBLIC_API.md): what is importable and what is internal
+- [AGENT_FLOW_SECURITY.md](AGENT_FLOW_SECURITY.md): how taint moves through an agent loop
+- [TESTING_HARNESS.md](TESTING_HARNESS.md): which suite covers which layer

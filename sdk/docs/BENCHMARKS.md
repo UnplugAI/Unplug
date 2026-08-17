@@ -73,9 +73,9 @@ PRs to `dev` run:
 
 | Workflow | Purpose |
 |----------|---------|
-| [`ci.yml`](../../.github/workflows/ci.yml) | Lint + mypy + pytest matrix (3.11–3.13) + attack-harness gate |
-| [`pr-scan.yml`](../../.github/workflows/pr-scan.yml) | Regex scan on changed agent/MCP config files |
-| [`reusable-agent-scan.yml`](../../.github/workflows/reusable-agent-scan.yml) | `workflow_call` entry for other repos |
+| [`ci.yml`](https://github.com/UnplugAI/Unplug/blob/dev/.github/workflows/ci.yml) | Lint + mypy + pytest matrix (3.11–3.13) + attack-harness gate |
+| [`pr-scan.yml`](https://github.com/UnplugAI/Unplug/blob/dev/.github/workflows/pr-scan.yml) | Regex scan on changed agent/MCP config files |
+| [`reusable-agent-scan.yml`](https://github.com/UnplugAI/Unplug/blob/dev/.github/workflows/reusable-agent-scan.yml) | `workflow_call` entry for other repos |
 
 The attack-harness gate (`benchmarks/attacks/ci_gate.py`) enforces per-category recall
 floors on the committed garak corpus and a benign false-positive ceiling.

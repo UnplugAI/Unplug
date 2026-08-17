@@ -1,0 +1,75 @@
+site_name: Unplug
+site_description: Agent runtime security for LLM applications.
+site_url: https://unplugai.github.io/Unplug/
+repo_url: https://github.com/UnplugAI/Unplug
+repo_name: UnplugAI/Unplug
+edit_uri: edit/dev/sdk/docs/
+copyright: Apache 2.0
+
+docs_dir: sdk/docs
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.instant
+    - content.code.copy
+    - content.action.edit
+    - search.suggest
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: black
+      accent: green
+      toggle:
+        icon: material/weather-night
+        name: Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: green
+      toggle:
+        icon: material/weather-sunny
+        name: Light mode
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+
+nav:
+  - Home: index.md
+  - Start here:
+      - Getting started: GETTING_STARTED.md
+      - Architecture: ARCHITECTURE.md
+      - Public API: PUBLIC_API.md
+  - Protecting an agent:
+      - Agent actions: AGENT_ACTIONS.md
+      - Agent flow security: AGENT_FLOW_SECURITY.md
+      - RAG defense: RAG_DEFENSE.md
+      - Hermes agent security: HERMES_AGENT_SECURITY.md
+  - Detection:
+      - Benchmarks: BENCHMARKS.md
+      - Limits and the LLM judge: LIMITS_AND_JUDGE.md
+      - ML integration: ML_INTEGRATION.md
+      - Phase C evaluation: EVAL_PHASE_C.md
+  - Running it:
+      - Deployment: DEPLOYMENT.md
+      - Integrations: INTEGRATIONS.md
+      - Testing harness: TESTING_HARNESS.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/UnplugAI/Unplug
+    - icon: fontawesome/solid/robot
+      link: https://huggingface.co/Unplug-AI/unplug-tiny-v1
+      name: unplug-tiny-v1 on Hugging Face

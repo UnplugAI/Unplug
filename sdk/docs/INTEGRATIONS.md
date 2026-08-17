@@ -1,6 +1,6 @@
 # Agent framework integrations
 
-> **Full guides:** [`integrations/README.md`](../integrations/README.md) — per-framework wiring, extras, and the [72-angle security matrix](../integrations/TESTING.md).
+> **Full guides:** [`integrations/README.md`](https://github.com/UnplugAI/Unplug/blob/dev/sdk/integrations/README.md) — per-framework wiring, extras, and the [72-angle security matrix](https://github.com/UnplugAI/Unplug/blob/dev/sdk/integrations/TESTING.md).
 >
 > **Beginners:** [`GETTING_STARTED.md`](GETTING_STARTED.md) · **REVIEW vs BLOCK:** [`AGENT_ACTIONS.md`](AGENT_ACTIONS.md)
 
@@ -100,7 +100,7 @@ Tool enforcement always runs locally. See [`DEPLOYMENT.md`](DEPLOYMENT.md).
 uv run pytest tests/security/test_agent_integration_matrix.py -v
 ```
 
-See [`integrations/TESTING.md`](../integrations/TESTING.md) for all 72 angles.
+See [`integrations/TESTING.md`](https://github.com/UnplugAI/Unplug/blob/dev/sdk/integrations/TESTING.md) for all 72 angles.
 
 ## Docker E2E (sidecar + examples)
 
@@ -110,4 +110,4 @@ cd sdk && make docker-e2e
 
 ## MCP
 
-For Claude / Cursor MCP server, use [`unplug-mcp`](https://github.com/UnplugAI/unplug-mcp) — see [`integrations/mcp/README.md`](../integrations/mcp/README.md).
+For Claude / Cursor MCP server, use [`unplug-mcp`](https://github.com/UnplugAI/unplug-mcp) — see [`integrations/mcp/README.md`](https://github.com/UnplugAI/Unplug/blob/dev/sdk/integrations/mcp/README.md).
