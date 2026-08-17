@@ -101,6 +101,41 @@ class TestInjectionScanner:
         assert redacted.count("[BLOCKED:injection]") == 1
         assert redacted == "h[BLOCKED:injection]d"
 
+    def test_fully_interleaved_run_redacts_as_single_block(self):
+        from unplug.config.policy import RedactionMode, ScanPolicy
+        from unplug.core.redaction import apply_span_redactions
+
+        raw = "h\u200be\u200bl\u200bl\u200bo \u200bw\u200bo\u200br\u200bl\u200bd"
+        findings = self.scanner.scan(_make_text(raw), self.ctx)
+        invisible = [f for f in findings if f.subcategory == "invisible_text"]
+        assert len(invisible) == 1
+        redacted = apply_span_redactions(
+            raw, findings, ScanPolicy(redaction_mode=RedactionMode.BLOCKED_TAGS)
+        )
+        assert redacted is not None
+        assert redacted.count("[BLOCKED:injection]") == 1
+        assert redacted == "h[BLOCKED:injection]d"
+
+    def test_distant_evasion_spans_kept_separate(self):
+        from unplug.config.policy import RedactionMode, ScanPolicy
+        from unplug.core.redaction import apply_span_redactions
+
+        raw = (
+            "Zero width here\u200b and then a long stretch of perfectly ordinary "
+            "English text that should survive redaction, ending with fullwidth \uff41\uff42\uff43"
+        )
+        findings = self.scanner.scan(_make_text(raw), self.ctx)
+        invisible = [f for f in findings if f.subcategory == "invisible_text"]
+        assert len(invisible) == 2
+        assert (invisible[0].span_start, invisible[0].span_end) == (15, 16)
+        assert (invisible[1].span_start, invisible[1].span_end) == (129, 132)
+        redacted = apply_span_redactions(
+            raw, findings, ScanPolicy(redaction_mode=RedactionMode.BLOCKED_TAGS)
+        )
+        assert redacted is not None
+        assert redacted.count("[BLOCKED:injection]") == 2
+        assert "perfectly ordinary English text that should survive redaction" in redacted
+
     def test_cjk_text_not_invisible_text(self):
         text = _make_text("今天北京的天气很好，我想去公园散步。")
         findings = self.scanner.scan(text, self.ctx)
