@@ -9,6 +9,7 @@ Unplug is agent runtime security for LLM applications. It tracks where text came
 <p>
   <a href="https://github.com/UnplugAI/Unplug/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/UnplugAI/Unplug/actions/workflows/ci.yml/badge.svg?branch=dev"></a>
   <a href="https://pypi.org/project/unplug-ai/"><img alt="PyPI" src="https://img.shields.io/pypi/v/unplug-ai"></a>
+  <a href="https://unplugai.github.io/Unplug/"><img alt="Docs" src="https://img.shields.io/badge/Docs-unplugai.github.io-3b82f6"></a>
   <a href="https://huggingface.co/spaces/Unplug-AI/unplug-tiny-demo"><img alt="Live demo" src="https://img.shields.io/badge/Live_demo-Hugging_Face_Space-22c55e"></a>
   <a href="https://huggingface.co/Unplug-AI/unplug-tiny-v1"><img alt="Model" src="https://img.shields.io/badge/Model-unplug--tiny--v1-f59e0b"></a>
   <a href="https://www.apache.org/licenses/LICENSE-2.0"><img alt="License" src="https://img.shields.io/badge/License-Apache_2.0-9ca3af"></a>
@@ -94,6 +95,23 @@ See [sdk/README.md](sdk/README.md) for config (`unplug.toml`), `unplug-audit`, a
 cd sdk && uv sync --all-extras --dev
 make check-ci    # lint + tests + exfil demo + security regression
 ```
+
+## Contributing
+
+Yes, and we mean it. There are
+[open issues tagged `good first issue`](https://github.com/UnplugAI/Unplug/labels/good%20first%20issue),
+each with the file to open and the failing behaviour already written down.
+
+If you are new to open source, look for
+[`mentored`](https://github.com/UnplugAI/Unplug/labels/mentored). A maintainer walks
+you through those, and asking basic questions on the thread is the point rather than
+a nuisance.
+
+Comment on an issue to claim it and wait for it to be assigned before you write code.
+That rule exists so two people do not build the same thing.
+[CONTRIBUTING.md](CONTRIBUTING.md) has the details, [SUPPORT.md](SUPPORT.md) covers
+where to ask things, and [AI_POLICY.md](AI_POLICY.md) covers using a model to write
+your patch (allowed, disclose it).
 
 ## Related repos
 
