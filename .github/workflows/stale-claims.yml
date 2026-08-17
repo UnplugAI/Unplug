@@ -37,8 +37,9 @@ jobs:
           nudge_cutoff=$(( now - NUDGE_DAYS * 86400 ))
           free_cutoff=$(( now - FREE_DAYS * 86400 ))
 
+          limit=1000
           gh issue list --repo "$REPO" --state open --label claimed \
-            --limit 200 --json number,updatedAt,assignees,labels > issues.json
+            --limit "$limit" --json number,updatedAt,assignees,labels > issues.json
 
           # Read into an array first. A `while read` over a pipe runs in a subshell,
           # which makes failures inside it easy to lose.
@@ -48,6 +49,11 @@ jobs:
           if [ "${#rows[@]:-0}" -eq 0 ]; then
             echo "nothing to sweep"
             exit 0
+          fi
+          # Never truncate quietly. If we ever hit the cap, the oldest claims are the
+          # ones dropped, and those are exactly the ones this job exists to catch.
+          if [ "${#rows[@]}" -ge "$limit" ]; then
+            echo "::warning::Hit the $limit issue cap. Older claims were not swept; paginate this query."
           fi
 
           for row in "${rows[@]}"; do
