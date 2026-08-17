@@ -58,7 +58,7 @@ print(result.findings) # evidence with span offsets
 One line upgrades detection to the ML span model (downloads [unplug-tiny-v1](https://huggingface.co/Unplug-AI/unplug-tiny-v1) once, cached):
 
 ```python
-guard = Guard.with_tiny()
+guard = Guard(model="tiny", auto_download_model=True)
 ```
 
 Try it without installing anything: [live demo](https://huggingface.co/spaces/Unplug-AI/unplug-tiny-demo).
@@ -71,16 +71,20 @@ Try it without installing anything: [live demo](https://huggingface.co/spaces/Un
 | TaintedText provenance + session taint | **Included** |
 | Tool-call enforcement (destructive block, tainted review) | **Included** |
 | Span-level redaction | **Included** |
-| ML span model `Guard.with_tiny()` | **Preview** ([unplug-tiny-v1](https://huggingface.co/Unplug-AI/unplug-tiny-v1)) |
+| ML span model `Guard(model="tiny")` | **Preview** ([unplug-tiny-v1](https://huggingface.co/Unplug-AI/unplug-tiny-v1)) |
 | Sliding-window long documents + streaming scan | **Included** |
 
-On the neuralchemy prompt-injection set, regex-only detection reaches **F1 0.58 / recall 0.41** — a fast first line, not sufficient alone. Adding the ML span model (`Guard.with_tiny()`) takes that to **F1 0.99 / recall 0.98**, and lifts recall on *indirect* injection from **0.05 → 0.91**. False-positive rate stays under 1% on the injection set (2.1% on a separate hard-benign corpus). Full tables, methodology, and honest caveats: [`sdk/docs/BENCHMARKS.md`](sdk/docs/BENCHMARKS.md). Per-axis model metrics (including failure modes) are on the [model card](https://huggingface.co/Unplug-AI/unplug-tiny-v1).
+
+On the neuralchemy prompt-injection set, regex-only detection reaches **F1 0.58 / recall 0.41** — a fast first line, not sufficient alone. Adding the ML span model (`Guard(model="tiny")`) takes that to **F1 0.99 / recall 0.98**, and lifts recall on *indirect* injection from **0.05 → 0.91**. False-positive rate stays under 1% on the injection set (2.1% on a separate hard-benign corpus). Full tables, methodology, and honest caveats: [`sdk/docs/BENCHMARKS.md`](sdk/docs/BENCHMARKS.md). Per-axis model metrics (including failure modes) are on the [model card](https://huggingface.co/Unplug-AI/unplug-tiny-v1).
 
 **Language support.** Regex + normalization detection is tuned for English today.
 Ordinary non-English input (Cyrillic, CJK, etc.) is *not* treated as an evasion
 signal — only genuine zero-width/bidi control characters and mixed-script
 homoglyph smuggling are flagged. Robust multi-language injection detection is
 tracked as a separate work item.
+
+On the neuralchemy prompt-injection set, regex-only detection reaches **F1 0.56 / recall 0.39** — a fast first line, not sufficient alone. Adding the ML span model (`Guard(model="tiny")`) takes that to **F1 0.99 / recall 0.98**, and lifts recall on *indirect* injection from **0.05 → 0.91**. False-positive rate stays under 1% on the injection set (2.1% on a separate hard-benign corpus). Full tables, methodology, and honest caveats: [`sdk/docs/BENCHMARKS.md`](sdk/docs/BENCHMARKS.md). Per-axis model metrics (including failure modes) are on the [model card](https://huggingface.co/Unplug-AI/unplug-tiny-v1).
+>>>>>>> b27d848 (docs: replaced remaining Guard.with_tiny() references with Guard(model='tiny'))
 
 ## Agent host checklist
 
