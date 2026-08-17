@@ -34,6 +34,12 @@ _ZERO_WIDTH_RE = re.compile("[" + re.escape(_ZERO_WIDTH_CHARS) + "]+")
 _CONFUSABLE_RE = re.compile(r"[\uff10-\uff19\uff21-\uff3a\uff41-\uff5a\u24b6-\u24cf\u24d0-\u24e9]+")
 _WORD_RE = re.compile(r"\w+")
 
+# Only collapse evasion spans that sit close together (e.g. zero-width chars
+# interleaved between the letters of one word). Spans separated by a long gap
+# are kept as separate findings so redaction doesn't swallow ordinary text
+# between two distant evasion points.
+_MAX_MERGE_GAP = 3
+
 
 def _evasion_spans(original: str) -> list[tuple[int, int]]:
     """Original-text spans of genuine invisible / mixed-script evasion.
@@ -78,7 +84,7 @@ def _evasion_spans(original: str) -> list[tuple[int, int]]:
     merged: list[tuple[int, int]] = [spans[0]]
     for span_start, span_end in spans[1:]:
         last_start, last_end = merged[-1]
-        if span_start <= last_end:
+        if span_start - last_end <= _MAX_MERGE_GAP:
             merged[-1] = (last_start, max(last_end, span_end))
         else:
             merged.append((span_start, span_end))
@@ -121,12 +127,6 @@ class InjectionScanner(RegexScanner):
             if _EVASION_STAGES.intersection(norm_result.stages_applied)
             else []
         )
-        # When several evasion spans sit in one run (e.g. a word interleaved
-        # with zero-width chars, "he\u200bl\u200bl\u200bo"), replace the whole
-        # run with a single finding so redaction emits one BLOCKED tag instead
-        # of one per offending character.
-        if len(evasion_spans) > 1:
-            evasion_spans = [(evasion_spans[0][0], evasion_spans[-1][1])]
         stages_used = ", ".join(sorted(_EVASION_STAGES.intersection(norm_result.stages_applied)))
         for span_start, span_end in evasion_spans:
             yield Finding(
