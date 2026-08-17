@@ -58,8 +58,12 @@ Do not start writing code before the issue is assigned. It is the only way we ca
 stop two people building the same thing, and we would rather tell you an issue is
 already spoken for than have you find out at review time.
 
-Keep one open PR at a time until your first one is merged. After that, take as
-many as you like.
+One issue at a time. When the PR for it is merged, we assign you the next one.
+
+That is not a judgement on how fast you work. An assigned issue looks taken to
+everyone else, so two parked issues means two people who could have picked
+something up and did not. Ask for the next one whenever you like and we will
+queue it against your name.
 
 If an issue is already assigned, leave it alone, even if it has been quiet for a
 while. Ask on the issue if you think something has stalled.
@@ -86,8 +90,8 @@ What that means in practice:
 - Getting it wrong first try is expected. Nobody's first patch to a security scanner
   is right.
 
-Mentored issues do not count against the one-open-PR limit, so you can take one while
-another PR of yours is in review.
+A mentored issue is still one issue. The one-at-a-time rule above applies here too,
+and we would rather you finish this one with help than juggle two.
 
 Two things we ask in return. Tell us when you get stuck rather than disappearing, and
 write the patch yourself. Reading an explanation is the point of the label. If a model
