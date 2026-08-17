@@ -152,6 +152,9 @@ make check
 # Exact CI parity before PR (includes exfil demo + security subset)
 make check-ci
 
+# Docs drift only: every `from unplug import ...` in the docs must resolve
+make check-docs
+
 # Coverage report and 80% minimum gate
 make test-cov
 

@@ -1,4 +1,4 @@
-.PHONY: install lint typecheck format fix check check-ci test test-cov test-security \
+.PHONY: install lint typecheck format fix check check-ci check-docs test test-cov test-security \
 	test-ml test-ml-harness test-frameworks test-frameworks-live test-all-local \
 	smoke-ml smoke-ml-hooks docker-e2e audit audit-ml scenarios attack-gate examples
 
@@ -22,7 +22,10 @@ check: lint typecheck
 	uv run ruff format --check .
 	uv run pytest -q
 
-check-ci: check
+check-docs:
+	uv run python scripts/check_doc_drift.py
+
+check-ci: check check-docs
 	uv run pytest tests/integration/test_exfil_demo_integration.py -q
 	uv run python examples/agent_exfil_demo.py
 	uv run pytest tests/security tests/integration/test_deployment_modes.py tests/unit/ml/test_ml_validation.py tests/integration/test_ml_integration.py tests/integration/test_scenario_replay.py -q
