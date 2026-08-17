@@ -31,7 +31,8 @@ preview means latency numbers, a quantized option, and a story for CPU-only host
 **Streaming and long documents at scale.** Sliding-window scanning exists. It has not
 been measured against documents where the window boundary is the attack.
 
-**Framework coverage that stays true.** There are 20-odd integration extras. Keeping
+**Framework coverage that stays true.** There are twenty integration directories under
+`sdk/integrations/`, nineteen of them behind their own extra. Keeping
 them all working as their upstreams move is a real cost, and some of them probably do
 not deserve to stay.
 
