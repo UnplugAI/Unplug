@@ -2,7 +2,7 @@
 
 from unplug.client import UnplugClient
 
-# Start a server first (see sdk/docs/DEPLOYMENT.md), e.g. the local sidecar
+# Start a server first (see docs/DEPLOYMENT.md), e.g. the local sidecar
 # from the unplug-server repo, then verify with: unplug-sidecar doctor
 with UnplugClient(base_url="http://localhost:8000") as client:
     # Health check

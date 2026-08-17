@@ -7,7 +7,7 @@ body:
     attributes:
       label: Where
       description: File path or URL. A line number helps.
-      placeholder: sdk/docs/GETTING_STARTED.md, or README.md:60
+      placeholder: docs/GETTING_STARTED.md, or README.md:60
     validations:
       required: true
 

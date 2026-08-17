@@ -2,7 +2,7 @@
 
 No extra install required — use `AgentHooks` directly in any ReAct, while-loop, or hand-rolled orchestrator.
 
-See [`docs/AGENT_ACTIONS.md`](../docs/AGENT_ACTIONS.md) for **REVIEW** vs **BLOCK** and human approval.
+See [`docs/AGENT_ACTIONS.md`](../../../docs/AGENT_ACTIONS.md) for **REVIEW** vs **BLOCK** and human approval.
 
 ## Minimal ReAct loop
 

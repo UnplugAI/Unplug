@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Fail when the docs describe an API that does not exist.
 
-Walks every ```python fence in sdk/docs/ and the repo-root markdown, collects the
+Walks every ```python fence in docs/ and the repo-root markdown, collects the
 `from unplug... import X` / `import unplug...` statements, and checks each one
 actually resolves. Catches the case where a symbol gets renamed in code and the
 docs keep the old name, which a reader only discovers by pasting the snippet and
@@ -23,7 +23,7 @@ from pathlib import Path
 
 FENCE_RE = re.compile(r"```python\n(.*?)```", re.DOTALL)
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DOC_GLOBS = ("sdk/docs/*.md", "*.md", "sdk/*.md", "sdk/integrations/*/README.md")
+DOC_GLOBS = ("docs/*.md", "*.md", "sdk/*.md", "sdk/integrations/*/README.md")
 
 # The docs deliberately reference the old name in these files.
 SKIP_FILES = {"MIGRATION.md", "CHANGELOG.md"}

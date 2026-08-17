@@ -39,17 +39,17 @@ elif not decision.allowed:
 > these markdown guides live in the GitHub repo:
 > https://github.com/UnplugAI/Unplug/tree/dev/sdk/integrations
 >
-> Also: [`docs/GETTING_STARTED.md`](../docs/GETTING_STARTED.md) · [`docs/AGENT_ACTIONS.md`](../docs/AGENT_ACTIONS.md)
+> Also: [`docs/GETTING_STARTED.md`](../../docs/GETTING_STARTED.md) · [`docs/AGENT_ACTIONS.md`](../../docs/AGENT_ACTIONS.md)
 
 ## Pick your path
 
 | You are… | Install | Read |
 |----------|---------|------|
-| Trying Unplug for the first time | `pip install unplug-ai` | [`docs/GETTING_STARTED.md`](../docs/GETTING_STARTED.md) |
+| Trying Unplug for the first time | `pip install unplug-ai` | [`docs/GETTING_STARTED.md`](../../docs/GETTING_STARTED.md) |
 | Building a custom agent loop | *(core only)* | [custom-loop](custom-loop/README.md) |
 | Using LangGraph / CrewAI / OpenAI Agents / … | `pip install "unplug-ai[<extra>]"` | Guide column below |
 | Hardening an MCP host | `pip install "unplug-ai[mcp]"` + [unplug-mcp](https://github.com/UnplugAI/unplug-mcp) | [mcp](mcp/README.md) |
-| Production without local GPU | `Guard(mode="server")` | [`docs/DEPLOYMENT.md`](../docs/DEPLOYMENT.md) |
+| Production without local GPU | `Guard(mode="server")` | [`docs/DEPLOYMENT.md`](../../docs/DEPLOYMENT.md) |
 
 **Naming:** PyPI extra uses hyphens (`openai-agents`); Python module uses underscores
 (`unplug.integrations.openai_agents`).
@@ -69,7 +69,7 @@ if not decision.allowed:
     raise RuntimeError(decision.message)
 ```
 
-Full decision table and `ApprovalProvider` example: [`docs/AGENT_ACTIONS.md`](../docs/AGENT_ACTIONS.md).
+Full decision table and `ApprovalProvider` example: [`docs/AGENT_ACTIONS.md`](../../docs/AGENT_ACTIONS.md).
 
 ## Supported frameworks
 
@@ -122,7 +122,7 @@ python examples/atomic_agents_hooks_demo.py
 | Hosted API | `Guard(mode="server", server_url=..., server_api_key=...)` | **Always local** — never delegate tool policy to the network |
 | Sidecar | `Guard(mode="server", server_url="http://127.0.0.1:8000")` | Local |
 
-See [`docs/DEPLOYMENT.md`](../docs/DEPLOYMENT.md).
+See [`docs/DEPLOYMENT.md`](../../docs/DEPLOYMENT.md).
 
 ## Security testing
 
@@ -143,6 +143,6 @@ uv run pytest tests/security/test_agent_integration_matrix.py -v
 
 ## Related docs
 
-- [`docs/INTEGRATIONS.md`](../docs/INTEGRATIONS.md) — API reference (compact)
-- [`docs/RAG_DEFENSE.md`](../docs/RAG_DEFENSE.md) — retrieval-path threat model
-- [`docs/DEPLOYMENT.md`](../docs/DEPLOYMENT.md) — local vs hosted vs sidecar
+- [`docs/INTEGRATIONS.md`](../../docs/INTEGRATIONS.md) — API reference (compact)
+- [`docs/RAG_DEFENSE.md`](../../docs/RAG_DEFENSE.md) — retrieval-path threat model
+- [`docs/DEPLOYMENT.md`](../../docs/DEPLOYMENT.md) — local vs hosted vs sidecar

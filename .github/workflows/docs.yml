@@ -4,13 +4,13 @@ on:
   push:
     branches: [dev]
     paths:
-      - "sdk/docs/**"
+      - "docs/**"
       - "mkdocs.yml"
       - "docs-requirements.txt"
       - ".github/workflows/docs.yml"
   pull_request:
     paths:
-      - "sdk/docs/**"
+      - "docs/**"
       - "mkdocs.yml"
       - "docs-requirements.txt"
       - ".github/workflows/docs.yml"

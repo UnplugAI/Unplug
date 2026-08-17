@@ -29,7 +29,7 @@ def main() -> int:
             "Hosted mode requires your Unplug API deployment or a local sidecar:\n"
             "  export UNPLUG_SERVER_URL=https://api.your-host\n"
             "  export UNPLUG_API_KEY=up_live_xxx\n"
-            "Or start local sidecar: see sdk/docs/DEPLOYMENT.md",
+            "Or start local sidecar: see docs/DEPLOYMENT.md",
             file=sys.stderr,
         )
         return 1

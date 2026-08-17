@@ -4,7 +4,7 @@ documentation:
   - changed-files:
       - any-glob-to-any-file:
           - "**/*.md"
-          - "sdk/docs/**"
+          - "docs/**"
           - "mkdocs.yml"
           - "docs-requirements.txt"
 

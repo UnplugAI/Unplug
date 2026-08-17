@@ -45,7 +45,7 @@ uv sync --dev
 | `integrations` | **Meta-extra:** all framework extras above |
 | `all` | ML + presidio + yara + scrape + haystack + litellm |
 
-Integration guides: [`sdk/integrations/README.md`](sdk/integrations/README.md). New contributor docs: [`sdk/docs/GETTING_STARTED.md`](sdk/docs/GETTING_STARTED.md), [`sdk/docs/AGENT_ACTIONS.md`](sdk/docs/AGENT_ACTIONS.md).
+Integration guides: [`sdk/integrations/README.md`](sdk/integrations/README.md). New contributor docs: [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md), [`docs/AGENT_ACTIONS.md`](docs/AGENT_ACTIONS.md).
 
 4. Verify your environment: `make check` (lint + format + tests).
 

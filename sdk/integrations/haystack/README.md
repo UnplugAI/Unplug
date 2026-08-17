@@ -31,7 +31,7 @@ if decision.index_ok:
     document_store.write_documents([doc])
 ```
 
-See [`docs/RAG_DEFENSE.md`](../../docs/RAG_DEFENSE.md) for the threat model.
+See [`docs/RAG_DEFENSE.md`](../../../docs/RAG_DEFENSE.md) for the threat model.
 
 ## Without Haystack installed
 

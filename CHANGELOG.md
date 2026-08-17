@@ -23,7 +23,7 @@ All notable changes to the `unplug-ai` SDK.
 
 - Public `LimitConfig` / BYOLLM judge surface (`unplug`, `unplug.api.limits`, `unplug.api.judge`) with docs, example, and TOML notes (#80)
 - Focused injection regex patterns from neuralchemy FN sampling; bidi control stripping in the normalizer (#80)
-- Pre-0.6.0 local test harness: `make test-frameworks`, `test-ml-harness`, `smoke-ml-hooks`, `test-all-local` plus `sdk/docs/TESTING_HARNESS.md` (#92)
+- Pre-0.6.0 local test harness: `make test-frameworks`, `test-ml-harness`, `smoke-ml-hooks`, `test-all-local` plus `docs/TESTING_HARNESS.md` (#92)
 
 ### Fixed
 
@@ -72,12 +72,12 @@ All notable changes to the `unplug-ai` SDK.
 
 ### Added
 
-- Beginner onboarding: [`sdk/docs/GETTING_STARTED.md`](sdk/docs/GETTING_STARTED.md) (5-minute path)
-- Agent-host guide: [`sdk/docs/AGENT_ACTIONS.md`](sdk/docs/AGENT_ACTIONS.md) (ALLOW / REVIEW / BLOCK + `ApprovalProvider`)
+- Beginner onboarding: [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md) (5-minute path)
+- Agent-host guide: [`docs/AGENT_ACTIONS.md`](docs/AGENT_ACTIONS.md) (ALLOW / REVIEW / BLOCK + `ApprovalProvider`)
 - `HookDecision.needs_review` and `HookDecision.is_block` helpers for integration adapters
 - Stable public API facades under `unplug.api.*` for policy, privacy, cache,
   boundaries, normalization, encoding, and ML runtime imports used by server/MCP
-  dependents ([`sdk/docs/PUBLIC_API.md`](sdk/docs/PUBLIC_API.md))
+  dependents ([`docs/PUBLIC_API.md`](docs/PUBLIC_API.md))
 
 ### Changed
 
@@ -196,7 +196,7 @@ All notable changes to the `unplug-ai` SDK.
 ### Added
 
 - `CODE_OF_CONDUCT.md`, `SECURITY.md` at repo root
-- `sdk/docs/ARCHITECTURE.md`, `RESTRUCTURE_PLAN.md`, `LOGIC_AUDIT.md`
+- `docs/ARCHITECTURE.md`, `RESTRUCTURE_PLAN.md`, `LOGIC_AUDIT.md`
 - Runtime dependency: `pyyaml`
 - `tests/unit/core/test_pattern_loader.py`
 - Dev branch workflow; PyPI publish from `main`

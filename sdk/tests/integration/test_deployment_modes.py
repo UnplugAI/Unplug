@@ -14,7 +14,8 @@ from unplug.ml.validation import load_ml_validation_manifest, manifest_path
 
 class TestDeploymentManifest:
     def test_deployment_doc_exists(self) -> None:
-        doc = manifest_path().parents[1] / "docs" / "DEPLOYMENT.md"
+        # parents[2] is the repo root; docs/ lives there, not under sdk/.
+        doc = manifest_path().parents[2] / "docs" / "DEPLOYMENT.md"
         assert doc.is_file()
         body = doc.read_text(encoding="utf-8")
         assert "Hosted" in body

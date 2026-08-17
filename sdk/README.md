@@ -32,7 +32,7 @@ pip install "unplug-ai[ml]"     # add the ML span model
 
 **Imports:** App and agent code uses `from unplug import Guard` (and other top-level
 exports). Server/MCP dependents that need wire types or facades use `unplug.api.*`
-— see [`docs/PUBLIC_API.md`](docs/PUBLIC_API.md). Do not import from `unplug.core.*`.
+— see [`docs/PUBLIC_API.md`](../docs/PUBLIC_API.md). Do not import from `unplug.core.*`.
 
 Or from source:
 
@@ -104,7 +104,7 @@ uv run python -m benchmarks.run benchmarks/data/neuralchemy.jsonl --ml --isolate
 uv run python -m benchmarks.run benchmarks/data/microsoft_indirect.jsonl --ml --isolated --format json
 ```
 
-Full methodology, per-dataset tables, and honest caveats: [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md).
+Full methodology, per-dataset tables, and honest caveats: [`docs/BENCHMARKS.md`](../docs/BENCHMARKS.md).
 Per-axis model metrics (including failure modes) live on the [model card](https://huggingface.co/Unplug-AI/unplug-tiny-v1).
 
 ## Protect an agent
@@ -127,14 +127,14 @@ if not result.safe:
     system_prompt = text_for_prompt  # blocked placeholder, not raw content
 ```
 
-See [`docs/AGENT_ACTIONS.md`](docs/AGENT_ACTIONS.md) for **REVIEW** vs **BLOCK** handling
+See [`docs/AGENT_ACTIONS.md`](../docs/AGENT_ACTIONS.md) for **REVIEW** vs **BLOCK** handling
 and human approval via ``ApprovalProvider``.
 
 Full walkthrough: [`examples/agent_exfil_demo.py`](examples/agent_exfil_demo.py) shows a hidden webpage injection leading to a tainted session, an exfil tool call held for review, and a destructive call blocked — see [`agent_exfil_demo.txt`](examples/agent_exfil_demo.txt) for sample output.
 
 Want the contrast? [`examples/agent_exfil_unguarded.py`](examples/agent_exfil_unguarded.py) runs the identical attack with no defense in place: the agent follows the hidden instruction, the keys leave, and the summary comes back looking perfectly normal. Run it first, then the demo above.
 
-New here? Start with [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md) (5-minute path).
+New here? Start with [`docs/GETTING_STARTED.md`](../docs/GETTING_STARTED.md) (5-minute path).
 
 ## Long documents and streams
 
@@ -161,7 +161,7 @@ guard.scan_stream(["part1", "part2", "part3"])
 | **Hosted** | Production, no GPU on client | `Guard(mode="server")` + API key | Unplug API |
 | **Local sidecar** | Many local agents, one model load | Sidecar + `Guard(mode="server")` to localhost | Local server |
 
-Full architecture and decision guide: [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+Full architecture and decision guide: [`docs/DEPLOYMENT.md`](../docs/DEPLOYMENT.md).
 
 ### Hosted
 
@@ -206,7 +206,7 @@ auto_download_model = true
 require_ml = true   # optional fail-fast at init
 ```
 
-`UNPLUG_MODEL_PATH` alone auto-selects the `tiny` tier; prefer setting both explicitly in production. Checkpoint layout and integration steps: [`docs/ML_INTEGRATION.md`](docs/ML_INTEGRATION.md).
+`UNPLUG_MODEL_PATH` alone auto-selects the `tiny` tier; prefer setting both explicitly in production. Checkpoint layout and integration steps: [`docs/ML_INTEGRATION.md`](../docs/ML_INTEGRATION.md).
 
 All published model metrics come from a frozen golden-eval harness on held-out data and are recorded on the [model card](https://huggingface.co/Unplug-AI/unplug-tiny-v1). No hand-typed numbers, measured not target.
 
@@ -240,7 +240,7 @@ Copy `unplug.example.toml` to `unplug.toml` to customize scanners, tool profiles
 
 ## Integrations
 
-Framework hooks for LangGraph, CrewAI, AutoGen, Haystack, and more: [`integrations/README.md`](integrations/README.md) (guides) · [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md) (API reference).
+Framework hooks for LangGraph, CrewAI, AutoGen, Haystack, and more: [`integrations/README.md`](integrations/README.md) (guides) · [`docs/INTEGRATIONS.md`](../docs/INTEGRATIONS.md) (API reference).
 
 Threat scanners live under `unplug.scanners` (canonical). The older `unplug.safeguards` path still works but emits deprecation warnings:
 
@@ -250,7 +250,7 @@ from unplug.scanners.destructive import DestructiveScanner
 from unplug.scanners.registry import ScannerRegistry
 ```
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for layering and optional extras.
+See [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md) for layering and optional extras.
 
 ## Examples
 
@@ -267,19 +267,19 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for layering and optional extra
 
 | Doc | Covers |
 |-----|--------|
-| [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md) | 5-minute install → scan (beginners) |
-| [`docs/AGENT_ACTIONS.md`](docs/AGENT_ACTIONS.md) | ALLOW / REVIEW / BLOCK + ApprovalProvider |
-| [`docs/PUBLIC_API.md`](docs/PUBLIC_API.md) | Stable `unplug.api.*` imports for server/MCP dependents |
-| [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Hosted vs embedded vs sidecar architecture |
-| [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md) | Regex vs regex + ML eval results (neuralchemy, microsoft) |
-| [`docs/LIMITS_AND_JUDGE.md`](docs/LIMITS_AND_JUDGE.md) | `LimitConfig` + optional BYOLLM `JudgeProvider` wiring |
-| [`docs/EVAL_PHASE_C.md`](docs/EVAL_PHASE_C.md) | Phase C eval re-run, download commands, remaining gaps |
-| [`docs/ML_INTEGRATION.md`](docs/ML_INTEGRATION.md) | Checkpoint layout, thresholds, long-text and streaming config |
+| [`docs/GETTING_STARTED.md`](../docs/GETTING_STARTED.md) | 5-minute install → scan (beginners) |
+| [`docs/AGENT_ACTIONS.md`](../docs/AGENT_ACTIONS.md) | ALLOW / REVIEW / BLOCK + ApprovalProvider |
+| [`docs/PUBLIC_API.md`](../docs/PUBLIC_API.md) | Stable `unplug.api.*` imports for server/MCP dependents |
+| [`docs/DEPLOYMENT.md`](../docs/DEPLOYMENT.md) | Hosted vs embedded vs sidecar architecture |
+| [`docs/BENCHMARKS.md`](../docs/BENCHMARKS.md) | Regex vs regex + ML eval results (neuralchemy, microsoft) |
+| [`docs/LIMITS_AND_JUDGE.md`](../docs/LIMITS_AND_JUDGE.md) | `LimitConfig` + optional BYOLLM `JudgeProvider` wiring |
+| [`docs/EVAL_PHASE_C.md`](../docs/EVAL_PHASE_C.md) | Phase C eval re-run, download commands, remaining gaps |
+| [`docs/ML_INTEGRATION.md`](../docs/ML_INTEGRATION.md) | Checkpoint layout, thresholds, long-text and streaming config |
 | [`integrations/README.md`](integrations/README.md) | Per-framework guides, extras, security matrix |
-| [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md) | LangGraph, Agno, CrewAI, hooks API |
-| [`docs/AGENT_FLOW_SECURITY.md`](docs/AGENT_FLOW_SECURITY.md) | End-to-end agent hardening flow |
-| [`docs/HERMES_AGENT_SECURITY.md`](docs/HERMES_AGENT_SECURITY.md) | Context-file scanning for agent frameworks |
-| [`docs/TESTING_HARNESS.md`](docs/TESTING_HARNESS.md) | Pre-release make targets: frameworks, ML, CI vs local |
+| [`docs/INTEGRATIONS.md`](../docs/INTEGRATIONS.md) | LangGraph, Agno, CrewAI, hooks API |
+| [`docs/AGENT_FLOW_SECURITY.md`](../docs/AGENT_FLOW_SECURITY.md) | End-to-end agent hardening flow |
+| [`docs/HERMES_AGENT_SECURITY.md`](../docs/HERMES_AGENT_SECURITY.md) | Context-file scanning for agent frameworks |
+| [`docs/TESTING_HARNESS.md`](../docs/TESTING_HARNESS.md) | Pre-release make targets: frameworks, ML, CI vs local |
 
 ## Development
 
@@ -300,7 +300,7 @@ make audit            # unplug-audit wiring
 make audit-ml         # unplug-audit --require-ml (needs checkpoint)
 ```
 
-Full command map and CI vs local notes: [`docs/TESTING_HARNESS.md`](docs/TESTING_HARNESS.md).
+Full command map and CI vs local notes: [`docs/TESTING_HARNESS.md`](../docs/TESTING_HARNESS.md).
 
 Contributions welcome. See [`CONTRIBUTING.md`](../CONTRIBUTING.md).
 

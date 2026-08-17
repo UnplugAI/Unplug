@@ -3,10 +3,10 @@ site_description: Agent runtime security for LLM applications.
 site_url: https://unplugai.github.io/Unplug/
 repo_url: https://github.com/UnplugAI/Unplug
 repo_name: UnplugAI/Unplug
-edit_uri: edit/dev/sdk/docs/
+edit_uri: edit/dev/docs/
 copyright: Apache 2.0
 
-docs_dir: sdk/docs
+docs_dir: docs
 
 theme:
   name: material

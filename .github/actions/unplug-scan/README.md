@@ -8,7 +8,7 @@ This composite action lives in the monorepo for local SDK development.
 
 ## Usage in this repo
 
-Already wired in [`.github/workflows/pr-scan.yml`](../workflows/pr-scan.yml).
+Already wired in [`.github/workflows/pr-scan.yml`](../../workflows/pr-scan.yml).
 
 ## Usage in another repository
 

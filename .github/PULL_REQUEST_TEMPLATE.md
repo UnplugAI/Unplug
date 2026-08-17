@@ -9,7 +9,7 @@
 - [ ] Target branch is `dev` (see [BRANCHING.md](BRANCHING.md))
 - [ ] `cd sdk && make check-ci` passes locally
 - [ ] New code has tests (every module gets a test file)
-- [ ] Public API changes are reflected in `sdk/README.md` / `sdk/docs/`
+- [ ] Public API changes are reflected in `sdk/README.md` / `docs/`
 - [ ] No secrets, internal URLs, or private paths in the diff
 - [ ] If a model wrote a meaningful part of this, I said so below ([AI_POLICY.md](../AI_POLICY.md))
 

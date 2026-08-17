@@ -42,7 +42,7 @@ hooks = AgentHooks(Guard(mode="server", server_api_key="sk-..."))
 
 Tool calls must still use local `before_tool_call` even in server mode.
 
-Handle **REVIEW** (tainted session) separately from **BLOCK** — see [`docs/AGENT_ACTIONS.md`](../docs/AGENT_ACTIONS.md).
+Handle **REVIEW** (tainted session) separately from **BLOCK** — see [`docs/AGENT_ACTIONS.md`](../../docs/AGENT_ACTIONS.md).
 
 ## Tests
 

@@ -121,7 +121,7 @@ all = ["unplug-ai[ml,scrape,litellm,yara,haystack,presidio]"]
 Homepage = "https://unplug-ai.org"
 Repository = "https://github.com/UnplugAI/Unplug"
 Issues = "https://github.com/UnplugAI/Unplug/issues"
-Documentation = "https://github.com/UnplugAI/Unplug/blob/dev/sdk/docs/GETTING_STARTED.md"
+Documentation = "https://github.com/UnplugAI/Unplug/blob/dev/docs/GETTING_STARTED.md"
 Integrations = "https://github.com/UnplugAI/Unplug/tree/dev/sdk/integrations"
 
 [build-system]

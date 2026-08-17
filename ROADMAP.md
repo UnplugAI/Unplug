@@ -25,7 +25,7 @@ regex FPR of 0.000 is not measuring what a reader assumes it measures.
 ## Next
 
 **ML model past preview.** `unplug-tiny-v1` carries the recall numbers in
-[BENCHMARKS](sdk/docs/BENCHMARKS.md) but is still labelled preview. Getting it out of
+[BENCHMARKS](docs/BENCHMARKS.md) but is still labelled preview. Getting it out of
 preview means latency numbers, a quantized option, and a story for CPU-only hosts.
 
 **Streaming and long documents at scale.** Sliding-window scanning exists. It has not
