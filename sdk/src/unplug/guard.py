@@ -592,7 +592,7 @@ class Guard:
                 context=ctx,
             )
 
-        if cache.should_advance_prefix(result.action, advance_on_redact=False):
+        if cache.should_advance_prefix(result.action):
             cache.set_safe_prefix(
                 parts,
                 SafePrefixState.from_text(request.text, len(request.text)),

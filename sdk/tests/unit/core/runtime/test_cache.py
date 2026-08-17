@@ -207,28 +207,21 @@ class TestShouldAdvancePrefix:
     """Unit invariant: only ALLOW may advance the safe-prefix cache."""
 
     def test_allow_advances(self) -> None:
-        assert ScanCache.should_advance_prefix(Action.ALLOW, advance_on_redact=False) is True
-        assert ScanCache.should_advance_prefix(Action.ALLOW, advance_on_redact=True) is True
+        assert ScanCache.should_advance_prefix(Action.ALLOW) is True
 
     def test_block_does_not_advance(self) -> None:
-        assert ScanCache.should_advance_prefix(Action.BLOCK, advance_on_redact=False) is False
-        assert ScanCache.should_advance_prefix(Action.BLOCK, advance_on_redact=True) is False
+        assert ScanCache.should_advance_prefix(Action.BLOCK) is False
 
     def test_redact_does_not_advance(self) -> None:
         """REDACT is a non-ALLOW finding; it must never create a safe prefix."""
-        assert ScanCache.should_advance_prefix(Action.REDACT, advance_on_redact=False) is False
-        # The default config sets advance_prefix_on_redact=True; this must still
-        # return False after the fix to prevent losing a REDACT finding on rescan.
-        assert ScanCache.should_advance_prefix(Action.REDACT, advance_on_redact=True) is False
+        assert ScanCache.should_advance_prefix(Action.REDACT) is False
 
     def test_review_does_not_advance(self) -> None:
         """REVIEW is a non-ALLOW finding; it must never create a safe prefix."""
-        assert ScanCache.should_advance_prefix(Action.REVIEW, advance_on_redact=False) is False
-        assert ScanCache.should_advance_prefix(Action.REVIEW, advance_on_redact=True) is False
+        assert ScanCache.should_advance_prefix(Action.REVIEW) is False
 
     def test_abstain_does_not_advance(self) -> None:
-        assert ScanCache.should_advance_prefix(Action.ABSTAIN, advance_on_redact=False) is False
-        assert ScanCache.should_advance_prefix(Action.ABSTAIN, advance_on_redact=True) is False
+        assert ScanCache.should_advance_prefix(Action.ABSTAIN) is False
 
 
 class _FakeRedactPipeline:
