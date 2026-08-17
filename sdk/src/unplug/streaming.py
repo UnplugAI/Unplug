@@ -35,9 +35,7 @@ class StreamScanner:
         self._guard = guard
         self._source = Source(source) if isinstance(source, str) else source
         self._scan_every = max(64, scan_every_chars)
-        # Never below the safe-prefix floor: overlap=0 skips the boundary and can miss
-        # injections completed across chunk boundaries after a prior ALLOW.
-        self._overlap = max(_DEFAULT_OVERLAP, overlap_chars)
+        self._overlap = overlap_chars
         self._document_id = document_id
         self._buffer: list[str] = []
         self._buffer_len = 0
