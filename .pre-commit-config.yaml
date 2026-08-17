@@ -20,7 +20,9 @@ repos:
       - id: detect-private-key
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.2
+    # Keep in step with the ruff pinned in sdk/pyproject.toml. If these drift, the
+    # hook passes locally and CI fails, which is worse than having no hook.
+    rev: v0.15.13
     hooks:
       # Ruff resolves sdk/pyproject.toml by walking up from each file.
       - id: ruff-check

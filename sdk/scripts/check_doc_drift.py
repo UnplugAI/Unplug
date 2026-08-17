@@ -75,7 +75,8 @@ def main() -> int:
                         continue
                     broken.append(f"{rel}: cannot import {module} ({exc})")
                     continue
-                except Exception as exc:  # noqa: BLE001 - report, do not crash the check
+                except Exception as exc:
+                    # Report and keep going; one bad module should not hide the rest.
                     broken.append(f"{rel}: importing {module} raised {type(exc).__name__}: {exc}")
                     continue
 
@@ -84,7 +85,8 @@ def main() -> int:
                 try:
                     if not hasattr(mod, symbol):
                         broken.append(f"{rel}: {module} has no '{symbol}'")
-                except Exception:  # noqa: BLE001 - lazy attr needing an absent extra
+                except Exception:
+                    # Lazy attribute that needs an extra we do not have installed.
                     skipped += 1
 
     print(f"checked {checked} doc imports across {len(paths)} files ({skipped} skipped: extras)")
