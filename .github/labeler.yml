@@ -1,0 +1,24 @@
+# Auto-labels PRs by what they touch. Reuses the existing issue labels rather than
+# inventing PR-only ones, so filtering by `documentation` finds both.
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*.md"
+          - "sdk/docs/**"
+          - "mkdocs.yml"
+          - "docs-requirements.txt"
+
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "sdk/pyproject.toml"
+          - "sdk/uv.lock"
+          - ".pre-commit-config.yaml"
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/workflows/**"
+          - ".github/actions/**"
+          - "Makefile"
+          - "sdk/Makefile"
