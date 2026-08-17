@@ -2,6 +2,9 @@ name: Triage
 
 # Issue forms apply needs-triage themselves. Blank issues do not, and those are the
 # ones most likely to get lost. Anything a maintainer opens is triaged by definition.
+#
+# COLLABORATOR is deliberately not exempt. Contributors get write access here so they
+# can push branches, which is not the same as their issues arriving pre-triaged.
 
 on:
   issues:
@@ -13,7 +16,7 @@ permissions:
 jobs:
   label:
     if: >
-      !contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'),
+      !contains(fromJSON('["OWNER","MEMBER"]'),
       github.event.issue.author_association)
     runs-on: ubuntu-latest
     steps:
