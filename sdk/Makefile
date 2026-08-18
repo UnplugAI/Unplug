@@ -1,5 +1,5 @@
 .PHONY: install lint typecheck format fix check check-ci check-docs test test-cov test-security \
-	test-ml test-ml-harness test-frameworks test-frameworks-live test-all-local \
+	test-slow test-ml test-ml-harness test-frameworks test-frameworks-live test-all-local \
 	smoke-ml smoke-ml-hooks docker-e2e audit audit-ml scenarios attack-gate examples
 
 install:
@@ -91,9 +91,14 @@ test-cov:
 test-security:
 	uv run pytest tests/security tests/unit/core/agent/test_agent_hardening.py -v
 
+# Wall-clock scan-latency stress tests. Excluded from the default/PR gate
+# (pyproject.toml addopts); run here and nightly via the slow-stress workflow.
+test-slow:
+	uv run pytest -q -m slow -v
+
 # Local pre-release composition: CI parity + frameworks + ML harness + examples.
 # Does not run docker-e2e or live framework installs (see docs/TESTING_HARNESS.md).
-test-all-local: check-ci test-cov test-frameworks test-ml-harness examples
+test-all-local: check-ci test-cov test-frameworks test-ml-harness examples test-slow
 
 audit:
 	uv run unplug-audit

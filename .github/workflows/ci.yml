@@ -52,7 +52,7 @@ jobs:
           if [ "${{ matrix.python-version }}" = "3.13" ]; then
             make lint
             uv run ruff format --check .
-            uv run pytest -q -m "not requires_docker and not requires_ml and not requires_ml_weights"
+            uv run pytest -q -m "not requires_docker and not requires_ml and not requires_ml_weights and not slow"
           else
             make check-ci
           fi
