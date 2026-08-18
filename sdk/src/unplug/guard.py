@@ -441,6 +441,7 @@ class Guard:
             scan_every_chars=scan_every_chars,
             overlap_chars=self._config.cache.prefix_overlap_chars,
             document_id=document_id,
+            allow_unsafe_overlap=self._config.cache.allow_unsafe_overlap,
         )
 
     def _build_scan_request(

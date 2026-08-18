@@ -31,7 +31,16 @@ class StreamScanner:
         scan_every_chars: int = _DEFAULT_SCAN_EVERY,
         overlap_chars: int = _DEFAULT_OVERLAP,
         document_id: str | None = None,
+        allow_unsafe_overlap: bool = False,
     ) -> None:
+        if overlap_chars < 0:
+            raise ValueError(f"overlap_chars must be non-negative, got {overlap_chars}")
+        if overlap_chars < _DEFAULT_OVERLAP and not allow_unsafe_overlap:
+            raise ValueError(
+                f"overlap_chars={overlap_chars} is below the required minimum of "
+                f"{_DEFAULT_OVERLAP}. Set allow_unsafe_overlap=True if you "
+                f"intentionally accept reduced boundary coverage."
+            )
         self._guard = guard
         self._source = Source(source) if isinstance(source, str) else source
         self._scan_every = max(64, scan_every_chars)
