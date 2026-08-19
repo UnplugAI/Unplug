@@ -32,6 +32,14 @@ _ZERO_WIDTH_RE = re.compile("[" + re.escape(_ZERO_WIDTH_CHARS) + "]+")
 # ASCII substitutes. Ordinary CJK punctuation (，。) and ideographs must not
 # be flagged.
 _CONFUSABLE_RE = re.compile(r"[\uff10-\uff19\uff21-\uff3a\uff41-\uff5a\u24b6-\u24cf\u24d0-\u24e9]+")
+# Mathematical alphanumeric symbols (U+1D400-U+1D7FF: bold, italic, script,
+# fraktur, double-struck, sans-serif, monospace letters/digits) normalize
+# straight to ASCII under NFKC, same as the confusables above. Unlike those,
+# a single styled symbol shows up in ordinary prose ("the field \U0001d53d"),
+# so this block can't be treated as unconditionally suspicious. A whole word
+# rendered in these characters is evasion; one isolated symbol is not, so
+# only runs of two or more count as a span.
+_MATH_ALPHANUMERIC_RE = re.compile(r"[\U0001d400-\U0001d7ff]+")
 _WORD_RE = re.compile(r"\w+")
 
 # Only collapse evasion spans that sit close together (e.g. zero-width chars
@@ -56,6 +64,10 @@ def _evasion_spans(original: str) -> list[tuple[int, int]]:
 
     for match in _CONFUSABLE_RE.finditer(original):
         spans.append((match.start(), match.end()))
+
+    for match in _MATH_ALPHANUMERIC_RE.finditer(original):
+        if match.end() - match.start() >= 2:
+            spans.append((match.start(), match.end()))
 
     # A homoglyph is only suspicious when a non-Latin character sits inside a
     # token that is otherwise Latin: that is mixed-script smuggling ("ignоre").
