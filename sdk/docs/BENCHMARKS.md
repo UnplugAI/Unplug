@@ -27,11 +27,11 @@ the regex layer alone misses (especially **indirect** injection).
 
 ## False-positive rate on clean traffic
 
-A committed corpus of 95 obviously-benign prompts (`benchmarks/data/benign_ci.jsonl`):
+A committed corpus of 135 prompts (`benchmarks/data/benign_ci.jsonl`):
 
 | Mode | False positives | FPR |
 | --- | ---: | ---: |
-| regex-only | 0 / 95 | 0.000 |
+| regex-only | 39 / 135 | 0.289 |
 | regex + ML | 2 / 95 | 0.021 |
 
 The two ML false positives are one soft `abstain → review` ("explain how photosynthesis
