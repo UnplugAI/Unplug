@@ -27,7 +27,7 @@ the regex layer alone misses (especially **indirect** injection).
 
 ## False-positive rate on clean traffic
 
-A committed corpus of 135 prompts (`benchmarks/data/benign_ci.jsonl`):
+A committed corpus of 135 prompts (`benchmarks/data/benign_ci.jsonl`): the original 95 plus 40 new hard negatives. The regex-only row is measured on the full 135; the regex+ML row below was measured on the original 95.
 
 | Mode | False positives | FPR |
 | --- | ---: | ---: |
