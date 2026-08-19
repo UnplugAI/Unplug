@@ -105,7 +105,7 @@ atomic-agents = [
     "atomic-agents>=2.0; python_version >= '3.12'",
 ]
 mcp = [
-    "mcp>=1.0,<2",
+    "mcp>=1.0,<3",
 ]
 integrations = [
     "unplug-ai[langgraph,agno,crewai,autogen,llama-index,pydantic-ai,semantic-kernel,openai-agents,langchain,google-adk,smolagents,dspy,strands,letta,griptape,ag2,atomic-agents,haystack,mcp]",
@@ -235,7 +235,14 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
-addopts = ["-m", "not requires_docker"]
+# Wall-clock scan-latency assertions in tests/security/test_security_stress.py
+# are deselected from the default gate: shared CI runners (and loaded dev
+# machines) vary too much for absolute time budgets, and a flake here looks
+# like a real regression on an unrelated PR (#144). They run on a schedule /
+# manual dispatch via .github/workflows/slow-stress.yml and locally via
+# `make test-slow`. The policy lives in the test file so the budgets are not
+# "fixed" by nudging the numbers.
+addopts = ["-m", "not requires_docker and not slow"]
 markers = [
     "requires_ml_weights: tests needing checkpoint weight files on disk",
     "requires_docker: tests needing docker daemon (sidecar E2E)",
@@ -243,7 +250,7 @@ markers = [
     "requires_yara: tests needing yara-python extra",
     "requires_ml: tests needing ML stack extra",
     "requires_integrations: tests needing agent framework extras",
-    "slow: timing-sensitive stress tests (skipped in coverage CI rerun)",
+    "slow: wall-clock stress tests; excluded from the default/PR gate, run via the nightly slow-stress workflow or `make test-slow`",
 ]
 filterwarnings = [
     "ignore:clean_up_tokenization_spaces:FutureWarning:transformers.tokenization_utils_base",

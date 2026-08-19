@@ -15,9 +15,10 @@ permissions:
 
 jobs:
   label:
-    if: >
-      !contains(fromJSON('["OWNER","MEMBER"]'),
-      github.event.issue.author_association)
+    # Must be wrapped in ${{ }} and kept on one line. An `if` expression starting
+    # with `!` does not evaluate correctly in the bare or folded form; it silently
+    # comes out truthy, so every maintainer-filed issue got labelled anyway.
+    if: ${{ !contains(fromJSON('["OWNER","MEMBER"]'), github.event.issue.author_association) }}
     runs-on: ubuntu-latest
     steps:
       - name: Add needs-triage

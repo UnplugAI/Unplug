@@ -1,0 +1,42 @@
+name: Slow stress tests
+
+# Wall-clock scan-latency assertions (tests/security/test_security_stress.py) are
+# intentionally excluded from the default/PR gate: shared runners vary too much
+# for absolute time budgets, and a flake there looks like a real regression on
+# an unrelated PR (#144). They run here — nightly on dev and on manual dispatch —
+# where a failure gets investigated instead of blocking a PR.
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  slow-stress:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sdk
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          enable-cache: true
+          version: "0.6.14"
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        # Slow stress tests only need the core package + pytest.
+        run: uv sync --dev
+
+      - name: Run slow stress tests
+        # The explicit `-m slow` overrides the default addopts deselect
+        # (`not ... and not slow`), so only the wall-clock tests run here.
+        run: uv run pytest -q -m slow -v

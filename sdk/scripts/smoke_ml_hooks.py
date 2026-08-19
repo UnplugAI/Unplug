@@ -2,7 +2,7 @@
 """Offline smoke: synthetic ML checkpoint + Guard + one hooks adapter.
 
 No Hugging Face download and no agent-framework install required. Builds a tiny
-random BIOES checkpoint, wires Guard.with_tiny against it, then exercises the
+random BIOES checkpoint, wires Guard(model="tiny") against it, then exercises the
 LangGraph-style AgentHooks adapters (same surface as examples/langgraph_hooks_demo.py).
 """
 

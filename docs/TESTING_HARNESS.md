@@ -16,7 +16,8 @@ Commands for validating the SDK before a release cut. Run from `sdk/` after
 | `make smoke-ml` | `scripts/smoke_local_ml.py` + `unplug-audit --require-ml` |
 | `make smoke-ml-hooks` | Offline synthetic checkpoint + Guard + LangGraph-style hooks |
 | `make examples` | Demo scripts + `tests/integration/test_examples.py` |
-| `make test-all-local` | `check-ci` + `test-cov` + `test-frameworks` + `test-ml-harness` + `examples` |
+| `make test-slow` | Wall-clock scan-latency stress tests (excluded from `check-ci`; see below) |
+| `make test-all-local` | `check-ci` + `test-cov` + `test-frameworks` + `test-ml-harness` + `examples` + `test-slow` |
 
 One-liner for a thorough local pass:
 
@@ -55,7 +56,14 @@ Notes:
 | Offline ML+hooks smoke | Not in CI gate | `make smoke-ml-hooks` |
 | Examples demos | Partial (exfil in `check-ci`) | `make examples` |
 | Live framework imports | `integrations-live` workflow (path/nightly) | `make test-frameworks-live` |
+| Slow stress (wall-clock latency) | `slow-stress` workflow (nightly + manual dispatch); excluded from the PR gate | `make test-slow` |
 | Docker E2E | No | `make docker-e2e` (`RUN_DOCKER_E2E=1`) |
+
+Slow stress tests are off the PR gate on purpose: they assert wall-clock scan
+latency, and shared CI runners (or loaded dev machines) vary enough to flake
+an absolute time budget (issue #144). A failure in the nightly
+`slow-stress` workflow is a real regression signal — or a hint that the
+`not slow` deselect fell off the gate — not PR noise.
 
 ## ML checkpoint
 

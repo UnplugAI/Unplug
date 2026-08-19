@@ -31,7 +31,7 @@ def main() -> None:
     parser.add_argument(
         "--ml",
         action="store_true",
-        help="Use Guard.with_tiny() (ML second-pass) instead of regex-only",
+        help="Use Guard(model='tiny') (ML second-pass) instead of regex-only",
     )
     parser.add_argument(
         "--isolated",
