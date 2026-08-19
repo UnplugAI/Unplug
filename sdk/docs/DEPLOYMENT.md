@@ -42,6 +42,8 @@ flowchart TB
 Customers integrate with:
 
 ```python
+from unplug import Guard
+
 guard = Guard(mode="server")  # UNPLUG_SERVER_URL + UNPLUG_API_KEY
 ```
 
@@ -59,6 +61,8 @@ unplug-models download tiny
 ```
 
 ```python
+from unplug import Guard
+
 guard = Guard()  # active_model=tiny in unplug.toml
 ```
 
@@ -85,6 +89,7 @@ make run
 
 SDK points at localhost:
 
+<!-- doc-drift: skip-exec: needs a live unplug-server sidecar on localhost:8000 -->
 ```python
 guard = Guard(mode="server", server_url="http://127.0.0.1:8000")
 # no UNPLUG_API_KEY when UNPLUG_REQUIRE_API_KEYS=false

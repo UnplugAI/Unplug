@@ -21,10 +21,16 @@ from unplug.integrations.hooks import AgentHooks
 
 hooks = AgentHooks(Guard())  # or Guard(mode="server") for hosted API
 
+
+def pause_for_operator(decision) -> None:
+    ...  # wire this to your own approval queue
+
+
 decision = hooks.scan_user_input("user message")
 if not decision.allowed:
     raise RuntimeError(decision.message)
 
+webpage_html = "<html><body>Some fetched page content.</body></html>"
 wrapped, rag_decision = hooks.wrap_retrieved_content(webpage_html)
 tool_decision = hooks.before_tool_call("send_email", {"to": "...", "body": "..."})
 if tool_decision.needs_review:
@@ -67,6 +73,7 @@ elif not tool_decision.allowed:
 
 ## LangGraph
 
+<!-- doc-drift: skip-exec: graph is the reader's own StateGraph instance -->
 ```python
 from unplug.integrations.langgraph import langgraph_input_node, langgraph_tool_guard
 

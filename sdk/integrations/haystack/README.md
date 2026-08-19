@@ -25,10 +25,15 @@ pipe.connect("guard.documents", "prompt.documents")
 from unplug import Guard
 from unplug.integrations.haystack import scan_for_ingestion
 
+
+def index_document(text: str, meta_update: dict) -> None:
+    ...  # wire this to your own doc.meta.update(...) + document_store.write_documents([doc])
+
+
+document_text = "The quarterly report shows steady growth."
 decision = scan_for_ingestion(Guard(), document_text)
 if decision.index_ok:
-    doc.meta.update(decision.meta_update)
-    document_store.write_documents([doc])
+    index_document(document_text, decision.meta_update)
 ```
 
 See [`docs/RAG_DEFENSE.md`](../../docs/RAG_DEFENSE.md) for the threat model.

@@ -11,12 +11,13 @@ documented way to gate tools. Input/output text guards cover the turn boundary.
 ## Wire the hook provider into an Agent
 
 ```python
-from strands import Agent
 from unplug import Guard
 from unplug.integrations.hooks import AgentHooks
 from unplug.integrations.strands import UnplugHookProvider
 
 hooks = AgentHooks(Guard())  # or Guard(mode="server")
+
+from strands import Agent
 
 agent = Agent(
     model=model,
@@ -35,8 +36,10 @@ across releases — the provider resolves whichever your version exposes.
 ```python
 from unplug.integrations.strands import strands_input_guard, strands_tool_guard
 
+user_prompt = "Summarize the latest sales report"
 safe_prompt = strands_input_guard(hooks)(user_prompt)   # redacts or raises
-decision = strands_tool_guard(hooks)("shell", {"command": cmd})
+cmd = "ls -la"
+decision = strands_tool_guard(hooks)("run_shell", {"command": cmd})
 if not decision.allowed:
     raise RuntimeError(decision.message)
 ```

@@ -186,6 +186,8 @@ ignore = [
 "src/unplug/core/agent/toolchain.py" = ["S105"]
 # Type-narrowing asserts after lazy model load; not runtime control flow.
 "src/unplug/ml/span_model.py" = ["S101"]
+# Execs doc code fences by design, to catch API drift a reader would hit pasting them.
+"scripts/check_doc_drift.py" = ["S102"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["unplug", "benchmarks"]

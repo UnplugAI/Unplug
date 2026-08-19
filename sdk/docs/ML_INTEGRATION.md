@@ -29,6 +29,7 @@ require_ml = false   # set true to fail-fast if weights missing
 
 Or in Python:
 
+<!-- doc-drift: skip-exec: needs the ml extra and a downloaded checkpoint -->
 ```python
 from unplug import Guard
 
@@ -80,6 +81,7 @@ Within each window, token stride inference uses `max_length=512` and `stride=64`
 
 Streaming helpers (`unplug.streaming`):
 
+<!-- doc-drift: skip-exec: continues the guard from the ml-enabled example above -->
 ```python
 scanner = guard.stream_scanner(scan_every_chars=1024)
 # push chunks as they arrive; flush() at end of stream

@@ -17,12 +17,14 @@ into three points:
 ## Wrap a module
 
 ```python
-import dspy
 from unplug import Guard
 from unplug.integrations.hooks import AgentHooks
 from unplug.integrations.dspy import unplug_guard_module
 
 hooks = AgentHooks(Guard())  # or Guard(mode="server")
+
+import dspy
+
 program = dspy.ChainOfThought("question -> answer")
 guarded = unplug_guard_module(program, hooks)
 
@@ -31,7 +33,9 @@ result = guarded(question="What is the capital of France?")  # scans input + ans
 
 ## Guard ReAct tools
 
+<!-- doc-drift: skip-exec: needs the dspy extra installed -->
 ```python
+import dspy
 from unplug.integrations.dspy import dspy_guard_tool
 
 def send_email(to: str, body: str) -> str:

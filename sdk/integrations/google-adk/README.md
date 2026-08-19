@@ -19,7 +19,6 @@ wires into two of them:
 ## Wire Unplug into an LlmAgent
 
 ```python
-from google.adk.agents import LlmAgent
 from unplug import Guard
 from unplug.integrations.hooks import AgentHooks
 from unplug.integrations.google_adk import (
@@ -28,6 +27,8 @@ from unplug.integrations.google_adk import (
 )
 
 hooks = AgentHooks(Guard())  # or Guard(mode="server")
+
+from google.adk.agents import LlmAgent
 
 agent = LlmAgent(
     name="assistant",

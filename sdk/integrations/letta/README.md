@@ -15,14 +15,16 @@ agent runs server-side, Unplug guards the **client boundary**:
 ## Guard the client boundary
 
 ```python
-from letta_client import Letta
 from unplug import Guard
 from unplug.integrations.hooks import AgentHooks
 from unplug.integrations.letta import letta_input_guard, scan_letta_response
 
-client = Letta(environment="local")
 hooks = AgentHooks(Guard())  # or Guard(mode="server")
 guard_in = letta_input_guard(hooks)
+
+from letta_client import Letta
+
+client = Letta(environment="local")
 
 response = client.agents.messages.create(
     agent_id=agent.id,
@@ -39,6 +41,7 @@ if not decision.allowed:
 ```python
 from unplug.integrations.letta import letta_tool_guard
 
+cmd = "ls -la"
 decision = letta_tool_guard(hooks)("shell", {"command": cmd})
 if not decision.allowed:
     raise RuntimeError(decision.message)

@@ -44,6 +44,7 @@ allowed_tools = ["read_file", "search"]
 blocked_tools = ["run_shell"]
 ```
 
+<!-- doc-drift: skip-exec: loads unplug.toml from the reader's own project directory -->
 ```python
 from unplug import Guard, load_config
 
@@ -96,6 +97,7 @@ guard = Guard(
 
 LiteLLM helper (optional extra):
 
+<!-- doc-drift: skip-exec: needs the litellm extra and a real model/API key -->
 ```python
 from unplug.judge.litellm_judge import create_litellm_judge
 

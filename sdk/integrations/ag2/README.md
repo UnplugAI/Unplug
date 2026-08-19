@@ -20,10 +20,10 @@ attaches hooks to a `ConversableAgent` via `register_hook`. Unplug wires into:
 ## Register the hooks
 
 ```python
-from autogen import ConversableAgent
 from unplug import Guard
 from unplug.integrations.hooks import AgentHooks
 from unplug.integrations.ag2 import register_unplug_hooks
+from autogen import ConversableAgent
 
 hooks = AgentHooks(Guard())  # or Guard(mode="server")
 

@@ -15,13 +15,14 @@ Every Task exposes `on_before_run` / `on_after_run` lifecycle hooks, and Tools a
 ## Wire Unplug into a task
 
 ```python
-from griptape.structures import Agent
-from griptape.tasks import PromptTask
 from unplug import Guard
 from unplug.integrations.hooks import AgentHooks
 from unplug.integrations.griptape import unplug_before_run, unplug_after_run
 
 hooks = AgentHooks(Guard())  # or Guard(mode="server")
+
+from griptape.structures import Agent
+from griptape.tasks import PromptTask
 
 agent = Agent(
     tasks=[
@@ -44,6 +45,7 @@ agent.run("Summarize the latest sales report")
 ```python
 from unplug.integrations.griptape import griptape_tool_guard
 
+path = "/tmp/report.csv"
 decision = griptape_tool_guard(hooks)("FileManager", {"path": path})
 if not decision.allowed:
     raise RuntimeError(decision.message)

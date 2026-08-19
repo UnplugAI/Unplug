@@ -11,6 +11,7 @@ halting the run before the model (or the user) ever sees the unsafe content.
 
 ## Wire Unplug into an Agent
 
+<!-- doc-drift: skip-exec: needs a live openai-agents Runner call -->
 ```python
 from agents import Agent, Runner
 from unplug import Guard
@@ -38,6 +39,7 @@ result = await Runner.run(agent, "Summarize the quarterly report.")
 Guardrails cover the input/output turns; tool authorization is enforced locally
 and never delegated to the model. Gate the body of any function tool:
 
+<!-- doc-drift: skip-exec: @function_tool and _execute come from your own openai-agents setup -->
 ```python
 guard = openai_agents_tool_guard(hooks)
 
@@ -60,6 +62,9 @@ def run_shell(command: str) -> str:
 ## Hosted API
 
 ```python
+from unplug import Guard
+from unplug.integrations.hooks import AgentHooks
+
 hooks = AgentHooks(Guard(mode="server", server_api_key="sk-..."))
 ```
 

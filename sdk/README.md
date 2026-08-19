@@ -57,6 +57,7 @@ if not result.safe:
 
 Upgrade to the ML span model. Weights download once from [Unplug-AI/unplug-tiny-v1](https://huggingface.co/Unplug-AI/unplug-tiny-v1) and cache locally:
 
+<!-- doc-drift: skip-exec: needs the ml extra and a downloaded checkpoint -->
 ```python
 guard = Guard(model="tiny")
 result = guard.scan(rag_chunk, source="retrieved")
@@ -122,6 +123,7 @@ Context files (AGENTS.md and similar) — returns ``(text_for_prompt, scan_resul
 placeholder text when blocked, never the raw file:
 
 ```python
+raw = "You are a helpful coding assistant. Follow the user's instructions."
 text_for_prompt, result = guard.scan_context_file(raw, filename="AGENTS.md")
 if not result.safe:
     system_prompt = text_for_prompt  # blocked placeholder, not raw content
@@ -142,8 +144,12 @@ Documents past 8K chars are scanned with sliding windows (2048 chars, 256 overla
 
 ```python
 # Streamed LLM output: scan incrementally, full coverage on flush
+def handle(hit):
+    ...  # wire this to your own hold/redact path
+
+
 scanner = guard.stream_scanner(scan_every_chars=1024)
-for chunk in token_stream:
+for chunk in ["part1", "part2", "part3"]:  # token_stream: chunks as they arrive
     if hit := scanner.push(chunk):
         handle(hit)
 result = scanner.flush()

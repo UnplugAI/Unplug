@@ -15,7 +15,6 @@ tool-calling agents. Unplug wires into three points:
 ## Wire Unplug into a CodeAgent
 
 ```python
-from smolagents import CodeAgent, InferenceClientModel
 from unplug import Guard
 from unplug.integrations.hooks import AgentHooks
 from unplug.integrations.smolagents import (
@@ -26,6 +25,8 @@ from unplug.integrations.smolagents import (
 
 hooks = AgentHooks(Guard())  # or Guard(mode="server")
 guard_task = smolagents_task_guard(hooks)
+
+from smolagents import CodeAgent, InferenceClientModel
 
 agent = CodeAgent(
     tools=[],
@@ -40,6 +41,7 @@ agent.run(guard_task("Summarize the latest sales report"))
 
 ```python
 guard = smolagents_tool_guard(hooks)
+code = "print('hello world')"
 decision = guard("python_interpreter", {"code": code})
 if not decision.allowed:
     raise RuntimeError(decision.message)

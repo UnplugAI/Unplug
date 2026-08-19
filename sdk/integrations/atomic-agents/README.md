@@ -19,7 +19,6 @@ Pydantic-schema-driven framework: `AtomicAgent[InputSchema, OutputSchema]` with
 ## Guard agent I/O
 
 ```python
-from atomic_agents import AtomicAgent, BasicChatInputSchema, BasicChatOutputSchema
 from unplug import Guard
 from unplug.integrations.hooks import AgentHooks
 from unplug.integrations.atomic_agents import atomic_input_guard, atomic_scan_output
@@ -27,6 +26,9 @@ from unplug.integrations.atomic_agents import atomic_input_guard, atomic_scan_ou
 hooks = AgentHooks(Guard())  # or Guard(mode="server")
 guard_in = atomic_input_guard(hooks)
 
+from atomic_agents import AtomicAgent, BasicChatInputSchema, BasicChatOutputSchema
+
+user_text = "Summarize this document."
 safe_input = guard_in(BasicChatInputSchema(chat_message=user_text))  # redacts or raises
 response = agent.run(safe_input)
 atomic_scan_output(hooks, response)  # raises on leak / unsafe output
@@ -40,6 +42,7 @@ Use a custom field name when your schema's text lives elsewhere:
 ```python
 from unplug.integrations.atomic_agents import atomic_tool_guard
 
+query = "latest quarterly sales figures"
 decision = atomic_tool_guard(hooks)("SearchTool", {"query": query})
 if not decision.allowed:
     raise RuntimeError(decision.message)

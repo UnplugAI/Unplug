@@ -72,6 +72,7 @@ For batch/cron agents, **never** auto-approve: use a provider that returns `Fals
 
 Replace bare `raise RuntimeError` on every `not decision.allowed` with action-aware handling:
 
+<!-- doc-drift: skip-exec: fragment meant to live inside your own handler function, not standalone -->
 ```python
 from unplug.api.enums import Action
 
@@ -90,6 +91,13 @@ LangChain note: **`on_tool_start` callbacks are observer-only** for input/output
 `scan_context_file` returns **`(text_for_prompt, scan_result)`** — not a single result:
 
 ```python
+raw_agents_md = "You are a helpful coding assistant. Follow the user's instructions."
+
+
+def load_system_prompt(text: str) -> None:
+    ...  # wire this to your own prompt-loading path
+
+
 text_for_prompt, result = guard.scan_context_file(raw_agents_md, filename="AGENTS.md")
 if not result.safe:
     # text_for_prompt is already a blocked placeholder — do not load raw content

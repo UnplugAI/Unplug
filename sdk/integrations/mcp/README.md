@@ -35,7 +35,9 @@ For hosted scans:
 
 If you build your own MCP host, treat **tool results as untrusted**:
 
+<!-- doc-drift: skip-exec: fragment meant to live inside your own tool-result handler -->
 ```python
+from unplug import Guard
 from unplug.integrations.hooks import AgentHooks
 
 hooks = AgentHooks(Guard())

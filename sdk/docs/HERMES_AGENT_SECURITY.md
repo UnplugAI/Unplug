@@ -51,6 +51,7 @@ flowchart TD
 
 ## Host integration checklist
 
+<!-- doc-drift: skip-exec: pseudocode over host-supplied objects (context_paths, log, description_md, ...) -->
 ```python
 from unplug import Guard
 

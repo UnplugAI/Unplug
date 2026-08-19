@@ -11,6 +11,7 @@ Uses the same scanning core as Haystack (`scan_document`) — no LlamaIndex impo
 from unplug.integrations.llama_index import UnplugNodePostprocessor
 
 post = UnplugNodePostprocessor(drop_on_block=True, wrap_safe=True)
+retrieved_nodes = [{"text": "Some retrieved passage.", "metadata": {}}]
 safe_nodes, report = post.postprocess_nodes_with_report(retrieved_nodes)
 print(report.dropped, report.max_risk)
 ```
