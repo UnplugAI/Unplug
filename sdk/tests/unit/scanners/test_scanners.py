@@ -99,6 +99,17 @@ class TestInjectionScanner:
         findings = self.scanner.scan(text, self.ctx)
         assert not any(f.subcategory == "invisible_text" for f in findings)
 
+    def test_adjacent_math_variables_not_invisible_text(self):
+        # Ordinary notation strings several styled variables together
+        # ("ax", "f(x)") — short runs of 2-3, well under the styled-word
+        # threshold. Flagging these blocks benign math prose. See PR #151
+        # review.
+        text = _make_text(
+            "let \U0001d453(\U0001d465) = \U0001d44e\U0001d465 + \U0001d44f for all \U0001d465."
+        )
+        findings = self.scanner.scan(text, self.ctx)
+        assert not any(f.subcategory == "invisible_text" for f in findings)
+
     def test_interleaved_zero_width_emits_single_outer_span(self):
         raw = "h\u200be\u200bl\u200bl\u200bo w\u200bo\u200br\u200bl\u200bd"
         findings = self.scanner.scan(_make_text(raw), self.ctx)

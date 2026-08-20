@@ -35,10 +35,13 @@ _CONFUSABLE_RE = re.compile(r"[\uff10-\uff19\uff21-\uff3a\uff41-\uff5a\u24b6-\u2
 # Mathematical alphanumeric symbols (U+1D400-U+1D7FF: bold, italic, script,
 # fraktur, double-struck, sans-serif, monospace letters/digits) normalize
 # straight to ASCII under NFKC, same as the confusables above. Unlike those,
-# a single styled symbol shows up in ordinary prose ("the field \U0001d53d"),
-# so this block can't be treated as unconditionally suspicious. A whole word
-# rendered in these characters is evasion; one isolated symbol is not, so
-# only runs of two or more count as a span.
+# ordinary math notation strings several styled variables together ("let
+# f(x) = ax + b", "define xy as the product"), so this block can't be
+# unconditionally suspicious at any short run length. Benign notation tops
+# out at 2 adjacent styled characters; a payload rendered in math-bold runs
+# 9-12. The threshold sits between the two: below it is notation, at or
+# above it is a styled word.
+_MATH_ALPHANUMERIC_MIN_RUN = 4
 _MATH_ALPHANUMERIC_RE = re.compile(r"[\U0001d400-\U0001d7ff]+")
 _WORD_RE = re.compile(r"\w+")
 
@@ -66,7 +69,7 @@ def _evasion_spans(original: str) -> list[tuple[int, int]]:
         spans.append((match.start(), match.end()))
 
     for match in _MATH_ALPHANUMERIC_RE.finditer(original):
-        if match.end() - match.start() >= 2:
+        if match.end() - match.start() >= _MATH_ALPHANUMERIC_MIN_RUN:
             spans.append((match.start(), match.end()))
 
     # A homoglyph is only suspicious when a non-Latin character sits inside a
