@@ -58,7 +58,9 @@ def _evasion_spans(original: str) -> list[tuple[int, int]]:
     Scoped to the offending characters rather than the whole input so redaction
     keeps the rest of the message. Plain non-English text that merely trips a
     normalization stage (whole words in Cyrillic, CJK punctuation) is not
-    counted as evasion.
+    counted as evasion, and neither is an isolated styled math symbol or a
+    short run of them (ordinary notation, not a payload in disguise) — see
+    `_MATH_ALPHANUMERIC_MIN_RUN` below.
     """
     spans: list[tuple[int, int]] = []
 
@@ -68,6 +70,8 @@ def _evasion_spans(original: str) -> list[tuple[int, int]]:
     for match in _CONFUSABLE_RE.finditer(original):
         spans.append((match.start(), match.end()))
 
+    # Below the threshold: notation like "ax" or "f(x)". At or above it: a
+    # whole word rendered in styled Unicode instead of ASCII.
     for match in _MATH_ALPHANUMERIC_RE.finditer(original):
         if match.end() - match.start() >= _MATH_ALPHANUMERIC_MIN_RUN:
             spans.append((match.start(), match.end()))
