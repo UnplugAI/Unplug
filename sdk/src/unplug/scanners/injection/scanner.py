@@ -67,30 +67,38 @@ def _merge_close(spans: list[tuple[int, int]], max_gap: int) -> list[tuple[int, 
     return merged
 
 
-def _merge_whitespace_gaps(
-    original: str, spans: list[tuple[int, int]], max_gap: int
-) -> list[tuple[int, int]]:
-    """Like _merge_close, but only across a gap that is pure whitespace.
+def _group_whitespace_runs(
+    original: str, runs: list[tuple[int, int]]
+) -> list[tuple[int, int, int]]:
+    """Group runs chained by pure-whitespace gaps, of any length.
 
     Real math notation packs several short styled runs against punctuation
     ("f(x)", "a+b") without a threat actor's intent; a payload chunked into
     short styled words to duck a per-run length threshold has nothing *but*
     word-boundary spaces between the chunks (a styled "the user has ..."
     split into "the", "user", "has", ...). Requiring the gap to be
-    whitespace-only re-joins the latter without flattening the former.
+    whitespace-only groups the latter without flattening the former. The gap
+    is not length-capped: an attacker can always add more spaces, but never
+    turn them into anything but whitespace.
+
+    Returns (start, end, styled_chars) triples. styled_chars is the sum of
+    the grouped runs' own lengths, not end - start: measuring span width
+    would let a wide whitespace gap between two short runs *dilute* the
+    count exactly the way this exists to prevent, in the other direction.
     """
-    if not spans:
-        return spans
-    spans = sorted(spans)
-    merged: list[tuple[int, int]] = [spans[0]]
-    for span_start, span_end in spans[1:]:
-        last_start, last_end = merged[-1]
-        gap = original[last_end:span_start]
-        if span_start - last_end <= max_gap and gap.isspace():
-            merged[-1] = (last_start, max(last_end, span_end))
+    if not runs:
+        return []
+    runs = sorted(runs)
+    groups: list[list[tuple[int, int]]] = [[runs[0]]]
+    for span_start, span_end in runs[1:]:
+        _, last_end = groups[-1][-1]
+        if original[last_end:span_start].isspace():
+            groups[-1].append((span_start, span_end))
         else:
-            merged.append((span_start, span_end))
-    return merged
+            groups.append([(span_start, span_end)])
+    return [
+        (group[0][0], group[-1][1], sum(end - start for start, end in group)) for group in groups
+    ]
 
 
 def _evasion_spans(original: str) -> list[tuple[int, int]]:
@@ -113,14 +121,16 @@ def _evasion_spans(original: str) -> list[tuple[int, int]]:
 
     # Below the threshold: notation like "ax" or "f(x)". At or above it: a
     # whole word rendered in styled Unicode instead of ASCII. Runs separated
-    # only by whitespace are merged before the threshold is applied, not
-    # after: otherwise a payload chunked into short styled words ("𝗍𝗵𝗲 𝘂𝘀𝗲𝗿
-    # 𝗵𝗮𝘀 ...") stays under the per-run threshold forever, no matter how
-    # long the message is. Real notation packs runs against punctuation
-    # ("f(x)"), not just spaces, so it does not re-merge here.
+    # only by whitespace are grouped before the threshold is applied, by
+    # total styled-character count rather than span width: otherwise a
+    # payload chunked into short styled words ("the user has ..." split into
+    # "the", "user", "has", ...) stays under the per-run threshold forever,
+    # no matter how long the message or how wide the spaces between chunks.
+    # Real notation packs runs against punctuation ("f(x)"), not just
+    # spaces, so it does not group here.
     math_runs = [(m.start(), m.end()) for m in _MATH_ALPHANUMERIC_RE.finditer(original)]
-    for span_start, span_end in _merge_whitespace_gaps(original, math_runs, _MAX_MERGE_GAP):
-        if span_end - span_start >= _MATH_ALPHANUMERIC_MIN_RUN:
+    for span_start, span_end, styled_chars in _group_whitespace_runs(original, math_runs):
+        if styled_chars >= _MATH_ALPHANUMERIC_MIN_RUN:
             spans.append((span_start, span_end))
 
     # A homoglyph is only suspicious when a non-Latin character sits inside a
