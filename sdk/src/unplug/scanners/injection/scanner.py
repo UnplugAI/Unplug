@@ -52,6 +52,47 @@ _WORD_RE = re.compile(r"\w+")
 _MAX_MERGE_GAP = 3
 
 
+def _merge_close(spans: list[tuple[int, int]], max_gap: int) -> list[tuple[int, int]]:
+    """Merge spans that sit within max_gap of each other, in original-text order."""
+    if not spans:
+        return spans
+    spans = sorted(spans)
+    merged: list[tuple[int, int]] = [spans[0]]
+    for span_start, span_end in spans[1:]:
+        last_start, last_end = merged[-1]
+        if span_start - last_end <= max_gap:
+            merged[-1] = (last_start, max(last_end, span_end))
+        else:
+            merged.append((span_start, span_end))
+    return merged
+
+
+def _merge_whitespace_gaps(
+    original: str, spans: list[tuple[int, int]], max_gap: int
+) -> list[tuple[int, int]]:
+    """Like _merge_close, but only across a gap that is pure whitespace.
+
+    Real math notation packs several short styled runs against punctuation
+    ("f(x)", "a+b") without a threat actor's intent; a payload chunked into
+    short styled words to duck a per-run length threshold has nothing *but*
+    word-boundary spaces between the chunks (a styled "the user has ..."
+    split into "the", "user", "has", ...). Requiring the gap to be
+    whitespace-only re-joins the latter without flattening the former.
+    """
+    if not spans:
+        return spans
+    spans = sorted(spans)
+    merged: list[tuple[int, int]] = [spans[0]]
+    for span_start, span_end in spans[1:]:
+        last_start, last_end = merged[-1]
+        gap = original[last_end:span_start]
+        if span_start - last_end <= max_gap and gap.isspace():
+            merged[-1] = (last_start, max(last_end, span_end))
+        else:
+            merged.append((span_start, span_end))
+    return merged
+
+
 def _evasion_spans(original: str) -> list[tuple[int, int]]:
     """Original-text spans of genuine invisible / mixed-script evasion.
 
@@ -71,10 +112,16 @@ def _evasion_spans(original: str) -> list[tuple[int, int]]:
         spans.append((match.start(), match.end()))
 
     # Below the threshold: notation like "ax" or "f(x)". At or above it: a
-    # whole word rendered in styled Unicode instead of ASCII.
-    for match in _MATH_ALPHANUMERIC_RE.finditer(original):
-        if match.end() - match.start() >= _MATH_ALPHANUMERIC_MIN_RUN:
-            spans.append((match.start(), match.end()))
+    # whole word rendered in styled Unicode instead of ASCII. Runs separated
+    # only by whitespace are merged before the threshold is applied, not
+    # after: otherwise a payload chunked into short styled words ("𝗍𝗵𝗲 𝘂𝘀𝗲𝗿
+    # 𝗵𝗮𝘀 ...") stays under the per-run threshold forever, no matter how
+    # long the message is. Real notation packs runs against punctuation
+    # ("f(x)"), not just spaces, so it does not re-merge here.
+    math_runs = [(m.start(), m.end()) for m in _MATH_ALPHANUMERIC_RE.finditer(original)]
+    for span_start, span_end in _merge_whitespace_gaps(original, math_runs, _MAX_MERGE_GAP):
+        if span_end - span_start >= _MATH_ALPHANUMERIC_MIN_RUN:
+            spans.append((span_start, span_end))
 
     # A homoglyph is only suspicious when a non-Latin character sits inside a
     # token that is otherwise Latin: that is mixed-script smuggling ("ignоre").
@@ -96,18 +143,7 @@ def _evasion_spans(original: str) -> list[tuple[int, int]]:
         if run_start is not None:
             spans.append((run_start, end))
 
-    if not spans:
-        return spans
-
-    spans.sort()
-    merged: list[tuple[int, int]] = [spans[0]]
-    for span_start, span_end in spans[1:]:
-        last_start, last_end = merged[-1]
-        if span_start - last_end <= _MAX_MERGE_GAP:
-            merged[-1] = (last_start, max(last_end, span_end))
-        else:
-            merged.append((span_start, span_end))
-    return merged
+    return _merge_close(spans, _MAX_MERGE_GAP)
 
 
 class InjectionScanner(RegexScanner):
