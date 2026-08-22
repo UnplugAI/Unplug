@@ -123,6 +123,7 @@ def run_gate(threshold: float = 0.5) -> tuple[bool, dict]:
     report["passed"] = passed
     return passed, report
 
+
 def print_gate_report(report: dict) -> None:
     print("\n" + "=" * 72)
     print("ATTACK HARNESS CI GATE")
