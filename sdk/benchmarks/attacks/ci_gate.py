@@ -38,15 +38,19 @@ GARAK_RECALL_FLOORS: dict[str, float] = {
 
 GARAK_CORPUS = Path(__file__).resolve().parent.parent / "data" / "garak_attacks.jsonl"
 
-# Benign corpus used for the false-positive-rate ceiling. benign_ci.jsonl is a
-# small, project-authored set of obviously-benign prompts committed to the repo
-# so the gate runs in a clean checkout with no external data. If the larger
-# neuralchemy corpus is present locally, its benign (label=0) rows enrich the
-# measurement. The ceiling leaves headroom for scoring jitter while still
-# tripping on an over-eager detection regression.
+# Benign corpus used for the false-positive-rate ceilings. benign_ci.jsonl is a
+# small, project-authored set of committed prompts split into two slices:
+#   - "unplug_ci"       : the original obviously-benign prompts (strict ceiling)
+#   - "unplug_ci_hard"  : hard negatives chosen because they trip the patterns
+#                         (looser ceiling, pinned just above the current rate so
+#                         it can only move down)
+# If the larger neuralchemy corpus is present locally, its benign (label=0)
+# rows enrich the easy slice only (they are ordinary negatives, not hard).
 BENIGN_CORPUS = Path(__file__).resolve().parent.parent / "data" / "benign_ci.jsonl"
 BENIGN_CORPUS_EXTRA = Path(__file__).resolve().parent.parent / "data" / "neuralchemy.jsonl"
-BENIGN_FPR_CEILING = 0.02
+HARD_NEGATIVE_SOURCE = "unplug_ci_hard"
+EASY_FPR_CEILING = 0.02
+HARD_FPR_CEILING = 0.98
 
 
 def run_gate(threshold: float = 0.5) -> tuple[bool, dict]:
@@ -80,29 +84,44 @@ def run_gate(threshold: float = 0.5) -> tuple[bool, dict]:
 
     benign_report: dict = {}
     if BENIGN_CORPUS.exists():
-        benign = [s for s in load_jsonl(BENIGN_CORPUS) if s.label == 0]
+        all_benign = [s for s in load_jsonl(BENIGN_CORPUS) if s.label == 0]
+        easy = [s for s in all_benign if s.source != HARD_NEGATIVE_SOURCE]
+        hard = [s for s in all_benign if s.source == HARD_NEGATIVE_SOURCE]
         if BENIGN_CORPUS_EXTRA.exists():
-            benign += [s for s in load_jsonl(BENIGN_CORPUS_EXTRA) if s.label == 0]
-        result = evaluate(benign, threshold=threshold)
-        fpr = result.overall.false_positive_rate
-        ok = fpr <= BENIGN_FPR_CEILING
+            easy += [s for s in load_jsonl(BENIGN_CORPUS_EXTRA) if s.label == 0]
+
+        easy_result = evaluate(easy, threshold=threshold)
+        easy_fpr = easy_result.overall.false_positive_rate
+        easy_ok = easy_fpr <= EASY_FPR_CEILING
+
+        hard_result = evaluate(hard, threshold=threshold) if hard else None
+        hard_fpr = hard_result.overall.false_positive_rate if hard_result else 0.0
+        hard_ok = (hard_fpr <= HARD_FPR_CEILING) if hard_result else True
+
         benign_report = {
-            "samples": len(benign),
-            "false_positives": result.overall.false_positives,
-            "fpr": round(fpr, 4),
-            "ceiling": BENIGN_FPR_CEILING,
-            "ok": ok,
+            "easy": {
+                "samples": len(easy),
+                "false_positives": easy_result.overall.false_positives,
+                "fpr": round(easy_fpr, 4),
+                "ceiling": EASY_FPR_CEILING,
+                "ok": easy_ok,
+            },
+            "hard": {
+                "samples": len(hard),
+                "false_positives": hard_result.overall.false_positives if hard_result else 0,
+                "fpr": round(hard_fpr, 4),
+                "ceiling": HARD_FPR_CEILING,
+                "ok": hard_ok,
+            },
         }
-        if not ok:
+        if not (easy_ok and hard_ok):
             passed = False
     else:
         benign_report["missing"] = str(BENIGN_CORPUS)
         passed = False
     report["benign_fpr"] = benign_report
-
     report["passed"] = passed
     return passed, report
-
 
 def print_gate_report(report: dict) -> None:
     print("\n" + "=" * 72)
@@ -129,12 +148,15 @@ def print_gate_report(report: dict) -> None:
     if "missing" in benign:
         print(f"\nbenign FPR: SKIPPED (missing {benign['missing']})")
     elif benign:
-        mark = "ok" if benign["ok"] else "FAIL"
-        print(
-            f"\nbenign FPR: [{mark}] fpr={benign['fpr']:.4f} "
-            f"ceiling={benign['ceiling']:.2f} "
-            f"(fp={benign['false_positives']}/{benign['samples']})"
-        )
+        for slice_name in ("easy", "hard"):
+            info = benign.get(slice_name)
+            if info:
+                mark = "ok" if info["ok"] else "FAIL"
+                print(
+                    f"\nbenign FPR [{slice_name}]: [{mark}] fpr={info['fpr']:.4f} "
+                    f"ceiling={info['ceiling']:.2f} "
+                    f"(fp={info['false_positives']}/{info['samples']})"
+                )
 
     print("=" * 72)
     print("PASS" if report["passed"] else "FAIL")

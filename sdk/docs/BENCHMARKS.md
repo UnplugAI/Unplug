@@ -27,17 +27,24 @@ the regex layer alone misses (especially **indirect** injection).
 
 ## False-positive rate on clean traffic
 
-A committed corpus of 135 prompts (`benchmarks/data/benign_ci.jsonl`): the original 95 plus 40 new hard negatives. The regex-only row is measured on the full 135; the regex+ML row below was measured on the original 95.
+A committed corpus of 135 prompts (`benchmarks/data/benign_ci.jsonl`): the original 95 plus 40 new hard negatives that contain trigger vocabulary.
 
-| Mode | False positives | FPR |
-| --- | ---: | ---: |
-| regex-only | 39 / 135 | 0.289 |
-| regex + ML | 2 / 95 | 0.021 |
+
+| Mode | Slice | False positives | FPR |
+|------|-------|-----------------|-----|
+| regex-only | original 95 | 0 / 95 | 0.000 |
+| regex-only | hard negatives (40) | 39 / 40 | 0.975 |
+| regex + ML | original 95 | 2 / 95 | 0.021 |
 
 The two ML false positives are one soft `abstain → review` ("explain how photosynthesis
 works") and one genuine model error ("explain the theory of relativity", scored 0.99).
 The first is a *review*, not a block. The `inj_threshold` is tuned to **0.60** (the
 recall/FPR knee) to keep this rate low without sacrificing recall.
+
+> **Note on the FPR.** These 40 hard negatives were chosen *because* they trip the
+> patterns. The regex-only 0.975 FPR on that slice (and the 0.289 on the full 135)
+> is therefore **not a population false-positive rate** - it is the rate on a corpus
+> deliberately built to be hard.
 
 ## Honest caveats
 
