@@ -91,15 +91,18 @@ pip install unplug-ai
 python -c "from unplug import Guard; print(Guard().scan('hello', source='user').safe)"
 ```
 
-## What to read next
+## Understanding the security model
+
+If you want to know why Unplug makes the decisions it does, read these in order:
 
 | Goal | Doc |
 |------|-----|
-| Wire Unplug into **your** agent loop | [`integrations/custom-loop/README.md`](https://github.com/UnplugAI/Unplug/blob/dev/sdk/integrations/custom-loop/README.md) |
-| LangGraph, CrewAI, OpenAI Agents, … | [`integrations/README.md`](https://github.com/UnplugAI/Unplug/blob/dev/sdk/integrations/README.md) |
-| **REVIEW** vs **BLOCK** (human approval) | [`docs/AGENT_ACTIONS.md`](AGENT_ACTIONS.md) |
-| Full SDK reference | [`README.md`](https://github.com/UnplugAI/Unplug/blob/dev/sdk/README.md) |
-| Hosted API / sidecar | [`docs/DEPLOYMENT.md`](DEPLOYMENT.md) |
+| The mental model: Guard → Pipelines → Scanners → Core, and how TaintedText/TrustLevel mark untrusted spans. Start here. | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
+| What happens to a marked span next: redact, block, or review. | [`AGENT_ACTIONS.md`](AGENT_ACTIONS.md) |
+| Taint and actions across a full agent loop — session taint, `notify_taint_source`, adaptive degradation. | [`AGENT_FLOW_SECURITY.md`](AGENT_FLOW_SECURITY.md) |
+| A worked example of the above: scanning context files, skills, and cron prompts before they reach the model. | [`HERMES_AGENT_SECURITY.md`](HERMES_AGENT_SECURITY.md) |
+| The same taint/redact ideas applied to retrieval (RAG). | [`RAG_DEFENSE.md`](RAG_DEFENSE.md) |
+| Once the model above makes sense, which imports to build against. | [`PUBLIC_API.md`](PUBLIC_API.md) |
 
 ## Common mistakes
 
