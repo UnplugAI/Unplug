@@ -91,6 +91,15 @@ pip install unplug-ai
 python -c "from unplug import Guard; print(Guard().scan('hello', source='user').safe)"
 ```
 
+## What to read next
+
+| Goal | Doc |
+|------|-----|
+| Wire Unplug into **your** agent loop | [`integrations/custom-loop/README.md`](https://github.com/UnplugAI/Unplug/blob/dev/sdk/integrations/custom-loop/README.md) |
+| LangGraph, CrewAI, OpenAI Agents, … | [`integrations/README.md`](https://github.com/UnplugAI/Unplug/blob/dev/sdk/integrations/README.md) |
+| Full SDK reference | [`README.md`](https://github.com/UnplugAI/Unplug/blob/dev/sdk/README.md) |
+| Hosted API / sidecar | [`docs/DEPLOYMENT.md`](DEPLOYMENT.md) |
+
 ## Understanding the security model
 
 If you want to know why Unplug makes the decisions it does, read these in order:
