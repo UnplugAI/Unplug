@@ -40,8 +40,9 @@ markdown_extensions:
   - toc:
       permalink: true
   - pymdownx.details
-  # custom_fences turns ```mermaid blocks into rendered diagrams. Material ships
-  # the mermaid loader, so there is no external script tag and it works offline.
+  # custom_fences turns ```mermaid blocks into rendered diagrams. Material's
+  # bundle pulls mermaid@11 from unpkg at runtime, so diagrams need the network.
+  # Vendoring it is tracked separately.
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid
