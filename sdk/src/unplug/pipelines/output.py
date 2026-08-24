@@ -10,6 +10,7 @@ from unplug.config.policy import ScanPolicy
 from unplug.core.agent.boundaries import strip_boundary_markers
 from unplug.core.context import ExecutionContext
 from unplug.core.privacy.secrets import SecretsSanitizer
+from unplug.core.redaction import apply_span_redactions
 from unplug.core.runtime.stats import MetricsCollector
 from unplug.core.taint import TaintedText, TrustLevel
 from unplug.models import Finding, ScanResult
@@ -94,14 +95,25 @@ class OutputPipeline(BasePipeline):
         *,
         policy: ScanPolicy | None = None,
     ) -> str | None:
-        _ = policy
+        resolved_policy = policy or self._config.policy
         text = self._extract_text(input_data)
         if text is None or not findings:
             return None
-        if self._sanitizer:
-            return self._sanitizer.sanitize(text).clean_text
-        return super()._redact(
-            input_data,
-            findings,
-            policy=policy or self._config.policy,
-        )
+        if self._sanitizer is None:
+            return apply_span_redactions(text, findings, resolved_policy)
+        # Finding spans refer to the original text, so they must be applied
+        # before sanitization (whose replacements change string lengths).
+        # Spans already covered by a detected secret are left to the sanitizer,
+        # which keeps its named [REDACTED:<name>] placeholder.
+        secret_spans = [
+            (m.span_start, m.span_end) for m in self._sanitizer.sanitize(text).secrets_found
+        ]
+        span_findings = [
+            f
+            for f in findings
+            if not any(f.span_start < end and start < f.span_end for start, end in secret_spans)
+        ]
+        span_redacted = apply_span_redactions(text, span_findings, resolved_policy)
+        if span_redacted is None:
+            span_redacted = text
+        return self._sanitizer.sanitize(span_redacted).clean_text
