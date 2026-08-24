@@ -36,7 +36,7 @@ pip install "unplug-ai[ml]"
 ```python
 from unplug import Guard
 
-guard = Guard.with_tiny()              # auto-downloads unplug-tiny-v1
+guard = Guard(model="tiny")              # auto-downloads unplug-tiny-v1
 result = guard.scan(untrusted_text)
 if not result.safe:
     use(result.redacted_text)          # attack removed, content preserved
