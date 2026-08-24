@@ -61,6 +61,8 @@ class TestCiGate:
         _, report = run_gate()
         benign = report["benign_fpr"]
         assert "missing" not in benign, "benign corpus must be committed"
-        assert benign["samples"] > 0
-        assert benign["ok"], benign
-        assert benign["fpr"] <= benign["ceiling"]
+        for slice_name in ("easy", "hard"):
+            info = benign[slice_name]
+            assert info["samples"] > 0
+            assert info["ok"], f"{slice_name} slice: {info}"
+            assert info["fpr"] <= info["ceiling"]

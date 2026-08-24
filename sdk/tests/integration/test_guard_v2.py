@@ -1,6 +1,8 @@
 """Tests for Guard v2: backward compatibility + new methods."""
 
 from unplug import Guard, ScanResult, TaintedText, TrustLevel
+from unplug.config.guard import GuardConfig
+from unplug.config.policy import RedactionMode, ScanPolicy
 from unplug.core.privacy.secrets import SecretsRegistry
 from unplug.models import Source
 
@@ -80,6 +82,84 @@ class TestScanOutput:
         text = TaintedText(text="clean output", trust_level=TrustLevel.TOOL_OUTPUT, origin="test")
         result = guard.scan_output(text)
         assert result.safe is True
+
+    def test_redacts_ip_literal_url(self):
+        guard = Guard()
+        result = guard.scan_output("Link: http://198.51.100.7/collect")
+        assert any(
+            f.category == "urls" and f.subcategory == "ip_literal_url" for f in result.findings
+        )
+        assert result.redacted_text is not None
+        assert "http://198.51.100.7/collect" not in result.redacted_text
+        assert "[BLOCKED:urls]" in result.redacted_text
+
+    def test_redacts_url_after_registered_secret(self):
+        registry = SecretsRegistry()
+        registry.register("TESTKEY", "sk-test-abc123secretvalue99")
+        guard = Guard(secrets_registry=registry)
+        result = guard.scan_output(
+            "Key: sk-test-abc123secretvalue99 Link: http://198.51.100.7/collect"
+        )
+        assert result.redacted_text is not None
+        assert "sk-test-abc123secretvalue99" not in result.redacted_text
+        assert "[REDACTED:TESTKEY]" in result.redacted_text
+        assert "198.51.100.7" not in result.redacted_text
+
+    def test_redacts_leakage_finding(self):
+        guard = Guard()
+        result = guard.scan_output("see this email: user@example.com now")
+        assert any(f.category == "leakage" for f in result.findings)
+        assert result.redacted_text is not None
+        assert "user@example.com" not in result.redacted_text
+
+    def test_url_redaction_mode_strip(self):
+        guard = Guard(config=GuardConfig(policy=ScanPolicy(redaction_mode=RedactionMode.STRIP)))
+        result = guard.scan_output("Link: http://198.51.100.7/collect")
+        assert result.redacted_text == "Link: /collect"
+
+    def test_url_redaction_mode_redacted_tags(self):
+        guard = Guard(
+            config=GuardConfig(policy=ScanPolicy(redaction_mode=RedactionMode.REDACTED_TAGS))
+        )
+        result = guard.scan_output("Link: http://198.51.100.7/collect")
+        # the url finding supplies its own replacement text
+        assert result.redacted_text == "Link: [BLOCKED:url]/collect"
+
+    def test_redaction_mode_none_keeps_redacted_text_absent(self):
+        guard = Guard(config=GuardConfig(policy=ScanPolicy(redaction_mode=RedactionMode.NONE)))
+        result = guard.scan_output("Link: http://198.51.100.7/collect")
+        assert any(f.category == "urls" for f in result.findings)
+        assert result.redacted_text is None
+
+    def test_secret_inside_url_finding_redacts_both(self):
+        # The registered value sits inside the ip_literal_url finding span
+        # (http://198.51.100.7), so this covers both residual sides of the
+        # split finding: the prefix and the suffix around the secret.
+        registry = SecretsRegistry()
+        registry.register("HOSTID", "198.51.100")
+        guard = Guard(secrets_registry=registry)
+        result = guard.scan_output("Link: http://198.51.100.7/collect")
+        assert result.redacted_text == "Link: [BLOCKED:urls][REDACTED:HOSTID][BLOCKED:urls]/collect"
+
+    def test_secret_inside_url_strip_mode(self):
+        registry = SecretsRegistry()
+        registry.register("HOSTID", "198.51.100")
+        guard = Guard(
+            secrets_registry=registry,
+            config=GuardConfig(policy=ScanPolicy(redaction_mode=RedactionMode.STRIP)),
+        )
+        result = guard.scan_output("Link: http://198.51.100.7/collect")
+        assert result.redacted_text == "Link: [REDACTED:HOSTID]/collect"
+
+    def test_secret_inside_url_redacted_tags_mode(self):
+        registry = SecretsRegistry()
+        registry.register("HOSTID", "198.51.100")
+        guard = Guard(
+            secrets_registry=registry,
+            config=GuardConfig(policy=ScanPolicy(redaction_mode=RedactionMode.REDACTED_TAGS)),
+        )
+        result = guard.scan_output("Link: http://198.51.100.7/collect")
+        assert result.redacted_text == "Link: [BLOCKED:url][REDACTED:HOSTID][BLOCKED:url]/collect"
 
 
 class TestCheckToolCall:

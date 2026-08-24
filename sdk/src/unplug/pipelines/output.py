@@ -10,11 +10,36 @@ from unplug.config.policy import ScanPolicy
 from unplug.core.agent.boundaries import strip_boundary_markers
 from unplug.core.context import ExecutionContext
 from unplug.core.privacy.secrets import SecretsSanitizer
+from unplug.core.redaction import apply_span_redactions
 from unplug.core.runtime.stats import MetricsCollector
 from unplug.core.taint import TaintedText, TrustLevel
 from unplug.models import Finding, ScanResult
 from unplug.pipelines.base import BasePipeline
 from unplug.scanners.base import BaseScanner
+
+
+def _subtract_spans(
+    finding: Finding,
+    secret_spans: list[tuple[int, int]],
+) -> list[Finding]:
+    """Split a finding into copies covering the parts outside secret spans.
+
+    Secret spans must be sorted and merged. Spans are half-open, matching
+    ``apply_span_redactions()``.
+    """
+    residuals: list[tuple[int, int]] = []
+    cursor = finding.span_start
+    for start, end in secret_spans:
+        if end <= start or start >= finding.span_end or end <= cursor:
+            continue
+        if start > cursor:
+            residuals.append((cursor, start))
+        cursor = end
+        if cursor >= finding.span_end:
+            break
+    if cursor < finding.span_end:
+        residuals.append((cursor, finding.span_end))
+    return [finding.model_copy(update={"span_start": s, "span_end": e}) for s, e in residuals]
 
 
 class OutputPipeline(BasePipeline):
@@ -94,14 +119,33 @@ class OutputPipeline(BasePipeline):
         *,
         policy: ScanPolicy | None = None,
     ) -> str | None:
-        _ = policy
+        resolved_policy = policy or self._config.policy
         text = self._extract_text(input_data)
         if text is None or not findings:
             return None
-        if self._sanitizer:
-            return self._sanitizer.sanitize(text).clean_text
-        return super()._redact(
-            input_data,
-            findings,
-            policy=policy or self._config.policy,
+        if self._sanitizer is None:
+            return apply_span_redactions(text, findings, resolved_policy)
+        # Finding spans refer to the original text, so they must be applied
+        # before sanitization (whose replacements change string lengths).
+        # Secret spans are subtracted from finding spans so policy redaction
+        # covers the residual parts while the sanitizer keeps its named
+        # [REDACTED:<name>] placeholder for the secret itself.
+        secret_spans = sorted(
+            {(m.span_start, m.span_end) for m in self._sanitizer.sanitize(text).secrets_found}
         )
+        merged_secret_spans: list[tuple[int, int]] = []
+        for start, end in secret_spans:
+            if end <= start:
+                continue
+            if merged_secret_spans and start <= merged_secret_spans[-1][1]:
+                prev = merged_secret_spans[-1]
+                merged_secret_spans[-1] = (prev[0], max(prev[1], end))
+            else:
+                merged_secret_spans.append((start, end))
+        span_findings = [
+            residual for f in findings for residual in _subtract_spans(f, merged_secret_spans)
+        ]
+        span_redacted = apply_span_redactions(text, span_findings, resolved_policy)
+        if span_redacted is None:
+            span_redacted = text
+        return self._sanitizer.sanitize(span_redacted).clean_text
