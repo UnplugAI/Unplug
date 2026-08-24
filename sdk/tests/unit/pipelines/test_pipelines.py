@@ -161,6 +161,47 @@ class TestOutputPipeline:
         action = pipeline._decide(0.1, [low], text_len=20, policy=pipeline.config.policy)
         assert action == Action.ALLOW
 
+    def test_subtract_spans_splits_finding_around_secrets(self):
+        from unplug.models import Finding
+        from unplug.pipelines.output import _subtract_spans
+
+        finding = Finding(
+            category="urls",
+            subcategory="ip_literal_url",
+            stage="regex",
+            span_start=10,
+            span_end=40,
+            score=0.7,
+            evidence="two secrets inside",
+            replacement="[BLOCKED:url]",
+        )
+        # two disjoint secret regions inside the finding span
+        residuals = _subtract_spans(finding, [(12, 18), (25, 30)])
+        assert [(r.span_start, r.span_end) for r in residuals] == [(10, 12), (18, 25), (30, 40)]
+        for residual in residuals:
+            assert residual.category == finding.category
+            assert residual.score == finding.score
+            assert residual.replacement == finding.replacement
+
+    def test_subtract_spans_fully_covered_finding(self):
+        from unplug.models import Finding
+        from unplug.pipelines.output import _subtract_spans
+
+        finding = Finding(
+            category="urls",
+            subcategory="ip_literal_url",
+            stage="regex",
+            span_start=5,
+            span_end=15,
+            score=0.7,
+            evidence="exact match",
+        )
+        assert _subtract_spans(finding, [(5, 15)]) == []
+        assert _subtract_spans(finding, [(0, 20)]) == []
+        assert _subtract_spans(finding, []) == [finding]
+        # invalid and zero-length secret spans are ignored
+        assert _subtract_spans(finding, [(7, 7), (9, 4)]) == [finding]
+
 
 class TestToolCallPipeline:
     def test_detects_destructive(self):

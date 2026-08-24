@@ -18,6 +18,30 @@ from unplug.pipelines.base import BasePipeline
 from unplug.scanners.base import BaseScanner
 
 
+def _subtract_spans(
+    finding: Finding,
+    secret_spans: list[tuple[int, int]],
+) -> list[Finding]:
+    """Split a finding into copies covering the parts outside secret spans.
+
+    Secret spans must be sorted and merged. Spans are half-open, matching
+    ``apply_span_redactions()``.
+    """
+    residuals: list[tuple[int, int]] = []
+    cursor = finding.span_start
+    for start, end in secret_spans:
+        if end <= start or start >= finding.span_end or end <= cursor:
+            continue
+        if start > cursor:
+            residuals.append((cursor, start))
+        cursor = end
+        if cursor >= finding.span_end:
+            break
+    if cursor < finding.span_end:
+        residuals.append((cursor, finding.span_end))
+    return [finding.model_copy(update={"span_start": s, "span_end": e}) for s, e in residuals]
+
+
 class OutputPipeline(BasePipeline):
     name = "output"
 
@@ -103,15 +127,23 @@ class OutputPipeline(BasePipeline):
             return apply_span_redactions(text, findings, resolved_policy)
         # Finding spans refer to the original text, so they must be applied
         # before sanitization (whose replacements change string lengths).
-        # Spans already covered by a detected secret are left to the sanitizer,
-        # which keeps its named [REDACTED:<name>] placeholder.
-        secret_spans = [
-            (m.span_start, m.span_end) for m in self._sanitizer.sanitize(text).secrets_found
-        ]
+        # Secret spans are subtracted from finding spans so policy redaction
+        # covers the residual parts while the sanitizer keeps its named
+        # [REDACTED:<name>] placeholder for the secret itself.
+        secret_spans = sorted(
+            {(m.span_start, m.span_end) for m in self._sanitizer.sanitize(text).secrets_found}
+        )
+        merged_secret_spans: list[tuple[int, int]] = []
+        for start, end in secret_spans:
+            if end <= start:
+                continue
+            if merged_secret_spans and start <= merged_secret_spans[-1][1]:
+                prev = merged_secret_spans[-1]
+                merged_secret_spans[-1] = (prev[0], max(prev[1], end))
+            else:
+                merged_secret_spans.append((start, end))
         span_findings = [
-            f
-            for f in findings
-            if not any(f.span_start < end and start < f.span_end for start, end in secret_spans)
+            residual for f in findings for residual in _subtract_spans(f, merged_secret_spans)
         ]
         span_redacted = apply_span_redactions(text, span_findings, resolved_policy)
         if span_redacted is None:

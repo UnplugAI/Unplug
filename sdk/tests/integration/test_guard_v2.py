@@ -131,6 +131,36 @@ class TestScanOutput:
         assert any(f.category == "urls" for f in result.findings)
         assert result.redacted_text is None
 
+    def test_secret_inside_url_finding_redacts_both(self):
+        # The registered value sits inside the ip_literal_url finding span
+        # (http://198.51.100.7), so this covers both residual sides of the
+        # split finding: the prefix and the suffix around the secret.
+        registry = SecretsRegistry()
+        registry.register("HOSTID", "198.51.100")
+        guard = Guard(secrets_registry=registry)
+        result = guard.scan_output("Link: http://198.51.100.7/collect")
+        assert result.redacted_text == "Link: [BLOCKED:urls][REDACTED:HOSTID][BLOCKED:urls]/collect"
+
+    def test_secret_inside_url_strip_mode(self):
+        registry = SecretsRegistry()
+        registry.register("HOSTID", "198.51.100")
+        guard = Guard(
+            secrets_registry=registry,
+            config=GuardConfig(policy=ScanPolicy(redaction_mode=RedactionMode.STRIP)),
+        )
+        result = guard.scan_output("Link: http://198.51.100.7/collect")
+        assert result.redacted_text == "Link: [REDACTED:HOSTID]/collect"
+
+    def test_secret_inside_url_redacted_tags_mode(self):
+        registry = SecretsRegistry()
+        registry.register("HOSTID", "198.51.100")
+        guard = Guard(
+            secrets_registry=registry,
+            config=GuardConfig(policy=ScanPolicy(redaction_mode=RedactionMode.REDACTED_TAGS)),
+        )
+        result = guard.scan_output("Link: http://198.51.100.7/collect")
+        assert result.redacted_text == "Link: [BLOCKED:url][REDACTED:HOSTID][BLOCKED:url]/collect"
+
 
 class TestCheckToolCall:
     def test_detects_destructive_tool(self):
