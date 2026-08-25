@@ -73,15 +73,21 @@ single-turn sessions:
 
 | Dataset | Mode | Recall | F1 | FPR |
 | --- | --- | ---: | ---: | ---: |
-| neuralchemy (direct, 4,391) | regex-only | 0.41 | 0.58 | <1% |
-| neuralchemy (direct, 4,391) | **regex + ML** | **0.98** | **0.99** | <1% |
-| microsoft llmail (indirect, 2,500) | regex-only | 0.05 | — | — |
-| microsoft llmail (indirect, 2,500) | **regex + ML** | **0.91** | — | — |
+| neuralchemy `core/test` (direct, 942) | regex-only | 0.35 | 0.52 | 1/390 |
+| neuralchemy `core/test` (direct, 942) | **regex + ML** | **0.96** | **0.97** | 5/390 |
+| microsoft llmail (indirect, 2,500) | regex-only | 0.05 | n/a | n/a |
+| microsoft llmail (indirect, 2,500) | **regex + ML** | **0.91** | n/a | n/a |
 
-Precision stays ~0.99 in both modes. The `<1%` FPR is on the injection set; on a
-separate hard-benign corpus (95 prompts) regex flags 0 and regex + ML flags 2,
-i.e. **2.1%** (one of which is a *review*, not a block). `inj_threshold` is tuned
-to the recall/FPR knee.
+`core/test` is the held-out split. `unplug-tiny` was fine-tuned on `core/train`, so
+numbers measured there are memorisation rather than detection. Precision stays near
+0.99 in both modes. The FPR column counts benign rows inside the injection set; on a
+separate hand-written benign corpus of 95 prompts, regex flags 0 and regex + ML flags 2,
+one of which is a *review* rather than a block. `inj_threshold` is tuned to the
+recall/FPR knee.
+
+On broader public benign sets the model over-flags badly, up to 34% of a combined
+3,227-prompt validation set. See [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md) before
+trusting the defaults.
 
 **Language support.** Regex + normalization detection is tuned for English today.
 Ordinary non-English input (Cyrillic, CJK, etc.) is *not* treated as an evasion
