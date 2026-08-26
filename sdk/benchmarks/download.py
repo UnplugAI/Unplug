@@ -26,10 +26,18 @@ def _export_jsonl(samples: list[Sample], path: Path) -> None:
             f.write(json.dumps(row) + "\n")
 
 
-def download_neuralchemy(out_dir: Path, *, limit: int | None = None) -> Path:
+# unplug-tiny was fine-tuned on the "train" split of this dataset, so scoring the
+# model against it measures memorisation. "test" is the held-out split the model
+# card gates on. Do not change this default.
+NEURALCHEMY_SPLIT = "test"
+
+
+def download_neuralchemy(
+    out_dir: Path, *, limit: int | None = None, split: str = NEURALCHEMY_SPLIT
+) -> Path:
     from datasets import load_dataset
 
-    ds = load_dataset("neuralchemy/Prompt-injection-dataset", split="train")
+    ds = load_dataset("neuralchemy/Prompt-injection-dataset", "core", split=split)
     samples: list[Sample] = []
     for i, row in enumerate(ds):
         if limit is not None and i >= limit:
@@ -90,12 +98,18 @@ def main() -> None:
     )
     parser.add_argument("--out", type=Path, default=None)
     parser.add_argument("--limit", type=int, default=None)
+    parser.add_argument(
+        "--neuralchemy-split",
+        default=NEURALCHEMY_SPLIT,
+        choices=["train", "validation", "test"],
+        help="train overlaps unplug-tiny fine-tuning data; results are not comparable",
+    )
     args = parser.parse_args()
 
     out_dir = args.out or _repo_datasets_dir()
     paths: list[Path] = []
     if args.dataset in ("neuralchemy", "all"):
-        paths.append(download_neuralchemy(out_dir, limit=args.limit))
+        paths.append(download_neuralchemy(out_dir, limit=args.limit, split=args.neuralchemy_split))
     if args.dataset in ("microsoft", "all"):
         paths.append(download_microsoft_subset(out_dir, limit=args.limit or 5000))
     for p in paths:

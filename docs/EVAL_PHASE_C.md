@@ -13,7 +13,7 @@ uv sync --all-extras --dev
 
 # Datasets are already under benchmarks/data/. To refresh from Hugging Face:
 uv run python -m benchmarks.download --dataset all --out benchmarks/data
-# neuralchemy: full train export; microsoft: streaming Phase1 subset (default --limit 5000)
+# neuralchemy: core/test holdout; microsoft: streaming Phase1 subset (default --limit 5000)
 
 # Smoke (built-in samples)
 uv run python -c "
@@ -29,6 +29,10 @@ uv run python -m benchmarks.run benchmarks/data/microsoft_indirect.jsonl --isola
 # Regex + ML (requires unplug-tiny; slow / network on first download)
 uv run python -m benchmarks.run benchmarks/data/neuralchemy.jsonl --ml --isolated --format json
 ```
+
+> **Superseded.** The neuralchemy rows below were measured on `core/train`, which is
+> `unplug-tiny`'s fine-tuning data. They are kept as a record of what that run reported.
+> Current numbers are on the `core/test` holdout in [`BENCHMARKS.md`](BENCHMARKS.md).
 
 ## Results (this run)
 

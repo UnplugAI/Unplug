@@ -18,7 +18,7 @@ uv sync --dev
 
 | Extra | Enables |
 |-------|---------|
-| `ml` | ML span model (`Guard.with_tiny()`) |
+| `ml` | ML span model (`Guard(model="tiny")`) |
 | `yara` | YARA code/SQLi/XSS scanner |
 | `presidio` | Presidio PII scanner |
 | `litellm` | LLM judge for borderline cases |
