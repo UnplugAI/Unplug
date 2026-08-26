@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import threading
+import time
 from typing import Any, ClassVar
 
 from unplug.api.enums import Action, Source
@@ -50,7 +51,7 @@ from unplug.streaming import StreamScanner, scan_stream
 _log = get_logger("guard")
 
 
-def _fail_closed(exc: Exception) -> ScanResult:
+def _fail_closed(exc: Exception, latency_ms: float = 0.0) -> ScanResult:
     return ScanResult(
         safe=False,
         action=Action.BLOCK,
@@ -66,7 +67,8 @@ def _fail_closed(exc: Exception) -> ScanResult:
                 evidence=f"Guard failed: {type(exc).__name__}",
             )
         ],
-        latency_ms=0.0,
+        latency_ms=latency_ms,
+        stages_run=["error"],
     )
 
 
@@ -629,6 +631,7 @@ class Guard:
         isolated: bool = False,
     ) -> ScanResult:
         """Scan output from a ScanRequest (hosted server or local pipeline)."""
+        start = time.perf_counter()
         violation = self._limits.check_input_length(request.text)
         if violation is not None:
             return _limit_result(violation, len(request.text))
@@ -644,7 +647,7 @@ class Guard:
                 return result
         except Exception as exc:
             _log.error("guard.scan_output_request failed: %s", exc)
-            return _fail_closed(exc)
+            return _fail_closed(exc, (time.perf_counter() - start) * 1000)
 
     def check_tool_call(
         self,
@@ -655,6 +658,7 @@ class Guard:
         approved: bool | None = None,
     ) -> ScanResult:
         """Check a proposed tool call for destructive, taint, and financial risks."""
+        start = time.perf_counter()
         _ = approved  # resume-only via ApprovalProvider; caller flag is ignored
         if not self._limits.is_tool_allowed(tool_name):
             return _limit_result(
@@ -703,7 +707,7 @@ class Guard:
                 return result
         except Exception as exc:
             _log.error("guard.check_tool_call failed: %s", exc)
-            return _fail_closed(exc)
+            return _fail_closed(exc, (time.perf_counter() - start) * 1000)
 
     def scan_request(
         self,
@@ -712,6 +716,7 @@ class Guard:
         isolated: bool = False,
     ) -> ScanResult:
         """Scan from a ScanRequest object."""
+        start = time.perf_counter()
         violation = self._limits.check_input_length(request.text)
         if violation is not None:
             return _limit_result(violation, len(request.text))
@@ -744,7 +749,7 @@ class Guard:
             raise
         except Exception as exc:
             _log.error("guard.scan_request failed: %s", exc)
-            return _fail_closed(exc)
+            return _fail_closed(exc, (time.perf_counter() - start) * 1000)
 
     @property
     def is_server_mode(self) -> bool:

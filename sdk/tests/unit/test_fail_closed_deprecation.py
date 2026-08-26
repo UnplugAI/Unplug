@@ -29,6 +29,17 @@ def test_guard_error_still_blocks() -> None:
     assert not result.safe
 
 
+def test_guard_error_reports_error_stage() -> None:
+    guard = Guard()
+    with patch.object(guard._input_pipeline, "run", side_effect=RuntimeError("boom")):
+        result = guard.scan("hello")
+    assert result.action == Action.BLOCK
+    assert not result.safe
+    assert result.stages_run == ["error"]
+    assert result.findings[0].stage == "error"
+    assert result.latency_ms >= 0.0
+
+
 def test_fail_mode_open_warns() -> None:
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
