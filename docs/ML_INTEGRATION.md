@@ -117,6 +117,7 @@ Encoding blobs (Base64) use the same thresholds via decode-then-classify.
 
 ## Release artifacts
 
-- `BENCHMARKS.md`: auto-generated from the evaluation harness (no hand-typed numbers)
+- `BENCHMARKS.md`: maintained from evaluation-harness results; verify recorded numbers against
+  the cited command and dataset before publishing
 - PyPI `unplug-ai` version bump after gate review
 - Hugging Face model repo: `Unplug-AI/unplug-tiny-v1`

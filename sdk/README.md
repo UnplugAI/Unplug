@@ -214,7 +214,7 @@ require_ml = true   # optional fail-fast at init
 
 `UNPLUG_MODEL_PATH` alone auto-selects the `tiny` tier; prefer setting both explicitly in production. Checkpoint layout and integration steps: [`docs/ML_INTEGRATION.md`](../docs/ML_INTEGRATION.md).
 
-All published model metrics come from a frozen golden-eval harness on held-out data and are recorded on the [model card](https://huggingface.co/Unplug-AI/unplug-tiny-v1). No hand-typed numbers, measured not target.
+Published model metrics come from a frozen golden-eval harness on held-out data and are recorded on the [model card](https://huggingface.co/Unplug-AI/unplug-tiny-v1). Verify recorded values against the cited evaluation run; they are measured results, not targets.
 
 Verify your wiring anytime:
 

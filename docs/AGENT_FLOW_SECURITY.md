@@ -58,7 +58,7 @@ OpenClaw separates **where tools run** (Docker sandbox), **which tools exist** (
 | **Adaptive degradation** | High-risk tools blocked/reviewed after escalation | `DegradationConfig` + `degraded_tool_findings()` |
 | **Intent vs action** | Informational ask + destructive tool -> hold | `IntentConfig` |
 | **Provenance / signed segments** | Signed context envelopes (Tessera mesh) | Taint + boundary markers (not cryptographic yet) |
-| **ABSTAIN band** | Uncertain scores -> judge/redact, not hard block | Decision policy in `unplug.core.policy.decision`; wire to SDK `Action` in a follow-up |
+| **ABSTAIN band** | Uncertain scores -> judge/redact, not hard block | `Action.ABSTAIN` is emitted through the input and base pipelines for uncertain ML scores |
 | **Plan-then-execute** | Lock control flow before ingesting untrusted tool data | **Host** orchestration; SDK can scan plan text as `Source.SYSTEM` |
 
 References: SafeHarness lifecycle layers (Inform / Verify / Constrain / Correct), [RiskGate / viability framework](https://arxiv.org/abs/2604.24686), [Progent monotonic policies](https://arxiv.org/pdf/2504.11703).

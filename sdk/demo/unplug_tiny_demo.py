@@ -75,7 +75,7 @@ ABOUT = f"""
 hostile, a BIOES token head localizes *where* - so the pipeline redacts the malicious span
 instead of dropping the whole document.
 
-- **Policy:** `doc_or_span` - doc threshold 0.9, span threshold 0.45
+- **Policy:** `doc_or_span` - doc threshold 0.9, span threshold 0.60
 - **Long documents:** sliding windows (2048 chars, 256 overlap) cover the full text
 - **Encoded payloads:** Base64 blobs are decoded and classified
 - **Regex baseline:** uncheck the ML box to compare against pattern matching alone
