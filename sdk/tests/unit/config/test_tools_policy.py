@@ -44,3 +44,52 @@ def test_profile_readonly_denies_side_effect() -> None:
     policy = ToolPolicyConfig(profile="readonly")
     assert not policy.is_permitted("shell")
     assert policy.is_permitted("search")
+
+
+def test_camel_case_names_classify() -> None:
+    """Claude Code names its tools WebFetch and NotebookEdit, not web_fetch (#166)."""
+    policy = ToolPolicyConfig()
+    assert policy.is_taint_source("WebFetch")
+    assert policy.is_taint_source("WebSearch")
+    assert policy.is_side_effect("NotebookEdit")
+    assert policy.is_side_effect("sendEmail")
+
+
+def test_mcp_prefixed_names_classify() -> None:
+    policy = ToolPolicyConfig()
+    assert policy.is_side_effect("mcp__slack__send_message")
+    assert policy.is_side_effect("mcp__gmail__send_email")
+    assert policy.is_side_effect("mcp__shell__bash")
+
+
+def test_vendor_prefixed_verbs_classify() -> None:
+    """The verb decides, wherever the vendor put it."""
+    policy = ToolPolicyConfig()
+    assert policy.is_side_effect("slack_post_message")
+    assert policy.is_side_effect("github_create_issue")
+    assert policy.is_side_effect("gmail_send")
+    assert policy.is_side_effect("post_tweet")
+
+
+def test_ordinary_getters_are_not_side_effects() -> None:
+    """The broadened patterns must not swallow plain reads."""
+    policy = ToolPolicyConfig()
+    for name in ("get_weather", "list_files", "search_docs", "read_file", "lookup_user"):
+        assert not policy.is_side_effect(name), name
+        assert not policy.is_unclassified(name), name
+
+
+def test_unrecognised_name_is_unclassified() -> None:
+    policy = ToolPolicyConfig()
+    assert policy.is_unclassified("mcp__acme__frobnicate")
+    assert not policy.is_side_effect("mcp__acme__frobnicate")
+
+
+def test_explicit_overrides_survive_normalisation() -> None:
+    policy = ToolPolicyConfig(
+        side_effect_tools=("CustomSend",),
+        read_only_tools=("mcp__acme__frobnicate",),
+    )
+    assert policy.is_side_effect("custom_send")
+    assert policy.is_side_effect("mcp__vendor__CustomSend")
+    assert not policy.is_unclassified("frobnicate")
