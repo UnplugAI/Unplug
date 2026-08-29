@@ -20,8 +20,9 @@ showing up in two places.
 turn a detection into a miss. #116 and #125 are open.
 
 **Benchmark honesty.** The benign corpus now includes 40 hard negatives (#120), where the
-regex-only false-positive rate is 0.289. Keep expanding those adversarial benign cases so
-reported aggregate rates continue to reflect realistic confounders.
+regex-only false-positive rate is 0.975; across the full 135-prompt corpus it is 0.289.
+Keep expanding those adversarial benign cases so reported aggregate rates continue to
+reflect realistic confounders.
 
 ## Next
 
