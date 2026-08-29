@@ -283,3 +283,61 @@ blocked_template = "Custom block {category}"
 """)
         cfg = load(file_path=p)
         assert "Custom block" in cfg.messages.blocked_template
+
+
+class TestFlatEnvWithGuardTable:
+    """Flat UNPLUG_* vars must survive a config file that has a [guard] table (#168)."""
+
+    def _write(self, tmp_path: Path) -> Path:
+        cfg = tmp_path / "unplug.toml"
+        cfg.write_text('[guard]\nscanners = ["injection"]\n', encoding="utf-8")
+        return cfg
+
+    def test_require_ml_reaches_the_config(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("UNPLUG_REQUIRE_ML", "true")
+        assert load(self._write(tmp_path)).require_ml is True
+
+    def test_mode_and_allowlist_reach_the_config(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("UNPLUG_MODE", "server")
+        monkeypatch.setenv("UNPLUG_SERVER_URL", "https://guard.example")
+        monkeypatch.setenv("UNPLUG_STRICT_SCANNER_ALLOWLIST", "true")
+        cfg = load(self._write(tmp_path))
+        assert cfg.mode == "server"
+        assert cfg.strict_scanner_allowlist is True
+
+    def test_env_beats_the_file(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        cfg_path = tmp_path / "unplug.toml"
+        cfg_path.write_text("[guard]\nrequire_ml = false\n", encoding="utf-8")
+        monkeypatch.setenv("UNPLUG_REQUIRE_ML", "true")
+        assert load(cfg_path).require_ml is True
+
+    def test_nested_form_beats_the_flat_one(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("UNPLUG_REQUIRE_ML", "true")
+        monkeypatch.setenv("UNPLUG_GUARD__REQUIRE_ML", "false")
+        assert load(self._write(tmp_path)).require_ml is False
+
+    def test_no_guard_table_still_works(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        cfg_path = tmp_path / "unplug.toml"
+        cfg_path.write_text('scanners = ["injection"]\n', encoding="utf-8")
+        monkeypatch.setenv("UNPLUG_REQUIRE_ML", "true")
+        assert load(cfg_path).require_ml is True
+
+    def test_active_model_does_not_strand_the_flat_keys(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """UNPLUG_ACTIVE_MODEL creates a [guard] table where the file had none."""
+        cfg_path = tmp_path / "unplug.toml"
+        cfg_path.write_text('scanners = ["injection"]\n', encoding="utf-8")
+        monkeypatch.setenv("UNPLUG_ACTIVE_MODEL", "tiny")
+        monkeypatch.setenv("UNPLUG_REQUIRE_ML", "true")
+        cfg = load(cfg_path)
+        assert cfg.active_model == "tiny"
+        assert cfg.require_ml is True

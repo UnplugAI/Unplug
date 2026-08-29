@@ -387,10 +387,46 @@ def load(
         file_data = load_from_file(file_path)
     env_data = load_from_env(env_prefix)
     merged = _merge(file_data, env_data)
+    # After the model overrides, not before: UNPLUG_ACTIVE_MODEL creates a [guard]
+    # table where the file had none, which would otherwise strand the flat keys again.
     merged = _apply_model_env_overrides(merged)
+    merged = _promote_flat_env_keys(merged, env_data)
     if not merged:
         return GuardConfig()
     return build_config(merged)
+
+
+def _promote_flat_env_keys(data: dict[str, Any], env_data: dict[str, Any]) -> dict[str, Any]:
+    """Move flat UNPLUG_* settings into [guard] when the file uses a [guard] table.
+
+    ``load_from_env`` writes UNPLUG_REQUIRE_ML at the top level, but ``build_config``
+    reads every guard setting through ``data["guard"]`` as soon as that table exists.
+    So the variables the README tells people to export were silently dropped by anyone
+    who had copied unplug.example.toml, which has a [guard] table (#168). Only two of
+    them, ACTIVE_MODEL and MODEL_PATH, escaped, because they are hand-written into the
+    table by _apply_model_env_overrides.
+
+    Environment wins over the file, matching _merge. The explicit nested form
+    UNPLUG_GUARD__X wins over the flat one, since it says exactly where it belongs.
+    """
+    if "guard" not in data or not isinstance(data["guard"], dict):
+        return data
+    env_guard = env_data.get("guard")
+    already_set = set(env_guard) if isinstance(env_guard, dict) else set()
+
+    promoted = {
+        key: value
+        for key, value in env_data.items()
+        if key in GuardConfig.model_fields
+        and key not in already_set
+        and not isinstance(value, dict)
+    }
+    if not promoted:
+        return data
+
+    out = dict(data)
+    out["guard"] = {**out["guard"], **promoted}
+    return out
 
 
 def _apply_model_env_overrides(data: dict[str, Any]) -> dict[str, Any]:
