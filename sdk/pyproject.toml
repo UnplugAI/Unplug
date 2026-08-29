@@ -250,6 +250,7 @@ markers = [
     "requires_yara: tests needing yara-python extra",
     "requires_ml: tests needing ML stack extra",
     "requires_integrations: tests needing agent framework extras",
+    "real_model_cache: opts out of the empty-UNPLUG_MODEL_CACHE isolation fixture",
     "slow: wall-clock stress tests; excluded from the default/PR gate, run via the nightly slow-stress workflow or `make test-slow`",
 ]
 filterwarnings = [

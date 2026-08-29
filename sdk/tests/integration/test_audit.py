@@ -11,6 +11,11 @@ from unplug.audit.boundary import default_boundary_probes_path, run_boundary_pro
 from unplug.audit.runner import run_audit
 from unplug.ml.validation import resolve_validation_checkpoint
 
+# These modules gate on resolve_validation_checkpoint(), which reads the machine
+# model cache at import time via skipif. They opt out of the empty-cache isolation
+# fixture so the skip decision and the test body see the same cache (#163).
+pytestmark = pytest.mark.real_model_cache
+
 WORKSPACE = Path(__file__).resolve().parents[4]
 
 

@@ -21,6 +21,11 @@ from unplug.core.normalize.encodings import (
 from unplug.core.runtime.model_runtime import load_active_model_provider
 from unplug.ml.validation import resolve_validation_checkpoint
 
+# These modules gate on resolve_validation_checkpoint(), which reads the machine
+# model cache at import time via skipif. They opt out of the empty-cache isolation
+# fixture so the skip decision and the test body see the same cache (#163).
+pytestmark = pytest.mark.real_model_cache
+
 ROOT = Path(__file__).resolve().parents[4]
 PROBES = ROOT / "src/unplug/audit/data/encoding_probe_queries.json"
 
