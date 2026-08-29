@@ -374,3 +374,70 @@ def test_invalid_unplug_model_path_logs_warning(
     assert resolved.path is None
     assert "UNPLUG_MODEL_PATH" in caplog.text
     assert str(bad) in caplog.text
+
+
+def _populate_cache(tmp_path: Path) -> tuple[ModelStore, Path]:
+    """A store whose cache holds a usable tiny checkpoint."""
+    store = ModelStore(cache_root=tmp_path / "cache")
+    ckpt = tmp_path / "cache" / "tiny" / "checkpoint"
+    _write_checkpoint(ckpt, config='{"model": "cached"}')
+    store.write_manifest(
+        ModelManifest(
+            tier="tiny",
+            repo_id="Unplug-AI/test",
+            revision=load_catalog().tiers["tiny"].revision,
+            path=str(ckpt),
+            config_digest=_config_digest(ckpt),
+        )
+    )
+    assert store.resolve_local_path("tiny") == ckpt
+    return store, ckpt
+
+
+def test_unusable_configured_path_is_not_replaced_by_cache(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A pinned checkpoint that goes bad must not be answered with another model (#149)."""
+    monkeypatch.delenv("UNPLUG_MODEL_PATH", raising=False)
+    store, cached = _populate_cache(tmp_path)
+    pinned = tmp_path / "pinned"
+    pinned.mkdir()
+    (pinned / "config.json").write_text("not-json", encoding="utf-8")
+
+    spec = load_catalog().tiers["tiny"].to_model_spec(path=str(pinned))
+    resolved = store.resolve_spec_path(spec, tier="tiny")
+
+    assert resolved.path == str(pinned)
+    assert resolved.path != str(cached)
+
+
+def test_invalid_env_model_path_is_not_replaced_by_cache(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    store, cached = _populate_cache(tmp_path)
+    bad = tmp_path / "bad_env"
+    bad.mkdir()
+    (bad / "config.json").write_text("{}", encoding="utf-8")
+    monkeypatch.setenv("UNPLUG_MODEL_PATH", str(bad))
+
+    spec = load_catalog().tiers["tiny"].to_model_spec()
+    resolved = store.resolve_spec_path(spec, tier="tiny")
+
+    assert resolved.path != str(cached)
+    assert resolved.path is None
+
+
+def test_cache_still_resolves_when_no_path_was_configured(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The cache is still the answer when nobody named a checkpoint."""
+    monkeypatch.delenv("UNPLUG_MODEL_PATH", raising=False)
+    store, cached = _populate_cache(tmp_path)
+
+    spec = load_catalog().tiers["tiny"].to_model_spec()
+    resolved = store.resolve_spec_path(spec, tier="tiny")
+
+    assert resolved.path == str(cached)
