@@ -362,3 +362,32 @@ class TestDeadConfigSurfaces:
     def test_scanner_with_no_bundled_default_still_builds(self) -> None:
         cfg = build_config({"guard": {"scanners_config": {"nosuch": {"base_score": 0.5}}}})
         assert cfg.scanner_configs["nosuch"].base_score == 0.5
+
+    def test_both_policy_tables_merge_per_key(self) -> None:
+        # A partial [guard.policy] must not discard a top-level [policy] that
+        # names different settings.
+        cfg = build_config(
+            {
+                "guard": {"policy": {"block_threshold": 0.2}},
+                "policy": {"sensitive_context_enabled": False},
+            }
+        )
+        assert cfg.policy.block_threshold == 0.2
+        assert cfg.policy.sensitive_context_enabled is False
+
+    def test_scanner_override_is_still_validated(self) -> None:
+        # Merging onto the bundled defaults must not cost the config-time error.
+        import pydantic
+
+        with pytest.raises(pydantic.ValidationError):
+            build_config({"guard": {"scanners_config": {"injection": {"base_score": "high"}}}})
+
+    def test_out_of_range_threshold_is_rejected(self) -> None:
+        import pydantic
+
+        with pytest.raises(pydantic.ValidationError):
+            build_config({"pipeline": {"thresholds": {"block": 5.0}}})
+
+    def test_string_threshold_is_coerced(self) -> None:
+        cfg = build_config({"pipeline": {"thresholds": {"block": "0.2"}}})
+        assert cfg.policy.block_threshold == 0.2

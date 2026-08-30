@@ -227,7 +227,11 @@ def _build_scanner_configs(data: dict[str, Any]) -> dict[str, ScannerConfig]:
         except KeyError:
             out[name] = ScannerConfig(**overrides)
             continue
-        out[name] = base.model_copy(update=overrides)
+        # Constructed, not `model_copy(update=...)`: model_copy writes the value
+        # straight in, so a mistyped or out-of-range override would land as a
+        # scan-time error instead of a config error. Merging the dumped defaults
+        # keeps the bundled values while every field still goes through pydantic.
+        out[name] = ScannerConfig(**{**base.model_dump(), **overrides})
     return out
 
 
@@ -307,7 +311,13 @@ def build_config(data: dict[str, Any]) -> GuardConfig:
     # top level, so without this the whole block is dead for anyone who copied
     # the example: thresholds, abstain, decision mode and the sensitive-context
     # switches all silently keep their defaults.
-    policy_data = guard_data.get("policy", data.get("policy"))
+    # Merged per key rather than whole-table, so a partial [guard.policy] does
+    # not discard a top-level [policy] that names different settings. [guard]
+    # wins wherever both name the same key, since it is the more specific place
+    # to say it and it is what Guard already honoured.
+    top_policy = data.get("policy") if isinstance(data.get("policy"), dict) else {}
+    guard_policy = guard_data.get("policy") if isinstance(guard_data.get("policy"), dict) else {}
+    policy_data: dict[str, Any] = {**(top_policy or {}), **(guard_policy or {})}
     if policy_data:
         kwargs["policy"] = _build_policy(policy_data)
     if "cache" in guard_data:
@@ -347,8 +357,12 @@ def build_config(data: dict[str, Any]) -> GuardConfig:
             explicit = policy_data if isinstance(policy_data, dict) else {}
             named = {k: v for k, v in named.items() if k not in explicit}
             if named:
+                # Same reason as the scanner overrides above: these values come
+                # straight out of the raw TOML, and block/redact/review are
+                # declared ge=0.0 le=1.0. `model_copy` would install a string or
+                # a 5.0 unchecked.
                 base = kwargs.get("policy") or ScanPolicy()
-                kwargs["policy"] = base.model_copy(update=named)
+                kwargs["policy"] = ScanPolicy(**{**base.model_dump(), **named})
 
     scanner_data = guard_data.get("scanners_config", data.get("scanners_config", {}))
     if not scanner_data:
