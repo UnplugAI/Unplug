@@ -92,15 +92,34 @@ jobs:
 
       - name: Live integration test
         run: |
+          # The install step above is unconditional, so by the time we get here
+          # the extra is present. That leaves one meaning for a collection skip:
+          # the framework is installed and will not import. The old step turned
+          # that into a warning and exit 0, so a leg could stop testing anything
+          # and still report success. It has been doing exactly that for ag2.
+          #
+          # Import first, so the log names the break instead of leaving a reader
+          # to infer it from a skip count. The module name comes out of the test
+          # file's own importorskip rather than a table here, which would be a
+          # second place to keep in step.
+          module=$(sed -n 's/.*importorskip("\([A-Za-z0-9_.]*\)").*/\1/p' ${{ matrix.test }} | head -1)
+          if [ -z "$module" ]; then
+            echo "::error title=No import probe::${{ matrix.test }} has no importorskip, so this leg cannot tell a broken framework from a missing one."
+            exit 1
+          fi
+          if ! .venv/bin/python -c "import $module"; then
+            echo "::error title=Framework unimportable::${{ matrix.extra }} installed but 'import $module' fails, so its live tests cover nothing."
+            exit 1
+          fi
+
           set +e
           .venv/bin/python -m pytest -q -m requires_integrations ${{ matrix.test }}
           rc=$?
           set -e
-          # Exit 5 = the module self-skipped: the framework is unimportable even
-          # under a fresh resolution (a genuine upstream break). Surface it loudly
-          # but don't block the release. Real test failures (exit 1) still fail.
+          # The framework imports, so nothing collected means the tests went
+          # away rather than the framework being broken. Also a failure.
           if [ "$rc" -eq 5 ]; then
-            echo "::warning title=Live integration skipped::${{ matrix.extra }} installed but its live tests were skipped (framework unimportable under a fresh resolution). Tolerated; not blocking."
-            exit 0
+            echo "::error title=No live tests collected::${{ matrix.extra }} imports fine but ${{ matrix.test }} collected nothing."
+            exit 1
           fi
           exit $rc
