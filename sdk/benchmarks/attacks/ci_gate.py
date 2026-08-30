@@ -42,15 +42,33 @@ GARAK_CORPUS = Path(__file__).resolve().parent.parent / "data" / "garak_attacks.
 # small, project-authored set of committed prompts split into two slices:
 #   - "unplug_ci"       : the original obviously-benign prompts (strict ceiling)
 #   - "unplug_ci_hard"  : hard negatives chosen because they trip the patterns
-#                         (looser ceiling, pinned just above the current rate so
-#                         it can only move down)
+#                         (ratcheted at the measured rate, see below)
 # If the larger neuralchemy corpus is present locally, its benign (label=0)
 # rows enrich the easy slice only (they are ordinary negatives, not hard).
 BENIGN_CORPUS = Path(__file__).resolve().parent.parent / "data" / "benign_ci.jsonl"
 BENIGN_CORPUS_EXTRA = Path(__file__).resolve().parent.parent / "data" / "neuralchemy.jsonl"
 HARD_NEGATIVE_SOURCE = "unplug_ci_hard"
 EASY_FPR_CEILING = 0.02
-HARD_FPR_CEILING = 0.98
+
+# The hard slice carries two numbers because it is doing two jobs, and a single
+# ceiling did neither. It sat at 0.98 against a measured 0.975, which passed a
+# detector that flags 39 of 40 hard negatives: an assertion satisfied by almost
+# any behaviour is a record, not a gate.
+#
+# The ratchet is pinned AT the measured rate, not above it. The corpus is fixed
+# and detection over it is deterministic, so there is no jitter to leave room
+# for, and one new misfire should fail rather than be absorbed. Lower it
+# whenever the measured rate drops; the gate says when it has gone stale.
+#
+# The target is the destination the ratchet was missing. It does not vote on the
+# result, because these prompts were chosen to trip the patterns and a hard slice
+# is expected to score badly. It is reported so the distance is visible in every
+# run rather than living in an issue. 0.50 is a first milestone rather than a
+# final answer: `developer_mode` and `persona_replacement` account for all 12
+# regex-only false positives on NotInject and neither looks at surrounding
+# context, so context guards there are the work that should move it.
+HARD_FPR_RATCHET = 0.975
+HARD_FPR_TARGET = 0.50
 
 
 def run_gate(threshold: float = 0.5) -> tuple[bool, dict]:
@@ -96,7 +114,10 @@ def run_gate(threshold: float = 0.5) -> tuple[bool, dict]:
 
         hard_result = evaluate(hard, threshold=threshold) if hard else None
         hard_fpr = hard_result.overall.false_positive_rate if hard_result else 0.0
-        hard_ok = (hard_fpr <= HARD_FPR_CEILING) if hard_result else True
+        hard_ok = (hard_fpr <= HARD_FPR_RATCHET) if hard_result else True
+        # A ratchet nobody lowers stops ratcheting. Say so in the run rather
+        # than waiting for someone to compare the constant against the number.
+        hard_stale = bool(hard_result) and hard_fpr < HARD_FPR_RATCHET
 
         benign_report = {
             "easy": {
@@ -110,8 +131,12 @@ def run_gate(threshold: float = 0.5) -> tuple[bool, dict]:
                 "samples": len(hard),
                 "false_positives": hard_result.overall.false_positives if hard_result else 0,
                 "fpr": round(hard_fpr, 4),
-                "ceiling": HARD_FPR_CEILING,
+                "ratchet": HARD_FPR_RATCHET,
                 "ok": hard_ok,
+                "ratchet_stale": hard_stale,
+                "target": HARD_FPR_TARGET,
+                "meets_target": hard_fpr <= HARD_FPR_TARGET,
+                "to_target": round(max(0.0, hard_fpr - HARD_FPR_TARGET), 4),
             },
         }
         if not (easy_ok and hard_ok):
@@ -149,14 +174,34 @@ def print_gate_report(report: dict) -> None:
     if "missing" in benign:
         print(f"\nbenign FPR: SKIPPED (missing {benign['missing']})")
     elif benign:
-        for slice_name in ("easy", "hard"):
-            info = benign.get(slice_name)
-            if info:
-                mark = "ok" if info["ok"] else "FAIL"
+        easy_info = benign.get("easy")
+        if easy_info:
+            mark = "ok" if easy_info["ok"] else "FAIL"
+            print(
+                f"\nbenign FPR [easy]: [{mark}] fpr={easy_info['fpr']:.4f} "
+                f"ceiling={easy_info['ceiling']:.2f} "
+                f"(fp={easy_info['false_positives']}/{easy_info['samples']})"
+            )
+        hard_info = benign.get("hard")
+        if hard_info:
+            mark = "ok" if hard_info["ok"] else "FAIL"
+            print(
+                f"\nbenign FPR [hard]: [{mark}] fpr={hard_info['fpr']:.4f} "
+                f"ratchet={hard_info['ratchet']:.3f} "
+                f"(fp={hard_info['false_positives']}/{hard_info['samples']})"
+            )
+            # Reported, not gated: these prompts were chosen to trip the
+            # patterns, so the rate is expected to be bad. What it needs is a
+            # destination visible on every run.
+            target_mark = "met" if hard_info["meets_target"] else "not met"
+            print(
+                f"  target={hard_info['target']:.2f} {target_mark}, "
+                f"{hard_info['to_target']:.4f} to go (reported, does not gate)"
+            )
+            if hard_info["ratchet_stale"]:
                 print(
-                    f"\nbenign FPR [{slice_name}]: [{mark}] fpr={info['fpr']:.4f} "
-                    f"ceiling={info['ceiling']:.2f} "
-                    f"(fp={info['false_positives']}/{info['samples']})"
+                    f"  ratchet is stale: measured {hard_info['fpr']:.4f} is below "
+                    f"{hard_info['ratchet']:.3f}, so lower the constant to hold the gain"
                 )
 
     print("=" * 72)
