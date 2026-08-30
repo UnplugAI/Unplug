@@ -80,10 +80,12 @@ single-turn sessions:
 
 `core/test` is the held-out split. `unplug-tiny` was fine-tuned on `core/train`, so
 numbers measured there are memorisation rather than detection. Precision stays near
-0.99 in both modes. The FPR column counts benign rows inside the injection set; on a
-separate hand-written benign corpus of 95 prompts, regex flags 0 and regex + ML flags 2,
-one of which is a *review* rather than a block. `inj_threshold` is tuned to the
-recall/FPR knee.
+0.99 in both modes. The FPR column counts benign rows inside the injection set. On a
+separate hand-written benign corpus of 135 prompts, regex flags 39 and regex + ML flags
+41. Almost all of that comes from the 40 hard negatives, which were picked because they
+carry injection vocabulary in an ordinary sentence: both modes trip on 39 of the 40. On
+the other 95 prompts regex flags 0 and regex + ML flags 2, one of which is a *review*
+rather than a block. `inj_threshold` is tuned to the recall/FPR knee.
 
 On broader public benign sets the model over-flags badly, up to 34% of a combined
 3,227-prompt validation set. See [`docs/BENCHMARKS.md`](../docs/BENCHMARKS.md) before

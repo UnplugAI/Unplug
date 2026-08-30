@@ -19,8 +19,11 @@ showing up in two places.
 **Cache correctness.** The safe-prefix cache is the part of the system most likely to
 turn a detection into a miss. #116 and #125 are open.
 
-**Benchmark honesty.** The benign corpus has no hard negatives (#120), so the reported
-regex FPR of 0.000 is not measuring what a reader assumes it measures.
+**Benchmark honesty.** The benign corpus now has 40 hard negatives (#120), and both
+modes trip on 39 of them, so the corpus FPR is 0.289 regex-only and 0.304 with the
+model. Bringing that down is real work, not a reporting change: #164 covers the CI
+gate that currently passes at 0.98, and the two patterns behind most of the misfires
+are `developer_mode` and `persona_replacement`, neither of which looks at context.
 
 ## Next
 

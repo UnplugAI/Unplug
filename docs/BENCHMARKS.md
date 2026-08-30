@@ -52,7 +52,13 @@ A committed corpus of 135 prompts (`benchmarks/data/benign_ci.jsonl`): the origi
 |------|-------|-----------------|-----|
 | regex-only | original 95 | 0 / 95 | 0.000 |
 | regex-only | hard negatives (40) | 39 / 40 | 0.975 |
+| regex-only | **full corpus (135)** | **39 / 135** | **0.289** |
 | regex + ML | original 95 | 2 / 95 | 0.021 |
+| regex + ML | hard negatives (40) | 39 / 40 | 0.975 |
+| regex + ML | **full corpus (135)** | **41 / 135** | **0.304** |
+
+The full-corpus row is the one to quote. Reporting either mode on the original 95
+alone reads as the benign behaviour of the whole detector, and it is not.
 
 The two ML false positives are one soft `abstain → review` ("explain how photosynthesis
 works") and one genuine model error ("explain the theory of relativity", scored 0.99).
