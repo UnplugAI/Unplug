@@ -283,3 +283,82 @@ blocked_template = "Custom block {category}"
 """)
         cfg = load(file_path=p)
         assert "Custom block" in cfg.messages.blocked_template
+
+
+class TestDeadConfigSurfaces:
+    """#169: three surfaces that parsed without error and then did nothing."""
+
+    def test_top_level_policy_applies_alongside_a_guard_table(self) -> None:
+        # unplug.example.toml ships [guard] and [policy] as siblings, so before
+        # this the whole block was dead for anyone who copied the example.
+        cfg = build_config(
+            {
+                "guard": {"mode": "local"},
+                "policy": {"block_threshold": 0.1, "sensitive_context_enabled": False},
+            }
+        )
+        assert cfg.policy.block_threshold == 0.1
+        assert cfg.policy.sensitive_context_enabled is False
+
+    def test_guard_policy_still_wins_over_top_level(self) -> None:
+        cfg = build_config(
+            {
+                "guard": {"policy": {"block_threshold": 0.2}},
+                "policy": {"block_threshold": 0.7},
+            }
+        )
+        assert cfg.policy.block_threshold == 0.2
+
+    def test_pipeline_thresholds_reach_the_guard_policy(self) -> None:
+        # Guard builds every request policy from the guard-level one, so
+        # thresholds that only landed on pipeline.policy never scanned.
+        cfg = build_config(
+            {"pipeline": {"thresholds": {"block": 0.2, "redact": 0.15, "review": 0.1}}}
+        )
+        assert cfg.policy.block_threshold == 0.2
+        assert cfg.policy.redact_threshold == 0.15
+        assert cfg.policy.review_threshold == 0.1
+        assert cfg.pipeline.policy.block_threshold == 0.2
+
+    def test_explicit_policy_beats_pipeline_thresholds(self) -> None:
+        cfg = build_config(
+            {
+                "policy": {"block_threshold": 0.9},
+                "pipeline": {"thresholds": {"block": 0.2, "review": 0.1}},
+            }
+        )
+        assert cfg.policy.block_threshold == 0.9
+        assert cfg.policy.review_threshold == 0.1
+
+    def test_thresholds_left_alone_when_nothing_names_them(self) -> None:
+        cfg = build_config({})
+        assert cfg.policy.block_threshold == 0.8
+        assert cfg.policy.redact_threshold == 0.5
+        assert cfg.policy.review_threshold == 0.3
+
+    def test_partial_scanner_override_keeps_the_bundled_rest(self) -> None:
+        # Setting one field used to reset the others to the pydantic class
+        # defaults, which moved secrets from 0.99 to 0.85 and turned injection
+        # normalization off. Both silent, both weakening.
+        from unplug.data.maps_loader import default_scanner_config
+
+        cfg = build_config(
+            {
+                "guard": {
+                    "scanners_config": {
+                        "injection": {"base_score": 0.9},
+                        "secrets": {"enabled": True},
+                    }
+                }
+            }
+        )
+        assert cfg.scanner_configs["injection"].base_score == 0.9
+        assert cfg.scanner_configs["injection"].normalize is True
+        assert (
+            cfg.scanner_configs["secrets"].base_score
+            == default_scanner_config("secrets").base_score
+        )
+
+    def test_scanner_with_no_bundled_default_still_builds(self) -> None:
+        cfg = build_config({"guard": {"scanners_config": {"nosuch": {"base_score": 0.5}}}})
+        assert cfg.scanner_configs["nosuch"].base_score == 0.5

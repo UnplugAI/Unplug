@@ -203,11 +203,32 @@ def _build_messages(data: dict[str, Any]) -> MessageConfig:
 
 
 def _build_scanner_configs(data: dict[str, Any]) -> dict[str, ScannerConfig]:
-    return {
-        name: ScannerConfig(**{k: v for k, v in cfg.items() if k in ScannerConfig.model_fields})
-        for name, cfg in data.items()
-        if isinstance(cfg, dict)
-    }
+    """Per-scanner overrides, applied on top of the bundled defaults.
+
+    `data/defaults/scanners.toml` describes itself as something you override per
+    key, so a table naming one field has to leave the rest of that scanner alone.
+    Building a fresh `ScannerConfig` from the subset dropped every unnamed field
+    to the pydantic class default instead, which moved `secrets` from 0.99 to
+    0.85 and turned `injection` normalization off for anyone who set only
+    `base_score`. Both silent, both in the weakening direction.
+
+    A scanner with no bundled entry keeps the old behaviour, since there is
+    nothing to merge onto.
+    """
+    from unplug.data.maps_loader import default_scanner_config
+
+    out: dict[str, ScannerConfig] = {}
+    for name, cfg in data.items():
+        if not isinstance(cfg, dict):
+            continue
+        overrides = {k: v for k, v in cfg.items() if k in ScannerConfig.model_fields}
+        try:
+            base = default_scanner_config(name)
+        except KeyError:
+            out[name] = ScannerConfig(**overrides)
+            continue
+        out[name] = base.model_copy(update=overrides)
+    return out
 
 
 def _build_models(data: dict[str, Any]) -> dict[str, Any]:
@@ -281,8 +302,14 @@ def build_config(data: dict[str, Any]) -> GuardConfig:
         kwargs["server_url"] = guard_data["server_url"]
     if "server_api_key" in guard_data:
         kwargs["server_api_key"] = guard_data["server_api_key"]
-    if "policy" in guard_data:
-        kwargs["policy"] = _build_policy(guard_data["policy"])
+    # Top-level fallback, as `pipeline`, `limits`, `messages`, `tools` and
+    # `boundaries` all already have. `unplug.example.toml` ships `[policy]` at
+    # top level, so without this the whole block is dead for anyone who copied
+    # the example: thresholds, abstain, decision mode and the sensitive-context
+    # switches all silently keep their defaults.
+    policy_data = guard_data.get("policy", data.get("policy"))
+    if policy_data:
+        kwargs["policy"] = _build_policy(policy_data)
     if "cache" in guard_data:
         kwargs["cache"] = CacheConfig(
             **{k: v for k, v in guard_data["cache"].items() if k in CacheConfig.model_fields}
@@ -295,6 +322,33 @@ def build_config(data: dict[str, Any]) -> GuardConfig:
     pipeline_data = guard_data.get("pipeline", data.get("pipeline", {}))
     if pipeline_data:
         kwargs["pipeline"] = _build_pipeline(pipeline_data)
+        # `_build_pipeline` folds `[pipeline.thresholds]` into `pipeline.policy`,
+        # and nothing scans with that policy: `Guard` builds every request policy
+        # from the guard-level one, and `BasePipeline._resolve_policy` prefers the
+        # context policy over `self._config.policy`. A pipeline run without a
+        # context is the only path that saw the thresholds, and the public API
+        # never takes it, so the same file gave `Guard.scan` and `Pipeline.run`
+        # two different actions for one input.
+        #
+        # Folding them into the guard policy as well makes one policy govern.
+        # `[policy]` wins on any key it names, since it is the more specific
+        # place to say it and it is what `Guard` already honoured.
+        thresholds = pipeline_data.get("thresholds")
+        if isinstance(thresholds, dict):
+            named = {
+                field: thresholds[key]
+                for key, field in (
+                    ("block", "block_threshold"),
+                    ("redact", "redact_threshold"),
+                    ("review", "review_threshold"),
+                )
+                if key in thresholds
+            }
+            explicit = policy_data if isinstance(policy_data, dict) else {}
+            named = {k: v for k, v in named.items() if k not in explicit}
+            if named:
+                base = kwargs.get("policy") or ScanPolicy()
+                kwargs["policy"] = base.model_copy(update=named)
 
     scanner_data = guard_data.get("scanners_config", data.get("scanners_config", {}))
     if not scanner_data:
