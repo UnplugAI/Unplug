@@ -45,19 +45,37 @@ def _compile(patterns: tuple[str, ...]) -> list[re.Pattern[str]]:
 
 
 def _matches_token(rx: re.Pattern[str], variant: str) -> bool:
-    """True when rx matches whole underscore tokens of variant, not part of one.
+    """True when rx's match ends where an underscore token ends.
 
-    The patterns are verb prefixes (^pay, ^post, ^rm, ^exec). Matching them against
-    a bare suffix means a prefix of a longer word counts: ^pay hits payload, ^post
-    hits postgres and postcode, ^rm hits rma. Those are read tools, and classifying
-    them as side effects denies them under the readonly profile. Requiring the match
-    to end where a token ends keeps ^delete on delete_file and drops ^pay on payload.
+    Applied only to the trimmed suffixes, never to the whole name. See _any_match.
     """
     return any(m.end() == len(variant) or variant[m.end()] == "_" for m in rx.finditer(variant))
 
 
 def _any_match(regexes: list[re.Pattern[str]], variants: tuple[str, ...]) -> bool:
-    return any(_matches_token(rx, v) for rx in regexes for v in variants)
+    """Match the full name loosely and the trimmed suffixes strictly.
+
+    The patterns are verb stems, so a prefix match on the name the caller actually
+    passed is intended: ^exec is meant to catch execute and execute_command, ^rm to
+    catch rmdir. Requiring those to land on a token boundary silently unclassified
+    822 names this repo used to treat as side effects, and let the messaging profile
+    through on `execute`.
+
+    The false positives come from the other direction. _name_variants trims leading
+    segments so a vendor prefix cannot hide the verb, and testing a verb stem against
+    a bare trimmed suffix is what made ^pay match payload and ^post match postgres.
+    Nothing was asking about a tool called `payload`; that string only exists because
+    `get_payload` was trimmed. So the suffixes, and only the suffixes, have to match
+    a whole token.
+
+    variants[0] is the full normalized name and the rest are its trimmed suffixes.
+    """
+    if not variants:
+        return False
+    whole, suffixes = variants[0], variants[1:]
+    if any(rx.search(whole) for rx in regexes):
+        return True
+    return any(_matches_token(rx, s) for rx in regexes for s in suffixes)
 
 
 # Splits camelCase and PascalCase at the boundary, so WebFetch becomes web_fetch

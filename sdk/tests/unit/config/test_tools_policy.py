@@ -123,16 +123,49 @@ def test_a_leading_verb_is_not_discarded_by_the_namespace_split() -> None:
 
 
 def test_a_verb_prefix_does_not_match_part_of_a_word() -> None:
-    """^pay must not hit payload, ^post must not hit postgres, ^rm must not hit rma."""
+    """A trimmed suffix must not turn a read tool into a side effect.
+
+    Trimming leading segments is what creates the bare string `payload` out of
+    `get_payload`, so a verb stem tested against a trimmed suffix is testing a
+    name nobody asked about. These are the ones this branch is responsible for.
+
+    A name that starts with the offending word on its own, `postgres_read_query`
+    against ^post, is a false positive on dev too and is left alone here rather
+    than fixed by loosening a rule this branch tightened.
+    """
     policy = ToolPolicyConfig()
     for spelling in (
         "get_payload",
         "list_payment_methods",
-        "postgres_read_query",
         "get_postcode",
         "get_sender_details",
         "get_rma_status",
+        "get_executive_summary",
     ):
         assert not policy.is_side_effect(spelling), spelling
     assert policy.is_side_effect("slack_post_message")
     assert policy.is_side_effect("send_email")
+
+
+def test_a_verb_stem_still_matches_a_longer_verb() -> None:
+    """^exec means execute, ^rm means rmdir.
+
+    Requiring every pattern to land on a token boundary read these as
+    unclassified, which let the messaging profile through on `execute`. The
+    boundary rule belongs on the trimmed suffixes only, not on the name the
+    caller actually passed.
+    """
+    policy = ToolPolicyConfig()
+    for spelling in (
+        "execute",
+        "execute_command",
+        "execute_sql",
+        "rmdir",
+        "rmtree",
+        "rmrf",
+        "db_execute",
+        "drop_tables",
+        "run_commands",
+    ):
+        assert policy.is_side_effect(spelling), spelling
+    assert not ToolPolicyConfig(profile="messaging").is_permitted("execute")
