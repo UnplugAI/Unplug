@@ -1,8 +1,7 @@
 """AG2 integration: guard ConversableAgent messages and tools via hooks.
 
-`AG2 <https://docs.ag2.ai/>`_ (the community fork of AutoGen, imported as
-``autogen``) lets you attach hooks to a ``ConversableAgent`` with
-``register_hook``. Unplug wires in at:
+`AG2 <https://docs.ag2.ai/>`_ (the community fork of AutoGen) lets you attach
+hooks to a ``ConversableAgent`` with ``register_hook``. Unplug wires in at:
 
 - **Incoming** — ``process_last_received_message`` scans the last received message
   for injection (redacts or raises).
@@ -14,7 +13,8 @@
 .. note::
    This is distinct from the ``autogen`` extra, which targets Microsoft's
    ``autogen-agentchat`` (imported as ``autogen_agentchat``). AG2 installs as the
-   ``ag2`` package and imports as ``autogen``.
+   ``ag2`` package; 1.0 imports as ``ag2`` and 0.x imported as ``autogen``.
+   Nothing here depends on which, since the caller passes the agent object in.
 
 Every hook is duck-typed (message dicts / strings) and registered by string name,
 so this module imports and unit-tests without AG2 installed.

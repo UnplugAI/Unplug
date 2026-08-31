@@ -36,9 +36,13 @@ def _register_on_a_real_agent(hooks: AgentHooks) -> str:
     for module_name in ("ag2", "autogen"):
         try:
             module = __import__(module_name)
-        except ImportError:
+            agent_cls = module.ConversableAgent
+        except (ImportError, AttributeError):
+            # AttributeError too: something else on the path can be importable as
+            # `ag2` or `autogen` without being the framework, and a demo should
+            # move on rather than die on it.
             continue
-        agent = module.ConversableAgent(name="demo", llm_config=False)
+        agent = agent_cls(name="demo", llm_config=False)
         agent.register_hook("process_message_before_send", ag2_message_hook(hooks))
         return f"hooks registered on a real ConversableAgent from {module_name!r}"
     return "ag2 not installed, skipped the live agent (pip install ag2 to run it)"
