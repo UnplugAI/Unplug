@@ -371,7 +371,7 @@ def test_invalid_unplug_model_path_logs_warning(
     spec = load_catalog().tiers["tiny"].to_model_spec()
     with caplog.at_level(logging.WARNING, logger="unplug.ml.store"):
         resolved = store.resolve_spec_path(spec, tier="tiny")
-    assert resolved.path is None
+    assert resolved.path == str(bad)
     assert "UNPLUG_MODEL_PATH" in caplog.text
     assert str(bad) in caplog.text
 
@@ -426,7 +426,10 @@ def test_invalid_env_model_path_is_not_replaced_by_cache(
     resolved = store.resolve_spec_path(spec, tier="tiny")
 
     assert resolved.path != str(cached)
-    assert resolved.path is None
+    # The bad path stays on the spec. Asserting None here passed while
+    # prepare_active_model_spec read the empty path as "nothing was asked for"
+    # and downloaded the tier anyway, so the substitution survived this test.
+    assert resolved.path == str(bad)
 
 
 def test_cache_still_resolves_when_no_path_was_configured(
@@ -440,4 +443,68 @@ def test_cache_still_resolves_when_no_path_was_configured(
     spec = load_catalog().tiers["tiny"].to_model_spec()
     resolved = store.resolve_spec_path(spec, tier="tiny")
 
+    assert resolved.path == str(cached)
+
+
+def test_auto_download_does_not_substitute_for_a_bad_configured_path(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The refusal has to survive the auto-download step, not just resolve_spec_path.
+
+    auto_download_model is on by default, and prepare_active_model_spec used to
+    reach ensure_tier whenever the path was unusable. The warning said it was not
+    falling back to the cache while it did exactly that.
+    """
+    from unplug.core.runtime.model_runtime import prepare_active_model_spec
+
+    monkeypatch.delenv("UNPLUG_MODEL_PATH", raising=False)
+    monkeypatch.setenv("UNPLUG_MODEL_CACHE", str(tmp_path / "cache"))
+    _, cached = _populate_cache(tmp_path)
+    bad = tmp_path / "missing_explicit"
+
+    cfg = merge_catalog_models(GuardConfig(active_model="tiny", auto_download_model=True))
+    models = dict(cfg.models)
+    models["tiny"] = models["tiny"].model_copy(update={"path": str(bad)})
+    resolved = prepare_active_model_spec(cfg.model_copy(update={"models": models}))
+
+    assert resolved is not None
+    assert resolved.path == str(bad)
+    assert resolved.path != str(cached)
+
+
+def test_auto_download_does_not_substitute_for_a_bad_env_path(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from unplug.core.runtime.model_runtime import prepare_active_model_spec
+
+    monkeypatch.setenv("UNPLUG_MODEL_CACHE", str(tmp_path / "cache"))
+    _, cached = _populate_cache(tmp_path)
+    bad = tmp_path / "missing_env"
+    monkeypatch.setenv("UNPLUG_MODEL_PATH", str(bad))
+
+    cfg = merge_catalog_models(GuardConfig(active_model="tiny", auto_download_model=True))
+    resolved = prepare_active_model_spec(cfg)
+
+    assert resolved is not None
+    assert resolved.path == str(bad)
+    assert resolved.path != str(cached)
+
+
+def test_auto_download_still_uses_the_cache_when_no_path_was_named(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Refusing a bad path must not break the ordinary cache hit."""
+    from unplug.core.runtime.model_runtime import prepare_active_model_spec
+
+    monkeypatch.delenv("UNPLUG_MODEL_PATH", raising=False)
+    monkeypatch.setenv("UNPLUG_MODEL_CACHE", str(tmp_path / "cache"))
+    _, cached = _populate_cache(tmp_path)
+
+    cfg = merge_catalog_models(GuardConfig(active_model="tiny", auto_download_model=True))
+    resolved = prepare_active_model_spec(cfg)
+
+    assert resolved is not None
     assert resolved.path == str(cached)

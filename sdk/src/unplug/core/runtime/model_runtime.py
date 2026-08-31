@@ -79,6 +79,14 @@ def prepare_active_model_spec(config: GuardConfig) -> ModelSpec | None:
     if path and store.is_valid_checkpoint(Path(path)):
         return spec
 
+    if path:
+        # A path is set and is not a valid checkpoint, so the operator named one
+        # and got it wrong. resolve_spec_path already refuses to answer that from
+        # the cache; downloading or resolving a tier here would substitute a
+        # different model for the one they asked for, which is the same silent
+        # swap by another route. Hand back the bad path and let the caller fail.
+        return spec
+
     if not config.auto_download_model:
         return spec
 

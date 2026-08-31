@@ -315,7 +315,11 @@ class ModelStore:
                 "Not falling back to the model cache: unset it to use the cache.",
                 env_path,
             )
-            return spec
+            # The bad path is written onto the spec, not dropped. Returning the spec
+            # unchanged leaves path unset, which downstream reads as "nothing was
+            # asked for" and answers from the cache or a download: the substitution
+            # this warning promises is not happening.
+            return spec.model_copy(update={"path": env_path})
 
         if spec.path:
             if self.is_valid_checkpoint(Path(spec.path)):
