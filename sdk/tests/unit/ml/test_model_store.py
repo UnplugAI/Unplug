@@ -508,3 +508,47 @@ def test_auto_download_still_uses_the_cache_when_no_path_was_named(
 
     assert resolved is not None
     assert resolved.path == str(cached)
+
+
+def test_require_ml_error_names_the_offending_path(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The operator needs to see which path was rejected, not just the tier.
+
+    Now that a bad path fails instead of being answered from the cache, this is
+    the error a mistyped path produces, and "tier 'tiny' is not available
+    locally, run unplug-models download tiny" sends them to re-download a model
+    they already have.
+    """
+    from unplug.core.runtime.model_runtime import load_active_model_provider
+
+    monkeypatch.delenv("UNPLUG_MODEL_PATH", raising=False)
+    monkeypatch.setenv("UNPLUG_MODEL_CACHE", str(tmp_path / "empty"))
+    bad = tmp_path / "typo_in_this_path"
+
+    cfg = merge_catalog_models(
+        GuardConfig(active_model="tiny", require_ml=True, auto_download_model=False)
+    )
+    models = dict(cfg.models)
+    models["tiny"] = models["tiny"].model_copy(update={"path": str(bad)})
+    cfg = cfg.model_copy(update={"models": models})
+
+    with pytest.raises(ModelError) as excinfo:
+        load_active_model_provider(cfg)
+    assert str(bad) in str(excinfo.value)
+
+
+def test_require_ml_error_still_says_download_when_no_path_was_named(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("UNPLUG_MODEL_PATH", raising=False)
+    monkeypatch.setenv("UNPLUG_MODEL_CACHE", str(tmp_path / "empty"))
+    from unplug.core.runtime.model_runtime import load_active_model_provider
+
+    cfg = merge_catalog_models(
+        GuardConfig(active_model="tiny", require_ml=True, auto_download_model=False)
+    )
+    with pytest.raises(ModelError, match="download"):
+        load_active_model_provider(cfg)

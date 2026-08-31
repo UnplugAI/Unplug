@@ -132,9 +132,21 @@ def load_active_model_provider(
     if not path or not Path(path).is_dir():
         if config.require_ml:
             tier = config.active_model or "unknown"
-            msg = (
-                f"Model tier {tier!r} is not available locally. Run: unplug-models download {tier}"
-            )
+            if path:
+                # Naming the path matters more than naming the tier here. Now that
+                # a bad path is refused rather than answered from the cache, this
+                # is the error an operator gets when they mistype one, and "tier
+                # 'tiny' is not available locally" sends them to re-download a
+                # model they already have.
+                msg = (
+                    f"Model tier {tier!r} was configured with path {path!r}, which is not "
+                    "a usable checkpoint. Fix the path or unset it to use the model cache."
+                )
+            else:
+                msg = (
+                    f"Model tier {tier!r} is not available locally. "
+                    f"Run: unplug-models download {tier}"
+                )
             raise ModelError(msg)
         return None
     registry = build_model_registry()
