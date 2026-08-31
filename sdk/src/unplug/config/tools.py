@@ -122,6 +122,31 @@ def _name_variants(tool_name: str) -> tuple[str, ...]:
     return tuple("_".join(parts[i:]) for i in range(len(parts)))
 
 
+def _namespace_variants(tool_name: str) -> tuple[str, ...]:
+    """The normalized name, plus itself with leading NAMESPACE segments dropped.
+
+    For the explicit `side_effect_tools` / `read_only_tools` lists, not the
+    patterns. An entry there names one tool, and _name_variants trims on every
+    underscore, so `read_only_tools = ["frobnicate"]` also matched
+    `admin_frobnicate` and `evil_frobnicate`: a read-only grant is an exemption
+    from the unknown-tool review, and it was being handed to any tool that
+    happened to end in the granted word.
+
+    Trimming only where a namespace separator was still keeps the case the lists
+    exist for, a host prefixing its own name: `send_message` matches an incoming
+    `mcp__slack__send_message`, because that prefix came from `__`. It does not
+    match `admin_send_message`, because that is a different tool's name.
+    """
+    name = tool_name.strip()
+    segments = [s for s in _SEPARATOR_SPLIT.split(name) if s]
+    out: list[str] = []
+    for i in range(len(segments)):
+        norm = _normalize_tool_name("_".join(segments[i:]))
+        if norm:
+            out.append(norm)
+    return tuple(dict.fromkeys(out))
+
+
 def resolve_profile(name: str | None) -> ToolProfile | None:
     if not name:
         return None
@@ -193,14 +218,14 @@ class ToolPolicyConfig(BaseModel):
     def is_side_effect(self, tool_name: str) -> bool:
         variants = _name_variants(tool_name)
         configured = {_normalize_tool_name(t) for t in self.side_effect_tools}
-        if configured.intersection(variants):
+        if configured.intersection(_namespace_variants(tool_name)):
             return True
         return _any_match(self._side_effect_regexes(), variants)
 
     def is_taint_source(self, tool_name: str) -> bool:
         variants = _name_variants(tool_name)
         configured = {_normalize_tool_name(t) for t in self.taint_source_tools}
-        if configured.intersection(variants):
+        if configured.intersection(_namespace_variants(tool_name)):
             return True
         return _any_match(self._taint_source_regexes(), variants)
 
@@ -214,7 +239,7 @@ class ToolPolicyConfig(BaseModel):
         """Positively recognised as having no side effect, rather than merely unmatched."""
         variants = _name_variants(tool_name)
         configured = {_normalize_tool_name(t) for t in self.read_only_tools}
-        if configured.intersection(variants):
+        if configured.intersection(_namespace_variants(tool_name)):
             return True
         if _any_match(self._taint_source_regexes(), variants):
             return True

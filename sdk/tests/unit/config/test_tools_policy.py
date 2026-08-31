@@ -169,3 +169,26 @@ def test_a_verb_stem_still_matches_a_longer_verb() -> None:
     ):
         assert policy.is_side_effect(spelling), spelling
     assert not ToolPolicyConfig(profile="messaging").is_permitted("execute")
+
+
+def test_a_read_only_grant_does_not_leak_to_other_tools() -> None:
+    """An exemption names one tool, not every tool ending in that word.
+
+    read_only_tools skips the unknown-tool review on a tainted session, so
+    matching it against every underscore suffix handed that exemption to
+    admin_frobnicate and evil_frobnicate as well.
+    """
+    policy = ToolPolicyConfig(read_only_tools=("frobnicate",))
+    assert policy.is_known_read_only("frobnicate")
+    assert not policy.is_known_read_only("admin_frobnicate")
+    assert not policy.is_known_read_only("evil_frobnicate")
+    assert policy.is_unclassified("evil_frobnicate")
+    # A host prefix separated by a namespace marker is still the same tool.
+    assert policy.is_known_read_only("mcp__other__frobnicate")
+
+
+def test_an_explicit_entry_matches_across_host_prefixes_only() -> None:
+    policy = ToolPolicyConfig(side_effect_tools=("send_message",))
+    assert policy.is_side_effect("send_message")
+    assert policy.is_side_effect("mcp__slack__send_message")
+    assert policy.is_side_effect("slack.send_message")
