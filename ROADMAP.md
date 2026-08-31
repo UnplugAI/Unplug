@@ -19,8 +19,10 @@ showing up in two places.
 **Cache correctness.** The safe-prefix cache is the part of the system most likely to
 turn a detection into a miss. #116 and #125 are open.
 
-**Benchmark honesty.** The benign corpus has no hard negatives (#120), so the reported
-regex FPR of 0.000 is not measuring what a reader assumes it measures.
+**Benchmark honesty.** The benign corpus now includes 40 hard negatives (#120), where the
+regex-only false-positive rate is 0.975; across the full 135-prompt corpus it is 0.289.
+Keep expanding those adversarial benign cases so reported aggregate rates continue to
+reflect realistic confounders.
 
 ## Next
 

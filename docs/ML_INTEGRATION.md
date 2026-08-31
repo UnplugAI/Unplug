@@ -100,7 +100,8 @@ When `abstain_enabled` is true (default in `catalog.toml`), the ML scanner uses 
 
 - **BLOCK**: doc or span score above threshold
 - **ALLOW**: scores below `tau_abstain_low` with no span fire
-- **ABSTAIN**: uncertain middle band → `Action.ABSTAIN` (safe with span redaction)
+- **ABSTAIN**: uncertain middle band → `Action.ABSTAIN`; localized spans are redacted
+  when present, while document-only abstentions must stay blocked pending review
 
 Optional `JudgeProvider` runs when passed as `judge=` to `Guard()` — on ML ABSTAIN
 or when max scanner risk is in `[judge_low, judge_high)` (defaults 0.3–0.8). See
@@ -117,6 +118,7 @@ Encoding blobs (Base64) use the same thresholds via decode-then-classify.
 
 ## Release artifacts
 
-- `BENCHMARKS.md`: auto-generated from the evaluation harness (no hand-typed numbers)
+- `BENCHMARKS.md`: maintained from evaluation-harness results; verify recorded numbers against
+  the cited command and dataset before publishing
 - PyPI `unplug-ai` version bump after gate review
 - Hugging Face model repo: `Unplug-AI/unplug-tiny-v1`
