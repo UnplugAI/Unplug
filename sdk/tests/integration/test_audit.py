@@ -11,10 +11,10 @@ from unplug.audit.boundary import default_boundary_probes_path, run_boundary_pro
 from unplug.audit.runner import run_audit
 from unplug.ml.validation import resolve_validation_checkpoint
 
-# These modules gate on resolve_validation_checkpoint(), which reads the machine
-# model cache at import time via skipif. They opt out of the empty-cache isolation
-# fixture so the skip decision and the test body see the same cache (#163).
-pytestmark = pytest.mark.real_model_cache
+# Only the one test below gates on resolve_validation_checkpoint(), whose skipif
+# is evaluated at import time against the machine cache. Opting the whole module
+# out let tests that never touch a checkpoint read the machine cache too, which
+# is the machine-dependence this fixture exists to remove (#163).
 
 WORKSPACE = Path(__file__).resolve().parents[4]
 
@@ -46,6 +46,9 @@ def test_run_audit_ml_checks_split() -> None:
     assert {"ml_checkpoint", "ml_configured", "ml_active"}.issubset(names)
 
 
+# Opts out of the empty-cache fixture so the import-time skip decision and the
+# test body see the same cache.
+@pytest.mark.real_model_cache
 @pytest.mark.skipif(_checkpoint() is None, reason="checkpoint not available")
 def test_run_audit_path_only_wires_ml() -> None:
     pytest.importorskip("torch")
@@ -98,6 +101,7 @@ def test_run_audit_ml_probes_skipped_mark_not_passed() -> None:
     assert report["wiring_pass"] is True
 
 
+@pytest.mark.real_model_cache
 @pytest.mark.skipif(_checkpoint() is None, reason="checkpoint not available")
 def test_run_audit_require_ml_wires_injection() -> None:
     pytest.importorskip("torch")
@@ -124,6 +128,7 @@ def test_run_audit_require_ml_wires_injection() -> None:
             os.environ["UNPLUG_MODEL_PATH"] = prev_path
 
 
+@pytest.mark.real_model_cache
 @pytest.mark.skipif(_checkpoint() is None, reason="checkpoint not available")
 def test_run_audit_probes_with_require_ml() -> None:
     pytest.importorskip("torch")
