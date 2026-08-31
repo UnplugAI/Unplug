@@ -456,3 +456,57 @@ class TestPolicyTablesFailClosed:
                     "pipeline": {"thresholds": {"block": 5.0}},
                 }
             )
+
+
+class TestEveryPolicySourceCombination:
+    """All 16 combinations of the four sources must agree on one block bar.
+
+    The push-down originally ran only inside the `[pipeline]` branch, so a file
+    with `[policy]` and no `[pipeline]` table left cfg.policy at the configured
+    value while the pipeline kept the default. Three of these sixteen failed.
+    """
+
+    @staticmethod
+    def _build(pipeline_policy: bool, top: bool, guard: bool, thresholds: bool):
+        data: dict = {}
+        if pipeline_policy:
+            data.setdefault("pipeline", {})["policy"] = {"block_threshold": 0.1}
+        if thresholds:
+            data.setdefault("pipeline", {})["thresholds"] = {"block": 0.4}
+        if top:
+            data["policy"] = {"block_threshold": 0.2}
+        if guard:
+            data.setdefault("guard", {})["policy"] = {"block_threshold": 0.3}
+        return build_config(data)
+
+    @pytest.mark.parametrize("pipeline_policy", [False, True])
+    @pytest.mark.parametrize("top", [False, True])
+    @pytest.mark.parametrize("guard", [False, True])
+    @pytest.mark.parametrize("thresholds", [False, True])
+    def test_all_three_layers_agree(
+        self, pipeline_policy: bool, top: bool, guard: bool, thresholds: bool
+    ) -> None:
+        cfg = self._build(pipeline_policy, top, guard, thresholds)
+        assert (
+            cfg.policy.block_threshold
+            == cfg.pipeline.policy.block_threshold
+            == cfg.pipeline.thresholds.block
+        )
+
+    def test_the_most_specific_source_wins(self) -> None:
+        # guard.policy > policy > pipeline.policy > pipeline.thresholds
+        assert self._build(True, True, True, True).policy.block_threshold == 0.3
+        assert self._build(True, True, False, True).policy.block_threshold == 0.2
+        assert self._build(True, False, False, True).policy.block_threshold == 0.1
+        assert self._build(False, False, False, True).policy.block_threshold == 0.4
+
+    def test_the_ml_gate_can_still_differ_from_the_block_bar(self) -> None:
+        """Forcing thresholds to the policy must not remove the gray_high knob."""
+        cfg = build_config(
+            {
+                "policy": {"block_threshold": 0.9},
+                "pipeline": {"ml_gate": {"gray_high": 0.7}},
+            }
+        )
+        assert cfg.pipeline.thresholds.block == 0.9
+        assert cfg.pipeline.ml_gate.gray_high == 0.7

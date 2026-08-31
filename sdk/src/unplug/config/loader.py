@@ -394,25 +394,33 @@ def build_config(data: dict[str, Any]) -> GuardConfig:
                 base = kwargs.get("policy") or ScanPolicy()
                 kwargs["policy"] = ScanPolicy(**{**base.model_dump(), **named})
 
-        # One file must not produce two block bars. Folding the thresholds up into
-        # the guard policy above fixed the direction Guard.scan reads, but left
-        # pipeline.policy and pipeline.thresholds holding whatever [pipeline] said,
-        # so [policy] block_threshold = 0.9 next to [pipeline.thresholds] block = 0.2
-        # gave Guard.scan REDACT, a bare Pipeline.run BLOCK, and the ML gate a
-        # gray_high of 0.2. Push the resolved policy back down so all three agree.
-        resolved_policy = kwargs.get("policy")
-        if resolved_policy is not None:
-            built = kwargs["pipeline"]
-            kwargs["pipeline"] = built.model_copy(
-                update={
-                    "policy": resolved_policy,
-                    "thresholds": ThresholdConfig(
-                        block=resolved_policy.block_threshold,
-                        redact=resolved_policy.redact_threshold,
-                        review=resolved_policy.review_threshold,
-                    ),
-                }
-            )
+    # One file must not produce two block bars. Folding the thresholds up into the
+    # guard policy fixed the direction Guard.scan reads, but left pipeline.policy
+    # and pipeline.thresholds holding whatever [pipeline] said, so [policy]
+    # block_threshold = 0.9 next to [pipeline.thresholds] block = 0.2 gave
+    # Guard.scan REDACT, a bare Pipeline.run BLOCK, and the ML gate a gray_high of
+    # 0.2. Push the resolved policy back down so all three agree.
+    #
+    # Outside the [pipeline] branch on purpose: a file with [policy] and no
+    # [pipeline] table at all still has to reconcile, and running this only when
+    # [pipeline] was present left exactly that case split.
+    #
+    # This does not take away the independent ML cutoff. The only consumer of
+    # pipeline.thresholds is the gate's fallback block threshold, and
+    # pipeline.ml_gate.gray_high still overrides it.
+    resolved_policy = kwargs.get("policy")
+    if resolved_policy is not None:
+        built = kwargs.get("pipeline") or PipelineConfig()
+        kwargs["pipeline"] = built.model_copy(
+            update={
+                "policy": resolved_policy,
+                "thresholds": ThresholdConfig(
+                    block=resolved_policy.block_threshold,
+                    redact=resolved_policy.redact_threshold,
+                    review=resolved_policy.review_threshold,
+                ),
+            }
+        )
 
     scanner_data = guard_data.get("scanners_config", data.get("scanners_config", {}))
     if not scanner_data:
