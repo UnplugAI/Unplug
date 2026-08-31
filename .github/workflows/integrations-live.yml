@@ -102,7 +102,13 @@ jobs:
           # to infer it from a skip count. The module name comes out of the test
           # file's own importorskip rather than a table here, which would be a
           # second place to keep in step.
-          module=$(sed -n 's/.*importorskip("\([A-Za-z0-9_.]*\)").*/\1/p' ${{ matrix.test }} | head -1)
+          # Read with python rather than sed. A sed pattern pinned to double
+          # quotes and no inner whitespace matches all 17 files today and would
+          # extract nothing the moment one is reformatted with single quotes or a
+          # minversion kwarg, turning a working leg into a "no import probe"
+          # failure. Comment lines are dropped so a commented-out importorskip
+          # cannot be picked up instead of the real one.
+          module=$(.venv/bin/python -c 'import re, sys; code = "\n".join(l for l in open(sys.argv[1], encoding="utf-8").read().splitlines() if not l.lstrip().startswith("#")); m = re.search(r"importorskip\(\s*[\x27\"]([A-Za-z0-9_.]+)[\x27\"]", code); print(m.group(1) if m else "")' "${{ matrix.test }}")
           if [ -z "$module" ]; then
             echo "::error title=No import probe::${{ matrix.test }} has no importorskip, so this leg cannot tell a broken framework from a missing one."
             exit 1
@@ -113,7 +119,7 @@ jobs:
           fi
 
           set +e
-          .venv/bin/python -m pytest -q -m requires_integrations ${{ matrix.test }}
+          .venv/bin/python -m pytest -q -m requires_integrations "${{ matrix.test }}"
           rc=$?
           set -e
           # The framework imports, so nothing collected means the tests went
