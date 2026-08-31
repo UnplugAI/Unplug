@@ -21,10 +21,9 @@ from unplug.ml.validation import resolve_validation_checkpoint
 from unplug.pipelines.input import InputPipeline
 from unplug.scanners.injection import InjectionScanner
 
-# These modules gate on resolve_validation_checkpoint(), which reads the machine
-# model cache at import time via skipif. They opt out of the empty-cache isolation
-# fixture so the skip decision and the test body see the same cache (#163).
-pytestmark = pytest.mark.real_model_cache
+# Only the tests whose import-time skipif reads the machine cache opt out. A
+# module-level mark opted out tests that never touch a checkpoint too, which is
+# the machine-dependence the isolation fixture exists to remove (#163).
 
 
 def _b64(text: str) -> str:
@@ -114,6 +113,7 @@ class TestEncodingClassifiers:
         assert sub == "first"
         assert len(calls) == 1
 
+    @pytest.mark.real_model_cache
     @pytest.mark.skipif(_checkpoint() is None, reason="checkpoint not available")
     def test_span_model_classifier_on_decoded(self) -> None:
         pytest.importorskip("torch")
