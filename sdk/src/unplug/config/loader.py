@@ -178,19 +178,24 @@ def _build_pipeline(data: dict[str, Any]) -> PipelineConfig:
             **{k: v for k, v in ml_gate_data.items() if k in MlGateConfig.model_fields}
         )
     pipeline = PipelineConfig(**kwargs)
-    if "thresholds" in data:
+    if "thresholds" in data and "policy" not in data:
+        # Only when this table did not name a policy of its own: an explicit
+        # [pipeline.policy] is the more specific statement and used to be
+        # silently overwritten here.
+        #
+        # Constructed, not `model_copy(update=...)`. model_copy writes the value
+        # in unchecked, which is how a block of 5.0 reached pipeline.policy and
+        # made every score decide ALLOW.
         t = pipeline.thresholds
-        pipeline = pipeline.model_copy(
-            update={
-                "policy": pipeline.policy.model_copy(
-                    update={
-                        "block_threshold": t.block,
-                        "redact_threshold": t.redact,
-                        "review_threshold": t.review,
-                    }
-                )
+        policy = ScanPolicy(
+            **{
+                **pipeline.policy.model_dump(),
+                "block_threshold": t.block,
+                "redact_threshold": t.redact,
+                "review_threshold": t.review,
             }
         )
+        pipeline = pipeline.model_copy(update={"policy": policy})
     return pipeline
 
 
@@ -306,6 +311,7 @@ def build_config(data: dict[str, Any]) -> GuardConfig:
         kwargs["server_url"] = guard_data["server_url"]
     if "server_api_key" in guard_data:
         kwargs["server_api_key"] = guard_data["server_api_key"]
+
     # Top-level fallback, as `pipeline`, `limits`, `messages`, `tools` and
     # `boundaries` all already have. `unplug.example.toml` ships `[policy]` at
     # top level, so without this the whole block is dead for anyone who copied
@@ -315,9 +321,33 @@ def build_config(data: dict[str, Any]) -> GuardConfig:
     # not discard a top-level [policy] that names different settings. [guard]
     # wins wherever both name the same key, since it is the more specific place
     # to say it and it is what Guard already honoured.
-    top_policy = data.get("policy") if isinstance(data.get("policy"), dict) else {}
-    guard_policy = guard_data.get("policy") if isinstance(guard_data.get("policy"), dict) else {}
-    policy_data: dict[str, Any] = {**(top_policy or {}), **(guard_policy or {})}
+    def _policy_table(source: dict[str, Any], label: str) -> dict[str, Any]:
+        # Present but not a table is a mistake, not an absence. Treating it as {}
+        # boots a Guard on default thresholds when the operator thought they had
+        # set them, which is the fail-open version of the bug this whole change
+        # is about. On dev this raised, and it should keep raising.
+        if label not in source:
+            return {}
+        value = source[label]
+        if not isinstance(value, dict):
+            msg = f"[{label}] must be a table, got {type(value).__name__}"
+            raise ConfigError(msg)
+        return value
+
+    # Precedence, least to most specific: [pipeline.policy], [policy], [guard.policy].
+    # [pipeline.thresholds] is folded in further down and fills only what none of
+    # these named.
+    _pipeline_table = guard_data.get("pipeline", data.get("pipeline", {}))
+    pipeline_policy = (
+        _policy_table(_pipeline_table, "policy") if isinstance(_pipeline_table, dict) else {}
+    )
+    top_policy = _policy_table(data, "policy")
+    guard_policy = _policy_table(guard_data, "policy")
+    policy_data: dict[str, Any] = {
+        **(pipeline_policy or {}),
+        **(top_policy or {}),
+        **(guard_policy or {}),
+    }
     if policy_data:
         kwargs["policy"] = _build_policy(policy_data)
     if "cache" in guard_data:
@@ -363,6 +393,26 @@ def build_config(data: dict[str, Any]) -> GuardConfig:
                 # a 5.0 unchecked.
                 base = kwargs.get("policy") or ScanPolicy()
                 kwargs["policy"] = ScanPolicy(**{**base.model_dump(), **named})
+
+        # One file must not produce two block bars. Folding the thresholds up into
+        # the guard policy above fixed the direction Guard.scan reads, but left
+        # pipeline.policy and pipeline.thresholds holding whatever [pipeline] said,
+        # so [policy] block_threshold = 0.9 next to [pipeline.thresholds] block = 0.2
+        # gave Guard.scan REDACT, a bare Pipeline.run BLOCK, and the ML gate a
+        # gray_high of 0.2. Push the resolved policy back down so all three agree.
+        resolved_policy = kwargs.get("policy")
+        if resolved_policy is not None:
+            built = kwargs["pipeline"]
+            kwargs["pipeline"] = built.model_copy(
+                update={
+                    "policy": resolved_policy,
+                    "thresholds": ThresholdConfig(
+                        block=resolved_policy.block_threshold,
+                        redact=resolved_policy.redact_threshold,
+                        review=resolved_policy.review_threshold,
+                    ),
+                }
+            )
 
     scanner_data = guard_data.get("scanners_config", data.get("scanners_config", {}))
     if not scanner_data:

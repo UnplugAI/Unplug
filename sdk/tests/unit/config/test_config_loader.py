@@ -391,3 +391,68 @@ class TestDeadConfigSurfaces:
     def test_string_threshold_is_coerced(self) -> None:
         cfg = build_config({"pipeline": {"thresholds": {"block": "0.2"}}})
         assert cfg.policy.block_threshold == 0.2
+
+
+class TestOnePolicyGoverns:
+    """One file must not produce two different block bars."""
+
+    def test_policy_and_pipeline_thresholds_resolve_to_one_value(self) -> None:
+        cfg = build_config(
+            {
+                "policy": {"block_threshold": 0.9},
+                "pipeline": {"thresholds": {"block": 0.2}},
+            }
+        )
+        # [policy] is the more specific statement and wins. Before this, Guard.scan
+        # decided on 0.9, a bare Pipeline.run decided on 0.2, and the ML gate read
+        # 0.2 as its gray_high, all from the same file.
+        assert cfg.policy.block_threshold == 0.9
+        assert cfg.pipeline.policy.block_threshold == 0.9
+        assert cfg.pipeline.thresholds.block == 0.9
+
+    def test_guard_policy_also_governs_the_pipeline(self) -> None:
+        cfg = build_config(
+            {
+                "guard": {"policy": {"block_threshold": 0.7}},
+                "pipeline": {"thresholds": {"block": 0.3}},
+            }
+        )
+        assert cfg.pipeline.policy.block_threshold == 0.7
+        assert cfg.pipeline.thresholds.block == 0.7
+
+    def test_thresholds_alone_still_drive_both(self) -> None:
+        cfg = build_config({"pipeline": {"thresholds": {"block": 0.2}}})
+        assert cfg.policy.block_threshold == 0.2
+        assert cfg.pipeline.policy.block_threshold == 0.2
+
+    def test_an_explicit_pipeline_policy_is_not_overwritten_by_thresholds(self) -> None:
+        cfg = build_config(
+            {"pipeline": {"policy": {"block_threshold": 0.6}, "thresholds": {"block": 0.2}}}
+        )
+        assert cfg.pipeline.policy.block_threshold == 0.6
+
+
+class TestPolicyTablesFailClosed:
+    def test_a_non_table_policy_raises(self) -> None:
+        from unplug.exceptions import ConfigError
+
+        with pytest.raises(ConfigError, match=r"\[policy\] must be a table"):
+            build_config({"policy": "strict"})
+
+    def test_a_non_table_guard_policy_raises(self) -> None:
+        from unplug.exceptions import ConfigError
+
+        with pytest.raises(ConfigError, match=r"\[policy\] must be a table"):
+            build_config({"guard": {"policy": "strict"}})
+
+    def test_out_of_range_threshold_is_rejected_even_when_policy_shadows_it(self) -> None:
+        """The shadowed value still reached pipeline.thresholds unchecked."""
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError):
+            build_config(
+                {
+                    "policy": {"block_threshold": 0.8},
+                    "pipeline": {"thresholds": {"block": 5.0}},
+                }
+            )

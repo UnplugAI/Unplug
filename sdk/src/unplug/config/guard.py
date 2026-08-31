@@ -54,9 +54,11 @@ class ThresholdConfig(BaseModel):
 
     model_config = {"frozen": True}
 
-    block: float = 0.8
-    redact: float = 0.5
-    review: float = 0.3
+    # Ranges match ScanPolicy's. Without them a block of 5.0 loaded happily and
+    # then no score could ever reach it, so the pipeline allowed everything.
+    block: float = Field(default=0.8, ge=0.0, le=1.0)
+    redact: float = Field(default=0.5, ge=0.0, le=1.0)
+    review: float = Field(default=0.3, ge=0.0, le=1.0)
 
 
 class ScannerConfig(BaseModel):
