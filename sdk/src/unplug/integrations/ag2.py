@@ -19,13 +19,14 @@
 Every hook is duck-typed (message dicts / strings) and registered by string name,
 so this module imports and unit-tests without AG2 installed.
 
-Install the optional extra::
+Install AG2 directly; there is no `unplug-ai[ag2]` extra, because nothing here
+imports the framework and AG2 1.0 moved its module from `autogen` to `ag2`::
 
-    pip install "unplug-ai[ag2]"
+    pip install unplug-ai ag2
 
-Usage::
+Usage (AG2 1.0; on 0.x the import is ``from autogen import ConversableAgent``)::
 
-    from autogen import ConversableAgent
+    from ag2 import ConversableAgent
     from unplug import Guard
     from unplug.integrations.hooks import AgentHooks
     from unplug.integrations.ag2 import register_unplug_hooks

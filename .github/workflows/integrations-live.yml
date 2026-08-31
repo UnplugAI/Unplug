@@ -58,8 +58,6 @@ jobs:
             test: tests/optional/live/test_letta_live.py
           - extra: griptape
             test: tests/optional/live/test_griptape_live.py
-          - extra: ag2
-            test: tests/optional/live/test_ag2_live.py
           - extra: atomic-agents
             test: tests/optional/live/test_atomic_agents_live.py
     name: live (${{ matrix.extra }})
@@ -96,7 +94,8 @@ jobs:
           # the extra is present. That leaves one meaning for a collection skip:
           # the framework is installed and will not import. The old step turned
           # that into a warning and exit 0, so a leg could stop testing anything
-          # and still report success. It has been doing exactly that for ag2.
+          # and still report success, which is what it did for ag2 until that
+          # framework was dropped.
           #
           # Import first, so the log names the break instead of leaving a reader
           # to infer it from a skip count. The module name comes out of the test
