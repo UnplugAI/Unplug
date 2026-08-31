@@ -63,10 +63,10 @@ EASY_FPR_CEILING = 0.02
 # The target is the destination the ratchet was missing. It does not vote on the
 # result, because these prompts were chosen to trip the patterns and a hard slice
 # is expected to score badly. It is reported so the distance is visible in every
-# run rather than living in an issue. 0.50 is a first milestone rather than a
-# final answer: `developer_mode` and `persona_replacement` account for all 12
-# regex-only false positives on NotInject and neither looks at surrounding
-# context, so context guards there are the work that should move it.
+# run rather than living in an issue. It is a first milestone rather than a final
+# answer: `developer_mode` and `persona_replacement` are the patterns behind it,
+# and neither looks at surrounding context, so context guards there are the work
+# that moves the number.
 HARD_FPR_RATCHET = 0.975
 # Derived, not round: of the 39 current misfires, 11 come from the
 # persona_replacement and developer_mode patterns, which are the named next piece
@@ -112,9 +112,15 @@ def run_gate(threshold: float = 0.5) -> tuple[bool, dict]:
         if BENIGN_CORPUS_EXTRA.exists():
             easy += [s for s in load_jsonl(BENIGN_CORPUS_EXTRA) if s.label == 0]
 
+        # Guarded for the same reason as the hard slice below. evaluate([])
+        # reports an FPR of 0.0, which clears any ceiling, so an easy slice that
+        # measured nothing read as the cleanest possible result. Two ways to get
+        # there: a corpus with only hard rows, and a labelling change that moves
+        # the easy rows off label=0.
+        easy_missing = not easy
         easy_result = evaluate(easy, threshold=threshold)
         easy_fpr = easy_result.overall.false_positive_rate
-        easy_ok = easy_fpr <= EASY_FPR_CEILING
+        easy_ok = (easy_fpr <= EASY_FPR_CEILING) if easy else False
 
         # An empty hard slice fails. Reporting ok on 0/0 is the same
         # green-while-measuring-nothing bug this gate exists to catch: drop the
@@ -135,6 +141,7 @@ def run_gate(threshold: float = 0.5) -> tuple[bool, dict]:
                 "fpr": round(easy_fpr, 4),
                 "ceiling": EASY_FPR_CEILING,
                 "ok": easy_ok,
+                "missing": easy_missing,
             },
             "hard": {
                 "samples": len(hard),
@@ -185,7 +192,13 @@ def print_gate_report(report: dict) -> None:
         print(f"\nbenign FPR: SKIPPED (missing {benign['missing']})")
     elif benign:
         easy_info = benign.get("easy")
-        if easy_info:
+        if easy_info and easy_info.get("missing"):
+            print(
+                f"\nbenign FPR [easy]: [FAIL] no benign rows in {BENIGN_CORPUS.name} "
+                "outside the hard slice. The easy slice measures nothing, "
+                "so the gate cannot pass on it."
+            )
+        elif easy_info:
             mark = "ok" if easy_info["ok"] else "FAIL"
             print(
                 f"\nbenign FPR [easy]: [{mark}] fpr={easy_info['fpr']:.4f} "

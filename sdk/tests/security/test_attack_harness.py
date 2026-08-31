@@ -125,3 +125,44 @@ def test_an_empty_hard_slice_fails_the_gate(monkeypatch: pytest.MonkeyPatch) -> 
     assert hard["ok"] is False
     assert hard["meets_target"] is False
     assert passed is False
+
+
+def test_an_empty_easy_slice_fails_the_gate(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The easy slice had the same hole the hard slice did.
+
+    evaluate([]) reports an FPR of 0.0, which clears any ceiling, so a slice that
+    measured nothing read as the cleanest possible result. Reachable two ways: a
+    corpus with only hard rows, and a labelling change that moves the easy rows
+    off label=0.
+    """
+    import benchmarks.attacks.ci_gate as gate
+
+    real_load = gate.load_jsonl
+
+    def hard_rows_only(path):  # type: ignore[no-untyped-def]
+        return [s for s in real_load(path) if s.source == gate.HARD_NEGATIVE_SOURCE]
+
+    # The optional local corpus enriches the easy slice, so it has to be absent
+    # for this to be the shape CI actually runs.
+    monkeypatch.setattr(gate, "BENIGN_CORPUS_EXTRA", gate.BENIGN_CORPUS.with_name("__absent__"))
+    monkeypatch.setattr(gate, "load_jsonl", hard_rows_only)
+    passed, report = gate.run_gate()
+
+    easy = report["benign_fpr"]["easy"]
+    assert easy["samples"] == 0
+    assert easy["missing"] is True
+    assert easy["ok"] is False
+    assert passed is False
+
+
+def test_the_hard_target_is_the_derived_value() -> None:
+    """0.70 is derived, so pin it.
+
+    Of the 39 current misfires, 11 come solely from persona_replacement and
+    developer_mode, the named next piece of work. 39 - 11 = 28, and 28/40 = 0.70.
+    Without this the constant was free to move anywhere below the ratchet with
+    the suite staying green, which makes "derived, not round" a comment rather
+    than a fact.
+    """
+    assert ci_gate.HARD_FPR_TARGET == 0.70
+    assert ci_gate.HARD_FPR_TARGET < ci_gate.HARD_FPR_RATCHET
