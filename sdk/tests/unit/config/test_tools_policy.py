@@ -92,4 +92,47 @@ def test_explicit_overrides_survive_normalisation() -> None:
     )
     assert policy.is_side_effect("custom_send")
     assert policy.is_side_effect("mcp__vendor__CustomSend")
-    assert not policy.is_unclassified("frobnicate")
+    assert not policy.is_unclassified("mcp__acme__frobnicate")
+
+
+def test_a_namespaced_override_does_not_grant_the_bare_name() -> None:
+    """A grant scoped to one server must not classify the same name elsewhere.
+
+    read_only_tools names acme's frobnicate. A bare frobnicate, or another
+    server's, is a different tool that happens to share a word, and treating it
+    as the granted one hands out the exemption to whoever picks the name.
+    """
+    policy = ToolPolicyConfig(read_only_tools=("mcp__acme__frobnicate",))
+    assert policy.is_known_read_only("mcp__acme__frobnicate")
+    assert not policy.is_known_read_only("frobnicate")
+    assert not policy.is_known_read_only("mcp__other__frobnicate")
+
+
+def test_a_trailing_separator_still_classifies() -> None:
+    """delete_file/ is delete_file. Normalising it to "" classified it as nothing."""
+    policy = ToolPolicyConfig()
+    for spelling in ("delete_file", "delete_file/", "delete_file.", "delete_file:"):
+        assert policy.is_side_effect(spelling), spelling
+
+
+def test_a_leading_verb_is_not_discarded_by_the_namespace_split() -> None:
+    """delete.file and server/delete/user are deletes wherever the host put the verb."""
+    policy = ToolPolicyConfig()
+    for spelling in ("delete.file", "delete/file", "exec.command", "server/delete/user"):
+        assert policy.is_side_effect(spelling), spelling
+
+
+def test_a_verb_prefix_does_not_match_part_of_a_word() -> None:
+    """^pay must not hit payload, ^post must not hit postgres, ^rm must not hit rma."""
+    policy = ToolPolicyConfig()
+    for spelling in (
+        "get_payload",
+        "list_payment_methods",
+        "postgres_read_query",
+        "get_postcode",
+        "get_sender_details",
+        "get_rma_status",
+    ):
+        assert not policy.is_side_effect(spelling), spelling
+    assert policy.is_side_effect("slack_post_message")
+    assert policy.is_side_effect("send_email")
