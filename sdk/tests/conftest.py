@@ -73,6 +73,15 @@ def _isolate_model_cache(
         return
     empty = tmp_path_factory.mktemp("empty_model_cache")
     monkeypatch.setenv("UNPLUG_MODEL_CACHE", str(empty))
+    # The cache variable alone is not isolation. resolve_spec_path prefers
+    # UNPLUG_MODEL_PATH over the cache entirely, so a developer with one exported
+    # (or a module fixture that sets it and never tears it down) still reaches a
+    # real checkpoint and the empty cache above measures nothing.
+    #
+    # UNPLUG_TEST_CHECKPOINT is deliberately left alone. It is the harness's own
+    # way of pointing the encoding probes and ML validation at a checkpoint, so
+    # clearing it does not close a hole, it just turns those tests off.
+    monkeypatch.delenv("UNPLUG_MODEL_PATH", raising=False)
 
 
 @pytest.fixture(scope="session")
