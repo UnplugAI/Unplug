@@ -68,7 +68,11 @@ EASY_FPR_CEILING = 0.02
 # regex-only false positives on NotInject and neither looks at surrounding
 # context, so context guards there are the work that should move it.
 HARD_FPR_RATCHET = 0.975
-HARD_FPR_TARGET = 0.50
+# Derived, not round: of the 39 current misfires, 11 come from the
+# persona_replacement and developer_mode patterns, which are the named next piece
+# of work. Fixing exactly those lands 28/40. A lower target would be a number
+# nobody has a route to.
+HARD_FPR_TARGET = 0.70
 
 
 def run_gate(threshold: float = 0.5) -> tuple[bool, dict]:
@@ -112,9 +116,14 @@ def run_gate(threshold: float = 0.5) -> tuple[bool, dict]:
         easy_fpr = easy_result.overall.false_positive_rate
         easy_ok = easy_fpr <= EASY_FPR_CEILING
 
+        # An empty hard slice fails. Reporting ok on 0/0 is the same
+        # green-while-measuring-nothing bug this gate exists to catch: drop the
+        # hard negatives from the corpus and the gate passed, and claimed the
+        # target was met while it was at it.
+        hard_missing = not hard
         hard_result = evaluate(hard, threshold=threshold) if hard else None
         hard_fpr = hard_result.overall.false_positive_rate if hard_result else 0.0
-        hard_ok = (hard_fpr <= HARD_FPR_RATCHET) if hard_result else True
+        hard_ok = (hard_fpr <= HARD_FPR_RATCHET) if hard_result else False
         # A ratchet nobody lowers stops ratcheting. Say so in the run rather
         # than waiting for someone to compare the constant against the number.
         hard_stale = bool(hard_result) and hard_fpr < HARD_FPR_RATCHET
@@ -134,8 +143,9 @@ def run_gate(threshold: float = 0.5) -> tuple[bool, dict]:
                 "ratchet": HARD_FPR_RATCHET,
                 "ok": hard_ok,
                 "ratchet_stale": hard_stale,
+                "missing": hard_missing,
                 "target": HARD_FPR_TARGET,
-                "meets_target": hard_fpr <= HARD_FPR_TARGET,
+                "meets_target": bool(hard_result) and hard_fpr <= HARD_FPR_TARGET,
                 "to_target": round(max(0.0, hard_fpr - HARD_FPR_TARGET), 4),
             },
         }
@@ -183,7 +193,13 @@ def print_gate_report(report: dict) -> None:
                 f"(fp={easy_info['false_positives']}/{easy_info['samples']})"
             )
         hard_info = benign.get("hard")
-        if hard_info:
+        if hard_info and hard_info.get("missing"):
+            print(
+                f"\nbenign FPR [hard]: [FAIL] no samples tagged {HARD_NEGATIVE_SOURCE!r} "
+                f"in {BENIGN_CORPUS.name}. The hard slice measures nothing, "
+                "so the gate cannot pass on it."
+            )
+        elif hard_info:
             mark = "ok" if hard_info["ok"] else "FAIL"
             print(
                 f"\nbenign FPR [hard]: [{mark}] fpr={hard_info['fpr']:.4f} "

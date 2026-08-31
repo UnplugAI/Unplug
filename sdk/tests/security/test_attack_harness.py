@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from benchmarks.attacks import ci_gate
 from benchmarks.attacks.ci_gate import GARAK_RECALL_FLOORS, run_gate
 from benchmarks.attacks.converter_matrix import CONVERTERS, EXPECTED_GAPS, run_matrix
@@ -98,3 +100,28 @@ class TestCiGate:
         # Missing the target by 0.475 and the gate still passes: that is the
         # point of separating the two numbers.
         assert passed
+
+
+def test_an_empty_hard_slice_fails_the_gate(monkeypatch: pytest.MonkeyPatch) -> None:
+    """0/0 must not read as ok.
+
+    Reporting a clean pass on an empty slice is the same failure the ratchet
+    exists to prevent: the gate goes green while measuring nothing. Deleting the
+    hard negatives from the corpus used to pass, and claim the target was met.
+    """
+    import benchmarks.attacks.ci_gate as gate
+
+    real_load = gate.load_jsonl
+
+    def without_hard_negatives(path):  # type: ignore[no-untyped-def]
+        return [s for s in real_load(path) if s.source != gate.HARD_NEGATIVE_SOURCE]
+
+    monkeypatch.setattr(gate, "load_jsonl", without_hard_negatives)
+    passed, report = gate.run_gate()
+
+    hard = report["benign_fpr"]["hard"]
+    assert hard["samples"] == 0
+    assert hard["missing"] is True
+    assert hard["ok"] is False
+    assert hard["meets_target"] is False
+    assert passed is False
