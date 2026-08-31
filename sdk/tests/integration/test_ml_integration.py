@@ -15,7 +15,11 @@ from unplug.core.context import ExecutionContext
 from unplug.core.taint import TaintedText, TrustLevel
 from unplug.ml.head_tail import should_use_head_tail
 
-pytestmark = pytest.mark.requires_ml_weights
+# real_model_cache as well as requires_ml_weights: the module fixtures below read
+# the session ml_checkpoint fixtures, which resolve before the function-scoped
+# isolation fixture runs. Without the mark the collection-time skip decision and
+# the fixture setup disagree about which cache they are looking at.
+pytestmark = [pytest.mark.requires_ml_weights, pytest.mark.real_model_cache]
 
 PROBE_FILE = (
     Path(__file__).resolve().parents[2]

@@ -85,7 +85,7 @@ Full decision table and `ApprovalProvider` example: [`docs/AGENT_ACTIONS.md`](..
 | **Strands Agents** | `strands` | [strands](strands/README.md) | `strands.py` |
 | **Letta** | `letta` | [letta](letta/README.md) | `letta.py` |
 | **Griptape** | `griptape` | [griptape](griptape/README.md) | `griptape.py` |
-| **AG2** | `ag2` | [ag2](ag2/README.md) | `ag2.py` |
+| **AG2** | *(none)* | [ag2](ag2/README.md) | `ag2.py` |
 | **Atomic Agents** | `atomic-agents` | [atomic-agents](atomic-agents/README.md) | `atomic_agents.py` |
 | **Agno** | `agno` | [agno](agno/README.md) | `agno.py` |
 | **Haystack** | `haystack` | [haystack](haystack/README.md) | `haystack.py` |

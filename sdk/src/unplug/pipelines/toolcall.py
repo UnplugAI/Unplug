@@ -137,23 +137,42 @@ class ToolCallPipeline(BasePipeline):
             return []
         if tool_call.approved is True:
             return []
-        if not self._tool_policy.is_side_effect(tool_call.tool_name):
+        side_effect = self._tool_policy.is_side_effect(tool_call.tool_name)
+        # A name matching nothing in any table is not evidence that the call is safe.
+        # On a tainted session the cost of asking is a review prompt; the cost of not
+        # asking is the exfiltration this gate exists to stop (#166).
+        unknown = (
+            self._tool_policy.unknown_tool_is_side_effect
+            and self._tool_policy.is_unclassified(tool_call.tool_name)
+        )
+        if not side_effect and not unknown:
             return []
 
         score = self._tool_policy.tainted_side_effect_review_score
         triggers = ", ".join(context.taint_triggers[:3]) or "unknown"
+        if side_effect:
+            subcategory = "session_taint_side_effect"
+            evidence = (
+                f"Side-effect tool '{tool_call.tool_name}' held for review: "
+                f"session tainted ({triggers})"
+            )
+        else:
+            subcategory = "session_taint_unknown_tool"
+            evidence = (
+                f"Tool '{tool_call.tool_name}' matches no known side-effect or read-only "
+                f"pattern and the session is tainted ({triggers}). Classify it via "
+                f"[tools] read_only_tools or side_effect_tools, or set "
+                f"unknown_tool_is_side_effect=false to allow unmatched names."
+            )
         return [
             Finding(
                 category="taint",
-                subcategory="session_taint_side_effect",
+                subcategory=subcategory,
                 stage="tool_policy",
                 span_start=0,
                 span_end=0,
                 score=score,
-                evidence=(
-                    f"Side-effect tool '{tool_call.tool_name}' held for review: "
-                    f"session tainted ({triggers})"
-                ),
+                evidence=evidence,
             )
         ]
 

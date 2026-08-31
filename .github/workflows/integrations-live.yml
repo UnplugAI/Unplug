@@ -58,8 +58,6 @@ jobs:
             test: tests/optional/live/test_letta_live.py
           - extra: griptape
             test: tests/optional/live/test_griptape_live.py
-          - extra: ag2
-            test: tests/optional/live/test_ag2_live.py
           - extra: atomic-agents
             test: tests/optional/live/test_atomic_agents_live.py
     name: live (${{ matrix.extra }})
@@ -92,15 +90,41 @@ jobs:
 
       - name: Live integration test
         run: |
+          # The install step above is unconditional, so by the time we get here
+          # the extra is present. That leaves one meaning for a collection skip:
+          # the framework is installed and will not import. The old step turned
+          # that into a warning and exit 0, so a leg could stop testing anything
+          # and still report success, which is what it did for ag2 until that
+          # framework was dropped.
+          #
+          # Import first, so the log names the break instead of leaving a reader
+          # to infer it from a skip count. The module name comes out of the test
+          # file's own importorskip rather than a table here, which would be a
+          # second place to keep in step.
+          # Read with python rather than sed. A sed pattern pinned to double
+          # quotes and no inner whitespace matches all 17 files today and would
+          # extract nothing the moment one is reformatted with single quotes or a
+          # minversion kwarg, turning a working leg into a "no import probe"
+          # failure. Comment lines are dropped so a commented-out importorskip
+          # cannot be picked up instead of the real one.
+          module=$(.venv/bin/python -c 'import re, sys; code = "\n".join(l for l in open(sys.argv[1], encoding="utf-8").read().splitlines() if not l.lstrip().startswith("#")); m = re.search(r"importorskip\(\s*[\x27\"]([A-Za-z0-9_.]+)[\x27\"]", code); print(m.group(1) if m else "")' "${{ matrix.test }}")
+          if [ -z "$module" ]; then
+            echo "::error title=No import probe::${{ matrix.test }} has no importorskip, so this leg cannot tell a broken framework from a missing one."
+            exit 1
+          fi
+          if ! .venv/bin/python -c "import $module"; then
+            echo "::error title=Framework unimportable::${{ matrix.extra }} installed but 'import $module' fails, so its live tests cover nothing."
+            exit 1
+          fi
+
           set +e
-          .venv/bin/python -m pytest -q -m requires_integrations ${{ matrix.test }}
+          .venv/bin/python -m pytest -q -m requires_integrations "${{ matrix.test }}"
           rc=$?
           set -e
-          # Exit 5 = the module self-skipped: the framework is unimportable even
-          # under a fresh resolution (a genuine upstream break). Surface it loudly
-          # but don't block the release. Real test failures (exit 1) still fail.
+          # The framework imports, so nothing collected means the tests went
+          # away rather than the framework being broken. Also a failure.
           if [ "$rc" -eq 5 ]; then
-            echo "::warning title=Live integration skipped::${{ matrix.extra }} installed but its live tests were skipped (framework unimportable under a fresh resolution). Tolerated; not blocking."
-            exit 0
+            echo "::error title=No live tests collected::${{ matrix.extra }} imports fine but ${{ matrix.test }} collected nothing."
+            exit 1
           fi
           exit $rc

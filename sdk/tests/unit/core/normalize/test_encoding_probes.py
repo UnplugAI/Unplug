@@ -21,6 +21,10 @@ from unplug.core.normalize.encodings import (
 from unplug.core.runtime.model_runtime import load_active_model_provider
 from unplug.ml.validation import resolve_validation_checkpoint
 
+# Only the tests whose import-time skipif reads the machine cache opt out. A
+# module-level mark opted out tests that never touch a checkpoint too, which is
+# the machine-dependence the isolation fixture exists to remove (#163).
+
 ROOT = Path(__file__).resolve().parents[4]
 PROBES = ROOT / "src/unplug/audit/data/encoding_probe_queries.json"
 
@@ -84,6 +88,7 @@ class TestHeuristicEncodingProbes:
         assert scan_encoding_blobs(text) == []
 
 
+@pytest.mark.real_model_cache
 @pytest.mark.skipif(_checkpoint() is None, reason="checkpoint not available")
 class TestSpanModelEncodingProbes:
     @pytest.fixture
@@ -128,6 +133,7 @@ class TestSpanModelEncodingProbes:
         assert findings
 
 
+@pytest.mark.real_model_cache
 @pytest.mark.skipif(_checkpoint() is None, reason="checkpoint not available")
 class TestGuardEncodingIntegration:
     @pytest.fixture

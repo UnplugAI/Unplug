@@ -97,9 +97,6 @@ letta = [
 griptape = [
     "griptape>=1.0",
 ]
-ag2 = [
-    "ag2>=0.7",
-]
 atomic-agents = [
     # atomic-agents 2.x requires Python >=3.12; harmless no-op on 3.11.
     "atomic-agents>=2.0; python_version >= '3.12'",
@@ -108,7 +105,7 @@ mcp = [
     "mcp>=1.0,<3",
 ]
 integrations = [
-    "unplug-ai[langgraph,agno,crewai,autogen,llama-index,pydantic-ai,semantic-kernel,openai-agents,langchain,google-adk,smolagents,dspy,strands,letta,griptape,ag2,atomic-agents,haystack,mcp]",
+    "unplug-ai[langgraph,agno,crewai,autogen,llama-index,pydantic-ai,semantic-kernel,openai-agents,langchain,google-adk,smolagents,dspy,strands,letta,griptape,atomic-agents,haystack,mcp]",
 ]
 # `all` = capability extras only. Agent-framework adapters install via the
 # `integrations` meta-extra (or one framework at a time) so the default CI
@@ -250,6 +247,7 @@ markers = [
     "requires_yara: tests needing yara-python extra",
     "requires_ml: tests needing ML stack extra",
     "requires_integrations: tests needing agent framework extras",
+    "real_model_cache: opts out of the empty-UNPLUG_MODEL_CACHE isolation fixture",
     "slow: wall-clock stress tests; excluded from the default/PR gate, run via the nightly slow-stress workflow or `make test-slow`",
 ]
 filterwarnings = [

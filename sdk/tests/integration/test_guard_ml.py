@@ -11,6 +11,10 @@ from unplug.ml.spans_merge import merge_char_spans
 from unplug.ml.types import CharSpan
 from unplug.ml.validation import resolve_validation_checkpoint
 
+# Only the tests whose import-time skipif reads the machine cache opt out. A
+# module-level mark opted out tests that never touch a checkpoint too, which is
+# the machine-dependence the isolation fixture exists to remove (#163).
+
 
 def test_merge_char_spans_overlapping() -> None:
     spans = [
@@ -29,6 +33,7 @@ def _checkpoint() -> Path | None:
     return resolve_validation_checkpoint(require_weights=False)
 
 
+@pytest.mark.real_model_cache
 @pytest.mark.skipif(_checkpoint() is None, reason="checkpoint not available")
 def test_guard_active_model_wires_injection_ml() -> None:
     torch = pytest.importorskip("torch")
@@ -88,6 +93,7 @@ def test_with_tiny_is_deprecated_but_equivalent() -> None:
     assert legacy.config.model_dump() == current.config.model_dump()
 
 
+@pytest.mark.real_model_cache
 @pytest.mark.skipif(_checkpoint() is None, reason="checkpoint not available")
 def test_recall_gate_rescues_regex_missed_injection() -> None:
     torch = pytest.importorskip("torch")

@@ -36,6 +36,7 @@ def _build_profile_pattern_maps() -> tuple[
 _tool_maps = load_tool_patterns_map()
 DEFAULT_SIDE_EFFECT_PATTERNS = _tool_maps.side_effect
 DEFAULT_TAINT_SOURCE_PATTERNS = _tool_maps.taint_source
+DEFAULT_READ_ONLY_PATTERNS = _tool_maps.read_only
 PROFILE_BLOCKED_PATTERNS, PROFILE_ALLOWED_PATTERNS = _build_profile_pattern_maps()
 
 
@@ -43,13 +44,107 @@ def _compile(patterns: tuple[str, ...]) -> list[re.Pattern[str]]:
     return [re.compile(p, re.IGNORECASE) for p in patterns]
 
 
+def _matches_token(rx: re.Pattern[str], variant: str) -> bool:
+    """True when rx's match ends where an underscore token ends.
+
+    Applied only to the trimmed suffixes, never to the whole name. See _any_match.
+    """
+    return any(m.end() == len(variant) or variant[m.end()] == "_" for m in rx.finditer(variant))
+
+
+def _any_match(regexes: list[re.Pattern[str]], variants: tuple[str, ...]) -> bool:
+    """Match the full name loosely and the trimmed suffixes strictly.
+
+    The patterns are verb stems, so a prefix match on the name the caller actually
+    passed is intended: ^exec is meant to catch execute and execute_command, ^rm to
+    catch rmdir. Requiring those to land on a token boundary silently unclassified
+    822 names this repo used to treat as side effects, and let the messaging profile
+    through on `execute`.
+
+    The false positives come from the other direction. _name_variants trims leading
+    segments so a vendor prefix cannot hide the verb, and testing a verb stem against
+    a bare trimmed suffix is what made ^pay match payload and ^post match postgres.
+    Nothing was asking about a tool called `payload`; that string only exists because
+    `get_payload` was trimmed. So the suffixes, and only the suffixes, have to match
+    a whole token.
+
+    variants[0] is the full normalized name and the rest are its trimmed suffixes.
+    """
+    if not variants:
+        return False
+    whole, suffixes = variants[0], variants[1:]
+    if any(rx.search(whole) for rx in regexes):
+        return True
+    return any(_matches_token(rx, s) for rx in regexes for s in suffixes)
+
+
+# Splits camelCase and PascalCase at the boundary, so WebFetch becomes web_fetch
+# and sendEmail becomes send_email. The second alternative handles runs of capitals
+# followed by a word, as in HTTPPost -> http_post.
+_CAMEL_BOUNDARY = re.compile(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
+
+# Namespace separators, longest first. MCP uses mcp__server__tool; agent hosts use
+# server:tool or server.tool.
+_NAMESPACE_SEPARATORS = ("__", ":", ".", "/")
+_SEPARATOR_SPLIT = re.compile("|".join(re.escape(s) for s in _NAMESPACE_SEPARATORS))
+
+
 def _normalize_tool_name(tool_name: str) -> str:
-    name = tool_name.strip().lower()
-    if ":" in name:
-        name = name.split(":")[-1]
-    if "." in name:
-        name = name.split(".")[-1]
-    return name
+    """Flatten a namespaced or camelCase tool name to underscore-delimited tokens.
+
+    Every segment is kept, not just the last one. Keeping only the last segment
+    dropped the verb whenever a host put it first (delete.file, exec.command,
+    server/delete/user all became a harmless-looking noun) and produced the empty
+    string for a trailing separator, which classified as nothing at all. The host
+    prefix is still not what decides whether a call has side effects, but it does
+    not need to be discarded here: _name_variants walks the suffixes, so the verb
+    is found wherever in the name it sits.
+    """
+    name = tool_name.strip()
+    segments = [s for s in _SEPARATOR_SPLIT.split(name) if s]
+    name = "_".join(segments)
+    name = _CAMEL_BOUNDARY.sub("_", name)
+    return name.replace("-", "_").strip("_").lower()
+
+
+def _name_variants(tool_name: str) -> tuple[str, ...]:
+    """The normalized name plus each of its underscore-delimited suffixes.
+
+    Classification patterns are anchored at the start, which misses the very common
+    vendor-prefixed shape: slack_post_message and github_create_issue are a post and
+    a create, but neither starts with one. Matching every suffix as well means the
+    verb is found wherever the vendor chose to put it (#166).
+    """
+    norm = _normalize_tool_name(tool_name)
+    if not norm:
+        return ()
+    parts = norm.split("_")
+    return tuple("_".join(parts[i:]) for i in range(len(parts)))
+
+
+def _namespace_variants(tool_name: str) -> tuple[str, ...]:
+    """The normalized name, plus itself with leading NAMESPACE segments dropped.
+
+    For the explicit `side_effect_tools` / `read_only_tools` lists, not the
+    patterns. An entry there names one tool, and _name_variants trims on every
+    underscore, so `read_only_tools = ["frobnicate"]` also matched
+    `admin_frobnicate` and `evil_frobnicate`: a read-only grant is an exemption
+    from the unknown-tool review, and it was being handed to any tool that
+    happened to end in the granted word.
+
+    Trimming only where a namespace separator was still keeps the case the lists
+    exist for, a host prefixing its own name: `send_message` matches an incoming
+    `mcp__slack__send_message`, because that prefix came from `__`. It does not
+    match `admin_send_message`, because that is a different tool's name.
+    """
+    name = tool_name.strip()
+    segments = [s for s in _SEPARATOR_SPLIT.split(name) if s]
+    out: list[str] = []
+    for i in range(len(segments)):
+        norm = _normalize_tool_name("_".join(segments[i:]))
+        if norm:
+            out.append(norm)
+    return tuple(dict.fromkeys(out))
 
 
 def resolve_profile(name: str | None) -> ToolProfile | None:
@@ -66,15 +161,15 @@ def resolve_profile(name: str | None) -> ToolProfile | None:
 def is_tool_permitted_by_profile(tool_name: str, profile: ToolProfile | None) -> bool:
     if profile is None or profile is ToolProfile.FULL:
         return True
-    norm = _normalize_tool_name(tool_name)
+    variants = _name_variants(tool_name)
     blocked = _compile(PROFILE_BLOCKED_PATTERNS.get(profile, ()))
-    if any(rx.search(norm) for rx in blocked):
+    if _any_match(blocked, variants):
         return False
     allowed_patterns = PROFILE_ALLOWED_PATTERNS.get(profile)
     if allowed_patterns is None:
         return True
     allowed = _compile(allowed_patterns)
-    return any(rx.search(norm) for rx in allowed)
+    return _any_match(allowed, variants)
 
 
 class ToolPolicyConfig(BaseModel):
@@ -91,6 +186,17 @@ class ToolPolicyConfig(BaseModel):
 
     taint_source_patterns: tuple[str, ...] = DEFAULT_TAINT_SOURCE_PATTERNS
     taint_source_tools: tuple[str, ...] = Field(default_factory=tuple)
+
+    read_only_patterns: tuple[str, ...] = DEFAULT_READ_ONLY_PATTERNS
+    read_only_tools: tuple[str, ...] = Field(default_factory=tuple)
+
+    unknown_tool_is_side_effect: bool = Field(
+        default=True,
+        description=(
+            "Hold a tool whose name matches nothing known for review while the session "
+            "is tainted. Set false to restore the pre-#166 behaviour of allowing it."
+        ),
+    )
 
     profile: str | None = Field(
         default=None,
@@ -110,16 +216,35 @@ class ToolPolicyConfig(BaseModel):
         return _compile(self.taint_source_patterns)
 
     def is_side_effect(self, tool_name: str) -> bool:
-        norm = _normalize_tool_name(tool_name)
-        if norm in {t.lower() for t in self.side_effect_tools}:
+        variants = _name_variants(tool_name)
+        configured = {_normalize_tool_name(t) for t in self.side_effect_tools}
+        if configured.intersection(_namespace_variants(tool_name)):
             return True
-        return any(rx.search(norm) for rx in self._side_effect_regexes())
+        return _any_match(self._side_effect_regexes(), variants)
 
     def is_taint_source(self, tool_name: str) -> bool:
-        norm = _normalize_tool_name(tool_name)
-        if norm in {t.lower() for t in self.taint_source_tools}:
+        variants = _name_variants(tool_name)
+        configured = {_normalize_tool_name(t) for t in self.taint_source_tools}
+        if configured.intersection(_namespace_variants(tool_name)):
             return True
-        return any(rx.search(norm) for rx in self._taint_source_regexes())
+        return _any_match(self._taint_source_regexes(), variants)
+
+    def _read_only_regexes(self) -> list[re.Pattern[str]]:
+        return _compile(self.read_only_patterns)
 
     def is_read_only(self, tool_name: str) -> bool:
         return not self.is_side_effect(tool_name)
+
+    def is_known_read_only(self, tool_name: str) -> bool:
+        """Positively recognised as having no side effect, rather than merely unmatched."""
+        variants = _name_variants(tool_name)
+        configured = {_normalize_tool_name(t) for t in self.read_only_tools}
+        if configured.intersection(_namespace_variants(tool_name)):
+            return True
+        if _any_match(self._taint_source_regexes(), variants):
+            return True
+        return _any_match(self._read_only_regexes(), variants)
+
+    def is_unclassified(self, tool_name: str) -> bool:
+        """Matches none of the side-effect, taint-source, or read-only tables."""
+        return not self.is_side_effect(tool_name) and not self.is_known_read_only(tool_name)

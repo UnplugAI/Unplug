@@ -68,6 +68,38 @@ else:
 
 For batch/cron agents, **never** auto-approve: use a provider that returns `False` unless an operator explicitly signed off (see [`HERMES_AGENT_SECURITY.md`](HERMES_AGENT_SECURITY.md)).
 
+## How tools are classified
+
+The taint gate needs to know which of your tools can cause an effect in the world and
+which only read. Names are normalized before matching, so `WebFetch`, `web_fetch`,
+`mcp__browser__webFetch` and `browser.web-fetch` all resolve to the same thing. Both
+camelCase and the MCP `server__tool` convention are handled, and vendor prefixes are
+matched through, so `slack_post_message` is recognised as a post.
+
+A name that matches nothing is treated as a side effect while the session is tainted,
+and is allowed on a clean session. That is deliberate: an unrecognised name is not
+evidence a call is safe, and the failure it guards against is silent.
+
+Four knobs, all under `[tools]` in `unplug.toml`:
+
+```toml
+[tools]
+# Names you want classified explicitly. These win over the patterns.
+side_effect_tools = ["deploy_to_prod", "mcp__acme__charge_card"]
+taint_source_tools = ["mcp__acme__fetch_ticket"]
+read_only_tools = ["mcp__acme__frobnicate"]
+
+# Or add to the regexes, which match against the normalized name and each of its
+# underscore-delimited suffixes.
+side_effect_patterns = ["^deploy", "^charge"]
+
+# Set false to allow tool names that match nothing, even on a tainted session.
+unknown_tool_is_side_effect = false
+```
+
+If you see `session_taint_unknown_tool` findings for a tool that genuinely only reads,
+add it to `read_only_tools` rather than turning the gate off.
+
 ## Integration adapter pattern
 
 Replace bare `raise RuntimeError` on every `not decision.allowed` with action-aware handling:
