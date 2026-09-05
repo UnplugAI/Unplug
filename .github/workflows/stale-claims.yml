@@ -14,9 +14,12 @@ on:
         type: boolean
         default: false
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.dry_run == true }}
+  cancel-in-progress: true
+
 permissions:
   issues: write
-
 jobs:
   sweep:
     runs-on: ubuntu-latest
