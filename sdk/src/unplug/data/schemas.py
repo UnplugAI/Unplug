@@ -17,6 +17,7 @@ class ToolPatternsMap(BaseModel):
 
     side_effect: tuple[str, ...]
     taint_source: tuple[str, ...]
+    read_only: tuple[str, ...] = ()
     profiles: dict[str, ToolProfileMapEntry]
 
 

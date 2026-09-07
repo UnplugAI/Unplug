@@ -1,9 +1,14 @@
 # AG2
 
-**Extra:** `pip install "unplug-ai[ag2]"`
+**Install:** `pip install unplug-ai ag2`
 **Module:** `unplug.integrations.ag2`
 
-[AG2](https://docs.ag2.ai/) (the community fork of AutoGen, imported as `autogen`)
+There is no `unplug-ai[ag2]` extra. AG2 1.0 renamed its import from `autogen` to
+`ag2`, and the adapter never imported the framework at all, so pinning it here
+only bought a namespace to keep chasing. Install `ag2` yourself at whatever
+version you run.
+
+[AG2](https://docs.ag2.ai/) (the community fork of AutoGen)
 attaches hooks to a `ConversableAgent` via `register_hook`. Unplug wires into:
 
 - **Incoming** — `process_last_received_message` scans the last received message
@@ -15,7 +20,9 @@ attaches hooks to a `ConversableAgent` via `register_hook`. Unplug wires into:
 
 > **Not the same as `autogen`.** The `autogen` extra targets Microsoft's
 > `autogen-agentchat` (imported as `autogen_agentchat`). AG2 installs as the `ag2`
-> package and imports as `autogen` — the two can coexist.
+> package and the two can coexist. AG2 1.0 imports as `ag2`; 0.x imported as
+> `autogen`. Nothing in this adapter depends on which, since it takes the agent
+> object you pass it.
 
 ## Register the hooks
 

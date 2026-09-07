@@ -20,26 +20,6 @@ resolution-markers = [
 ]
 
 [[package]]
-name = "ag2"
-version = "0.14.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "anyio" },
-    { name = "fast-depends", extra = ["pydantic"] },
-    { name = "httpx" },
-    { name = "packaging" },
-    { name = "pydantic" },
-    { name = "python-dotenv" },
-    { name = "pyyaml" },
-    { name = "termcolor" },
-    { name = "tiktoken" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/fd/91/628099cbd03f5f185a1bb35a2e3187d1e9439c7a8da65f083842163e62d0/ag2-0.14.0.tar.gz", hash = "sha256:19e9d8609ca8e2e616b6262a964d8cd2242b1292988b2607e5e3bf2b351a5c70", size = 3428682, upload-time = "2026-06-26T04:48:42.06Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/7f/23/2cfa28c5452e11942a820a1ffb5061c053af5d6a8c7a2c0a2b65d7bd7226/ag2-0.14.0-py3-none-any.whl", hash = "sha256:73621600af17409204993768a5b43787e36ed919e6993349283dc6974861dd7e", size = 1726768, upload-time = "2026-06-26T04:48:39.784Z" },
-]
-
-[[package]]
 name = "agno"
 version = "2.6.19"
 source = { registry = "https://pypi.org/simple" }
@@ -1431,24 +1411,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/cc/28/c14e053b6762b1044f34a13aab6859bbf40456d37d23aa286ac24cfd9a5d/executing-2.2.1.tar.gz", hash = "sha256:3632cc370565f6648cc328b32435bd120a1e4ebb20c77e3fdde9a13cd1e533c4", size = 1129488, upload-time = "2025-09-01T09:48:10.866Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c1/ea/53f2148663b321f21b5a606bd5f191517cf40b7072c0497d3c92c4a13b1e/executing-2.2.1-py2.py3-none-any.whl", hash = "sha256:760643d3452b4d777d295bb167ccc74c64a81df23fb5e08eff250c425a4b2017", size = 28317, upload-time = "2025-09-01T09:48:08.5Z" },
-]
-
-[[package]]
-name = "fast-depends"
-version = "3.0.8"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "anyio" },
-    { name = "typing-extensions" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/f8/6d/787a21ca8043a8fdb737cf28f645e94a46fc30b44a31de54573299156bad/fast_depends-3.0.8.tar.gz", hash = "sha256:896b16f79a512b6ea1df721b0aa1708a192a06f964be6597e01fcf5412559101", size = 18382, upload-time = "2026-03-02T19:54:28.649Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/1d/1d/e4843e4eeb65f51447b8c22d200d12d8f94f27c97e77bb7162515cc8d61f/fast_depends-3.0.8-py3-none-any.whl", hash = "sha256:4c52c8a3907bca46d43e70e4364d6d016872d9a3aae4bc0c1c85e72e0a6a21c7", size = 25507, upload-time = "2026-03-02T19:54:27.594Z" },
-]
-
-[package.optional-dependencies]
-pydantic = [
-    { name = "pydantic" },
 ]
 
 [[package]]
@@ -6432,15 +6394,6 @@ wheels = [
 ]
 
 [[package]]
-name = "termcolor"
-version = "3.3.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/46/79/cf31d7a93a8fdc6aa0fbb665be84426a8c5a557d9240b6239e9e11e35fc5/termcolor-3.3.0.tar.gz", hash = "sha256:348871ca648ec6a9a983a13ab626c0acce02f515b9e1983332b17af7979521c5", size = 14434, upload-time = "2025-12-29T12:55:21.882Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/33/d1/8bb87d21e9aeb323cc03034f5eaf2c8f69841e40e4853c2627edf8111ed3/termcolor-3.3.0-py3-none-any.whl", hash = "sha256:cf642efadaf0a8ebbbf4bc7a31cec2f9b5f21a9f726f4ccbb08192c9c26f43a5", size = 7734, upload-time = "2025-12-29T12:55:20.718Z" },
-]
-
-[[package]]
 name = "textual"
 version = "5.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -6919,9 +6872,6 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
-ag2 = [
-    { name = "ag2" },
-]
 agno = [
     { name = "agno" },
 ]
@@ -6962,7 +6912,6 @@ haystack = [
     { name = "haystack-ai" },
 ]
 integrations = [
-    { name = "ag2" },
     { name = "agno" },
     { name = "atomic-agents", marker = "python_full_version >= '3.12'" },
     { name = "autogen-agentchat" },
@@ -7050,7 +6999,6 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "ag2", marker = "extra == 'ag2'", specifier = ">=0.7" },
     { name = "agno", marker = "extra == 'agno'", specifier = ">=1.0" },
     { name = "atomic-agents", marker = "python_full_version >= '3.12' and extra == 'atomic-agents'", specifier = ">=2.0" },
     { name = "autogen-agentchat", marker = "extra == 'autogen'", specifier = ">=0.4" },
@@ -7083,11 +7031,11 @@ requires-dist = [
     { name = "strands-agents", marker = "extra == 'strands'", specifier = ">=1.0" },
     { name = "torch", marker = "extra == 'ml'", specifier = ">=2.0" },
     { name = "transformers", marker = "extra == 'ml'", specifier = ">=4.44,<6" },
-    { name = "unplug-ai", extras = ["langgraph", "agno", "crewai", "autogen", "llama-index", "pydantic-ai", "semantic-kernel", "openai-agents", "langchain", "google-adk", "smolagents", "dspy", "strands", "letta", "griptape", "ag2", "atomic-agents", "haystack", "mcp"], marker = "extra == 'integrations'" },
+    { name = "unplug-ai", extras = ["langgraph", "agno", "crewai", "autogen", "llama-index", "pydantic-ai", "semantic-kernel", "openai-agents", "langchain", "google-adk", "smolagents", "dspy", "strands", "letta", "griptape", "atomic-agents", "haystack", "mcp"], marker = "extra == 'integrations'" },
     { name = "unplug-ai", extras = ["ml", "scrape", "litellm", "yara", "haystack", "presidio"], marker = "extra == 'all'" },
     { name = "yara-python", marker = "extra == 'yara'", specifier = ">=4.5" },
 ]
-provides-extras = ["ml", "litellm", "yara", "scrape", "haystack", "presidio", "langgraph", "agno", "crewai", "autogen", "llama-index", "pydantic-ai", "semantic-kernel", "openai-agents", "langchain", "google-adk", "smolagents", "dspy", "strands", "letta", "griptape", "ag2", "atomic-agents", "mcp", "integrations", "all"]
+provides-extras = ["ml", "litellm", "yara", "scrape", "haystack", "presidio", "langgraph", "agno", "crewai", "autogen", "llama-index", "pydantic-ai", "semantic-kernel", "openai-agents", "langchain", "google-adk", "smolagents", "dspy", "strands", "letta", "griptape", "atomic-agents", "mcp", "integrations", "all"]
 
 [package.metadata.requires-dev]
 dev = [

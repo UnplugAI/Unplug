@@ -54,7 +54,6 @@ elif not tool_decision.allowed:
 | Strands Agents | `strands` | `unplug.integrations.strands` |
 | Letta | `letta` | `unplug.integrations.letta` |
 | Griptape | `griptape` | `unplug.integrations.griptape` |
-| AG2 | `ag2` | `unplug.integrations.ag2` |
 | Atomic Agents | `atomic-agents` | `unplug.integrations.atomic_agents` |
 | Agno | `agno` | `unplug.integrations.agno` |
 | CrewAI | `crewai` | `unplug.integrations.crewai` |

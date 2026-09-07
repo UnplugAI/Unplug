@@ -31,7 +31,6 @@ uv sync --dev
 | `smolagents` | smolagents task + final-answer checks |
 | `crewai` | CrewAI task/output guards |
 | `autogen` | Microsoft AutoGen AgentChat hooks |
-| `ag2` | AG2 (community AutoGen fork) hooks |
 | `agno` | Agno pre/post run hooks |
 | `dspy` | DSPy module guards |
 | `strands` | Strands Agents hook provider |

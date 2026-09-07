@@ -283,3 +283,288 @@ blocked_template = "Custom block {category}"
 """)
         cfg = load(file_path=p)
         assert "Custom block" in cfg.messages.blocked_template
+
+
+class TestDeadConfigSurfaces:
+    """#169: three surfaces that parsed without error and then did nothing."""
+
+    def test_top_level_policy_applies_alongside_a_guard_table(self) -> None:
+        # unplug.example.toml ships [guard] and [policy] as siblings, so before
+        # this the whole block was dead for anyone who copied the example.
+        cfg = build_config(
+            {
+                "guard": {"mode": "local"},
+                "policy": {"block_threshold": 0.1, "sensitive_context_enabled": False},
+            }
+        )
+        assert cfg.policy.block_threshold == 0.1
+        assert cfg.policy.sensitive_context_enabled is False
+
+    def test_guard_policy_still_wins_over_top_level(self) -> None:
+        cfg = build_config(
+            {
+                "guard": {"policy": {"block_threshold": 0.2}},
+                "policy": {"block_threshold": 0.7},
+            }
+        )
+        assert cfg.policy.block_threshold == 0.2
+
+    def test_pipeline_thresholds_reach_the_guard_policy(self) -> None:
+        # Guard builds every request policy from the guard-level one, so
+        # thresholds that only landed on pipeline.policy never scanned.
+        cfg = build_config(
+            {"pipeline": {"thresholds": {"block": 0.2, "redact": 0.15, "review": 0.1}}}
+        )
+        assert cfg.policy.block_threshold == 0.2
+        assert cfg.policy.redact_threshold == 0.15
+        assert cfg.policy.review_threshold == 0.1
+        assert cfg.pipeline.policy.block_threshold == 0.2
+
+    def test_explicit_policy_beats_pipeline_thresholds(self) -> None:
+        cfg = build_config(
+            {
+                "policy": {"block_threshold": 0.9},
+                "pipeline": {"thresholds": {"block": 0.2, "review": 0.1}},
+            }
+        )
+        assert cfg.policy.block_threshold == 0.9
+        assert cfg.policy.review_threshold == 0.1
+
+    def test_thresholds_left_alone_when_nothing_names_them(self) -> None:
+        cfg = build_config({})
+        assert cfg.policy.block_threshold == 0.8
+        assert cfg.policy.redact_threshold == 0.5
+        assert cfg.policy.review_threshold == 0.3
+
+    def test_partial_scanner_override_keeps_the_bundled_rest(self) -> None:
+        # Setting one field used to reset the others to the pydantic class
+        # defaults, which moved secrets from 0.99 to 0.85 and turned injection
+        # normalization off. Both silent, both weakening.
+        from unplug.data.maps_loader import default_scanner_config
+
+        cfg = build_config(
+            {
+                "guard": {
+                    "scanners_config": {
+                        "injection": {"base_score": 0.9},
+                        "secrets": {"enabled": True},
+                    }
+                }
+            }
+        )
+        assert cfg.scanner_configs["injection"].base_score == 0.9
+        assert cfg.scanner_configs["injection"].normalize is True
+        assert (
+            cfg.scanner_configs["secrets"].base_score
+            == default_scanner_config("secrets").base_score
+        )
+
+    def test_scanner_with_no_bundled_default_still_builds(self) -> None:
+        cfg = build_config({"guard": {"scanners_config": {"nosuch": {"base_score": 0.5}}}})
+        assert cfg.scanner_configs["nosuch"].base_score == 0.5
+
+    def test_both_policy_tables_merge_per_key(self) -> None:
+        # A partial [guard.policy] must not discard a top-level [policy] that
+        # names different settings.
+        cfg = build_config(
+            {
+                "guard": {"policy": {"block_threshold": 0.2}},
+                "policy": {"sensitive_context_enabled": False},
+            }
+        )
+        assert cfg.policy.block_threshold == 0.2
+        assert cfg.policy.sensitive_context_enabled is False
+
+    def test_scanner_override_is_still_validated(self) -> None:
+        # Merging onto the bundled defaults must not cost the config-time error.
+        import pydantic
+
+        with pytest.raises(pydantic.ValidationError):
+            build_config({"guard": {"scanners_config": {"injection": {"base_score": "high"}}}})
+
+    def test_out_of_range_threshold_is_rejected(self) -> None:
+        import pydantic
+
+        with pytest.raises(pydantic.ValidationError):
+            build_config({"pipeline": {"thresholds": {"block": 5.0}}})
+
+    def test_string_threshold_is_coerced(self) -> None:
+        cfg = build_config({"pipeline": {"thresholds": {"block": "0.2"}}})
+        assert cfg.policy.block_threshold == 0.2
+
+
+class TestOnePolicyGoverns:
+    """One file must not produce two different block bars."""
+
+    def test_policy_and_pipeline_thresholds_resolve_to_one_value(self) -> None:
+        cfg = build_config(
+            {
+                "policy": {"block_threshold": 0.9},
+                "pipeline": {"thresholds": {"block": 0.2}},
+            }
+        )
+        # [policy] is the more specific statement and wins. Before this, Guard.scan
+        # decided on 0.9, a bare Pipeline.run decided on 0.2, and the ML gate read
+        # 0.2 as its gray_high, all from the same file.
+        assert cfg.policy.block_threshold == 0.9
+        assert cfg.pipeline.policy.block_threshold == 0.9
+        assert cfg.pipeline.thresholds.block == 0.9
+
+    def test_guard_policy_also_governs_the_pipeline(self) -> None:
+        cfg = build_config(
+            {
+                "guard": {"policy": {"block_threshold": 0.7}},
+                "pipeline": {"thresholds": {"block": 0.3}},
+            }
+        )
+        assert cfg.pipeline.policy.block_threshold == 0.7
+        assert cfg.pipeline.thresholds.block == 0.7
+
+    def test_thresholds_alone_still_drive_both(self) -> None:
+        cfg = build_config({"pipeline": {"thresholds": {"block": 0.2}}})
+        assert cfg.policy.block_threshold == 0.2
+        assert cfg.pipeline.policy.block_threshold == 0.2
+
+    def test_an_explicit_pipeline_policy_is_not_overwritten_by_thresholds(self) -> None:
+        cfg = build_config(
+            {"pipeline": {"policy": {"block_threshold": 0.6}, "thresholds": {"block": 0.2}}}
+        )
+        assert cfg.pipeline.policy.block_threshold == 0.6
+
+
+class TestPolicyTablesFailClosed:
+    def test_a_non_table_policy_raises(self) -> None:
+        from unplug.exceptions import ConfigError
+
+        with pytest.raises(ConfigError, match=r"\[policy\] must be a table"):
+            build_config({"policy": "strict"})
+
+    def test_a_non_table_guard_policy_raises(self) -> None:
+        from unplug.exceptions import ConfigError
+
+        with pytest.raises(ConfigError, match=r"\[policy\] must be a table"):
+            build_config({"guard": {"policy": "strict"}})
+
+    def test_out_of_range_threshold_is_rejected_even_when_policy_shadows_it(self) -> None:
+        """The shadowed value still reached pipeline.thresholds unchecked."""
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError):
+            build_config(
+                {
+                    "policy": {"block_threshold": 0.8},
+                    "pipeline": {"thresholds": {"block": 5.0}},
+                }
+            )
+
+
+class TestEveryPolicySourceCombination:
+    """All 16 combinations of the four sources must agree on one block bar.
+
+    The push-down originally ran only inside the `[pipeline]` branch, so a file
+    with `[policy]` and no `[pipeline]` table left cfg.policy at the configured
+    value while the pipeline kept the default. Three of these sixteen failed.
+    """
+
+    @staticmethod
+    def _build(pipeline_policy: bool, top: bool, guard: bool, thresholds: bool):
+        data: dict = {}
+        if pipeline_policy:
+            data.setdefault("pipeline", {})["policy"] = {"block_threshold": 0.1}
+        if thresholds:
+            data.setdefault("pipeline", {})["thresholds"] = {"block": 0.4}
+        if top:
+            data["policy"] = {"block_threshold": 0.2}
+        if guard:
+            data.setdefault("guard", {})["policy"] = {"block_threshold": 0.3}
+        return build_config(data)
+
+    @pytest.mark.parametrize("pipeline_policy", [False, True])
+    @pytest.mark.parametrize("top", [False, True])
+    @pytest.mark.parametrize("guard", [False, True])
+    @pytest.mark.parametrize("thresholds", [False, True])
+    def test_all_three_layers_agree(
+        self, pipeline_policy: bool, top: bool, guard: bool, thresholds: bool
+    ) -> None:
+        cfg = self._build(pipeline_policy, top, guard, thresholds)
+        assert (
+            cfg.policy.block_threshold
+            == cfg.pipeline.policy.block_threshold
+            == cfg.pipeline.thresholds.block
+        )
+
+    def test_the_most_specific_source_wins(self) -> None:
+        # guard.policy > policy > pipeline.policy > pipeline.thresholds
+        assert self._build(True, True, True, True).policy.block_threshold == 0.3
+        assert self._build(True, True, False, True).policy.block_threshold == 0.2
+        assert self._build(True, False, False, True).policy.block_threshold == 0.1
+        assert self._build(False, False, False, True).policy.block_threshold == 0.4
+
+    def test_the_ml_gate_can_still_differ_from_the_block_bar(self) -> None:
+        """Forcing thresholds to the policy must not remove the gray_high knob."""
+        cfg = build_config(
+            {
+                "policy": {"block_threshold": 0.9},
+                "pipeline": {"ml_gate": {"gray_high": 0.7}},
+            }
+        )
+        assert cfg.pipeline.thresholds.block == 0.9
+        assert cfg.pipeline.ml_gate.gray_high == 0.7
+
+
+class TestFlatEnvWithGuardTable:
+    """Flat UNPLUG_* vars must survive a config file that has a [guard] table (#168)."""
+
+    def _write(self, tmp_path: Path) -> Path:
+        cfg = tmp_path / "unplug.toml"
+        cfg.write_text('[guard]\nscanners = ["injection"]\n', encoding="utf-8")
+        return cfg
+
+    def test_require_ml_reaches_the_config(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("UNPLUG_REQUIRE_ML", "true")
+        assert load(self._write(tmp_path)).require_ml is True
+
+    def test_mode_and_allowlist_reach_the_config(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("UNPLUG_MODE", "server")
+        monkeypatch.setenv("UNPLUG_SERVER_URL", "https://guard.example")
+        monkeypatch.setenv("UNPLUG_STRICT_SCANNER_ALLOWLIST", "true")
+        cfg = load(self._write(tmp_path))
+        assert cfg.mode == "server"
+        assert cfg.strict_scanner_allowlist is True
+
+    def test_env_beats_the_file(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        cfg_path = tmp_path / "unplug.toml"
+        cfg_path.write_text("[guard]\nrequire_ml = false\n", encoding="utf-8")
+        monkeypatch.setenv("UNPLUG_REQUIRE_ML", "true")
+        assert load(cfg_path).require_ml is True
+
+    def test_nested_form_beats_the_flat_one(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("UNPLUG_REQUIRE_ML", "true")
+        monkeypatch.setenv("UNPLUG_GUARD__REQUIRE_ML", "false")
+        assert load(self._write(tmp_path)).require_ml is False
+
+    def test_no_guard_table_still_works(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        cfg_path = tmp_path / "unplug.toml"
+        cfg_path.write_text('scanners = ["injection"]\n', encoding="utf-8")
+        monkeypatch.setenv("UNPLUG_REQUIRE_ML", "true")
+        assert load(cfg_path).require_ml is True
+
+    def test_active_model_does_not_strand_the_flat_keys(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """UNPLUG_ACTIVE_MODEL creates a [guard] table where the file had none."""
+        cfg_path = tmp_path / "unplug.toml"
+        cfg_path.write_text('scanners = ["injection"]\n', encoding="utf-8")
+        monkeypatch.setenv("UNPLUG_ACTIVE_MODEL", "tiny")
+        monkeypatch.setenv("UNPLUG_REQUIRE_ML", "true")
+        cfg = load(cfg_path)
+        assert cfg.active_model == "tiny"
+        assert cfg.require_ml is True

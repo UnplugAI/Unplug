@@ -98,9 +98,14 @@ def load_tool_patterns_map() -> ToolPatternsMap:
         for name, section in profiles_raw.items()
         if isinstance(section, dict)
     }
+    read_only_raw = parsed.get("read_only")
+    read_only = (
+        _tuple_str_list(read_only_raw, "patterns") if isinstance(read_only_raw, dict) else ()
+    )
     return ToolPatternsMap(
         side_effect=_tuple_str_list(side_effect_raw, "patterns"),
         taint_source=_tuple_str_list(taint_source_raw, "patterns"),
+        read_only=read_only,
         profiles=profiles,
     )
 

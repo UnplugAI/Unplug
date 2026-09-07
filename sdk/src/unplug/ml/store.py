@@ -295,7 +295,15 @@ class ModelStore:
         return rows
 
     def resolve_spec_path(self, spec: ModelSpec, tier: str | None = None) -> ModelSpec:
-        """Fill spec.path from env override, explicit path, or cache."""
+        """Fill spec.path from env override, explicit path, or cache.
+
+        The cache is only consulted when no checkpoint was asked for by name.
+        An operator who pins a path or sets ``UNPLUG_MODEL_PATH`` has named the
+        weights they want scanning their traffic, so a bad value there must not
+        be quietly answered with a different model out of the cache (#149).
+        Leaving the unusable path in place lets the caller decide what to do:
+        download it when ``auto_download_model`` is set, or fail.
+        """
         env_path = os.environ.get("UNPLUG_MODEL_PATH")
         if env_path:
             env = Path(env_path)
@@ -303,11 +311,24 @@ class ModelStore:
                 return spec.model_copy(update={"path": env_path})
             _log.warning(
                 "UNPLUG_MODEL_PATH=%s is set but is not a valid checkpoint "
-                "(need config.json and model.safetensors or pytorch_model.bin); ignoring.",
+                "(need config.json and model.safetensors or pytorch_model.bin). "
+                "Not falling back to the model cache: unset it to use the cache.",
                 env_path,
             )
+            # The bad path is written onto the spec, not dropped. Returning the spec
+            # unchanged leaves path unset, which downstream reads as "nothing was
+            # asked for" and answers from the cache or a download: the substitution
+            # this warning promises is not happening.
+            return spec.model_copy(update={"path": env_path})
 
-        if spec.path and self.is_valid_checkpoint(Path(spec.path)):
+        if spec.path:
+            if self.is_valid_checkpoint(Path(spec.path)):
+                return spec
+            _log.warning(
+                "Configured model path %s is not a valid checkpoint. "
+                "Not falling back to the model cache.",
+                spec.path,
+            )
             return spec
 
         cached = self.resolve_local_path(tier or spec.name)

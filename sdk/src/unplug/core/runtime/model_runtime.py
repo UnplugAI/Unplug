@@ -79,6 +79,14 @@ def prepare_active_model_spec(config: GuardConfig) -> ModelSpec | None:
     if path and store.is_valid_checkpoint(Path(path)):
         return spec
 
+    if path:
+        # A path is set and is not a valid checkpoint, so the operator named one
+        # and got it wrong. resolve_spec_path already refuses to answer that from
+        # the cache; downloading or resolving a tier here would substitute a
+        # different model for the one they asked for, which is the same silent
+        # swap by another route. Hand back the bad path and let the caller fail.
+        return spec
+
     if not config.auto_download_model:
         return spec
 
@@ -124,9 +132,21 @@ def load_active_model_provider(
     if not path or not Path(path).is_dir():
         if config.require_ml:
             tier = config.active_model or "unknown"
-            msg = (
-                f"Model tier {tier!r} is not available locally. Run: unplug-models download {tier}"
-            )
+            if path:
+                # Naming the path matters more than naming the tier here. Now that
+                # a bad path is refused rather than answered from the cache, this
+                # is the error an operator gets when they mistype one, and "tier
+                # 'tiny' is not available locally" sends them to re-download a
+                # model they already have.
+                msg = (
+                    f"Model tier {tier!r} was configured with path {path!r}, which is not "
+                    "a usable checkpoint. Fix the path or unset it to use the model cache."
+                )
+            else:
+                msg = (
+                    f"Model tier {tier!r} is not available locally. "
+                    f"Run: unplug-models download {tier}"
+                )
             raise ModelError(msg)
         return None
     registry = build_model_registry()

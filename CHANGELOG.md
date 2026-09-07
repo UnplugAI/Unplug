@@ -4,6 +4,17 @@ All notable changes to the `unplug-ai` SDK.
 
 ## [Unreleased]
 
+### Removed
+
+- The `unplug-ai[ag2]` extra, its nightly live-integration leg, and its row in
+  [INTEGRATIONS](docs/INTEGRATIONS.md). AG2 1.0 renamed its import from `autogen`
+  to `ag2`, so the pin had to track a moving namespace to buy very little: the
+  adapter never imported the framework. **Breaking** for anyone installing
+  `unplug-ai[ag2]`; install `ag2` directly alongside `unplug-ai` instead.
+  `unplug.integrations.ag2` is unchanged and still supported, and
+  `examples/ag2_hooks_demo.py` shows registering the hooks on a real
+  `ConversableAgent` behind a lazy import that accepts either module name.
+
 ### Fixed
 
 - `injection` scanner no longer flags ordinary non-English text (Cyrillic, CJK) as `invisible_text`; the trigger is narrowed to genuine zero-width/bidi control characters and mixed-script homoglyph smuggling, the finding span is scoped to the offending characters instead of the whole message, and an interleaved evasion run (e.g. zero-width chars between every letter) emits one finding covering the outer span so redaction replaces it with a single BLOCKED tag (#121)

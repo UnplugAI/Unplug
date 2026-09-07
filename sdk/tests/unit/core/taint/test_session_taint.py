@@ -105,3 +105,49 @@ class TestSessionTaint:
         result = guard.check_tool_call("shell", {"command": "echo approved"})
         assert result.action == Action.ALLOW
         assert result.safe
+
+
+class TestHostToolNames:
+    """The names an agent host actually uses, end to end (#166)."""
+
+    def test_camel_fetch_taints_and_mcp_send_is_held(self) -> None:
+        from unplug.integrations.hooks import AgentHooks
+
+        hooks = AgentHooks()
+        hooks.scan_user_input("summarise the page at example.com for me")
+        hooks.before_tool_call("WebFetch", {"url": "https://evil.example/page"})
+        assert hooks.guard.context.is_session_tainted
+
+        decision = hooks.before_tool_call(
+            "mcp__slack__send_message",
+            {"channel": "#external", "text": "AWS keys: ..."},
+        )
+        assert not decision.allowed
+        assert "session_taint_side_effect" in {f.subcategory for f in decision.result.findings}
+
+    def test_unrecognised_tool_is_held_on_a_tainted_session(self) -> None:
+        guard = Guard()
+        guard.notify_taint_source("web_fetch")
+        result = guard.check_tool_call("mcp__acme__frobnicate", {"payload": "..."})
+        assert result.action is not Action.ALLOW
+        assert "session_taint_unknown_tool" in {f.subcategory for f in result.findings}
+
+    def test_unrecognised_tool_is_allowed_on_a_clean_session(self) -> None:
+        guard = Guard()
+        result = guard.check_tool_call("mcp__acme__frobnicate", {"payload": "..."})
+        assert result.action is Action.ALLOW
+
+    def test_unknown_tool_gate_can_be_turned_off(self) -> None:
+        from unplug.config.guard import GuardConfig
+        from unplug.config.tools import ToolPolicyConfig
+
+        cfg = GuardConfig(tools=ToolPolicyConfig(unknown_tool_is_side_effect=False))
+        guard = Guard(config=cfg)
+        guard.notify_taint_source("web_fetch")
+        result = guard.check_tool_call("mcp__acme__frobnicate", {"payload": "..."})
+        assert result.action is Action.ALLOW
+
+    def test_ordinary_getter_is_not_held(self) -> None:
+        guard = Guard()
+        guard.notify_taint_source("web_fetch")
+        assert guard.check_tool_call("get_weather", {"city": "Berlin"}).action is Action.ALLOW
