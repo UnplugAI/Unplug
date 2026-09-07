@@ -59,7 +59,7 @@ path = "/path/to/checkpoint-slim"
 [models.tiny.config]
 max_length = 512
 stride = 64
-inj_threshold = 0.45
+inj_threshold = 0.60
 doc_threshold = 0.9
 device = "auto"
 batch_size = 4
