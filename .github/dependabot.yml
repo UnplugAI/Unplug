@@ -19,3 +19,11 @@ updates:
     target-branch: dev
     labels:
       - dependencies
+
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+    target-branch: dev
+    labels:
+      - dependencies
