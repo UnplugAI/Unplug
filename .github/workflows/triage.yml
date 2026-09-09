@@ -10,6 +10,10 @@ on:
   issues:
     types: [opened, reopened]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
 permissions:
   issues: write
 
