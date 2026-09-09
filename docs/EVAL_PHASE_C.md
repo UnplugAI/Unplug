@@ -11,7 +11,7 @@ re-measured in this phase.
 cd sdk
 uv sync --all-extras --dev
 
-# Datasets are already under benchmarks/data/. To refresh from Hugging Face:
+# Download or refresh datasets from Hugging Face (not every dataset below is committed):
 uv run python -m benchmarks.download --dataset all --out benchmarks/data
 # neuralchemy: core/test holdout; microsoft: streaming Phase1 subset (default --limit 5000)
 

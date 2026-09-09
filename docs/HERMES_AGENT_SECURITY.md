@@ -68,7 +68,7 @@ desc, result = guard.scan_context_file(description_md, filename="DESCRIPTION.md"
 
 # 3. Cron / scheduled jobs: scan AFTER skill prepend
 assembled = skill_preamble + user_prompt
-_, result = guard.scan(assembled, source="retrieved")
+result = guard.scan(assembled, source="retrieved")
 if not result.safe:
     raise CronPromptInjectionBlocked(result)
 

@@ -114,7 +114,7 @@ sensitive_context_block_delta = 0.15
 [models.tiny.config]
 max_length = 512
 stride = 64
-inj_threshold = 0.45
+inj_threshold = 0.60
 doc_threshold = 0.9
 tau_abstain_low = 0.35
 abstain_enabled = true
