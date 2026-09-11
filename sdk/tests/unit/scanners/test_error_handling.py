@@ -56,25 +56,36 @@ class TestPipelineFailClosed:
 
 
 class TestGuardFailClosed:
+    def _delayed_raise(self, *args, **kwargs):
+        import time
+        time.sleep(0.01)
+        raise RuntimeError("fatal")
+
     def test_scan_error_returns_blocked(self):
         guard = Guard(scanners=["injection"])
-        with patch.object(guard._input_pipeline, "run", side_effect=RuntimeError("fatal")):
+        with patch.object(guard._input_pipeline, "run", side_effect=self._delayed_raise):
             result = guard.scan("test")
         assert result.safe is False
         assert result.action == Action.BLOCK
         assert result.findings[0].subcategory == "guard_error"
         assert "RuntimeError" in result.findings[0].evidence
+        assert result.stages_run == ["error"]
+        assert result.latency_ms > 0.0
 
     def test_scan_output_error_returns_blocked(self):
         guard = Guard(scanners=["injection"])
-        with patch.object(guard._output_pipeline, "run", side_effect=RuntimeError("fatal")):
+        with patch.object(guard._output_pipeline, "run", side_effect=self._delayed_raise):
             result = guard.scan_output("test")
         assert result.safe is False
         assert result.action == Action.BLOCK
+        assert result.stages_run == ["error"]
+        assert result.latency_ms > 0.0
 
     def test_check_tool_call_error_returns_blocked(self):
         guard = Guard(scanners=["injection"])
-        with patch.object(guard._tool_pipeline, "run", side_effect=RuntimeError("fatal")):
+        with patch.object(guard._tool_pipeline, "run", side_effect=self._delayed_raise):
             result = guard.check_tool_call("rm", {"-rf": "/"})
         assert result.safe is False
         assert result.action == Action.BLOCK
+        assert result.stages_run == ["error"]
+        assert result.latency_ms > 0.0
