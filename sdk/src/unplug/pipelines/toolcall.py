@@ -20,7 +20,7 @@ from unplug.core.agent.intent import check_intent_mismatch
 from unplug.core.agent.toolchain import toolchain_findings
 from unplug.core.context import ExecutionContext, ToolCall
 from unplug.core.runtime.stats import MetricsCollector
-from unplug.core.taint import TrustLevel
+from unplug.core.taint import TaintedText, TrustLevel
 from unplug.models import Action, Finding, ScanResult
 from unplug.pipelines.base import BasePipeline
 from unplug.scanners.base import BaseScanner
@@ -33,6 +33,8 @@ class ToolCallPipeline(BasePipeline):
         self,
         destructive_scanner: BaseScanner | None = None,
         financial_scanner: BaseScanner | None = None,
+        secrets_scanner: BaseScanner | None = None,
+        leakage_scanner: BaseScanner | None = None,
         config: PipelineConfig | None = None,
         metrics: MetricsCollector | None = None,
         tool_policy: ToolPolicyConfig | None = None,
@@ -50,6 +52,8 @@ class ToolCallPipeline(BasePipeline):
         )
         self._destructive = destructive_scanner
         self._financial = financial_scanner
+        self._secrets = secrets_scanner
+        self._leakage = leakage_scanner
         self._tool_policy = tool_policy or ToolPolicyConfig()
         self._intent_config = intent_config or IntentConfig()
         self._toolchain_config = toolchain_config or ToolChainConfig()
@@ -103,6 +107,24 @@ class ToolCallPipeline(BasePipeline):
         if self._financial:
             findings.extend(self._financial.scan(tainted, context))
 
+        findings.extend(self._check_outbound_secrets(tainted, context))
+
+        return findings
+
+    def _check_outbound_secrets(
+        self, tainted: TaintedText, context: ExecutionContext
+    ) -> list[Finding]:
+        """Scan tool arguments for secrets on their way out.
+
+        The destructive and taint checks look at what the call does. This looks at
+        what it carries, so an allowed tool with an allowed target still cannot be
+        used to post a credential somewhere.
+        """
+        findings: list[Finding] = []
+        for scanner in (self._secrets, self._leakage):
+            if scanner is None:
+                continue
+            findings.extend(scanner.scan(tainted, context))
         return findings
 
     @staticmethod

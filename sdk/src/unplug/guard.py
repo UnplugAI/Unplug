@@ -274,6 +274,8 @@ class Guard:
         self._tool_pipeline = ToolCallPipeline(
             destructive_scanner=self._registry.get("destructive"),
             financial_scanner=self._registry.get("financial"),
+            secrets_scanner=self._registry.get("secrets"),
+            leakage_scanner=self._registry.get("leakage"),
             config=cfg.pipeline,
             metrics=self._metrics,
             tool_policy=cfg.tools,
