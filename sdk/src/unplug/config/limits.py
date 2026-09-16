@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -23,6 +25,7 @@ class LimitConfig(BaseModel):
     model_config = {"frozen": True}
 
     max_input_chars: int = 50_000
+    oversize_action: Literal["truncate", "block", "allow"] = "truncate"
     max_input_tokens: int | None = None
     max_tool_calls_per_session: int = 100
     allowed_tools: list[str] | None = None
@@ -53,6 +56,14 @@ class LimitConfig(BaseModel):
                     message=(f"Input exceeds {self.max_input_tokens} tokens (~{tokens} estimated)"),
                 )
         return None
+
+    def check_tool_call_length(self, text: str) -> LimitViolation | None:
+        """Length check for the tool-call path.
+
+        Separate from `check_input_length` so the two limits can diverge later
+        without a breaking change. Today it delegates.
+        """
+        return self.check_input_length(text)
 
     def check_tool_call_count(self, count: int) -> LimitViolation | None:
         if count > self.max_tool_calls_per_session:

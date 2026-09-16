@@ -266,6 +266,15 @@ blocked_tools = ["danger"]
         assert cfg.limits.max_input_chars == 100
         assert cfg.limits.blocked_tools == ["danger"]
 
+    def test_oversize_action_from_toml(self, tmp_path: Path) -> None:
+        p = tmp_path / "unplug.toml"
+        p.write_text("""\
+[limits]
+oversize_action = "block"
+""")
+        cfg = load(file_path=p)
+        assert cfg.limits.oversize_action == "block"
+
     def test_strict_scanner_allowlist_from_toml(self, tmp_path: Path) -> None:
         p = tmp_path / "unplug.toml"
         p.write_text("""\

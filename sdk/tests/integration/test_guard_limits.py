@@ -144,3 +144,53 @@ class TestGuardJudge:
         assert judge_findings[0].score < 0.3
         assert result.action == Action.ALLOW
         assert result.safe is True
+
+
+class TestOversizeToolArguments:
+    """A large tool argument is scannable, merely large. What it must never be is silent."""
+
+    SECRET = "sk-proj-abcdefghijklmnopqrstuvwxyz1234567890ABCD"
+    FILLER = "z" * 60_000
+
+    def _guard(self, action: str) -> Guard:
+        return Guard(config=GuardConfig(limits=LimitConfig(oversize_action=action)))
+
+    def _args_secret_early(self) -> dict[str, str]:
+        return {"path": "notes.md", "content": f"{self.SECRET} {self.FILLER}"}
+
+    def _args_secret_late(self) -> dict[str, str]:
+        return {"path": "notes.md", "content": f"{self.FILLER} {self.SECRET}"}
+
+    def test_truncate_still_catches_a_secret_before_the_cut(self) -> None:
+        result = self._guard("truncate").check_tool_call("write_file", self._args_secret_early())
+        assert result.action is Action.BLOCK
+        assert any(f.subcategory == "openai_key" for f in result.findings)
+
+    def test_truncate_flags_the_unscanned_tail_rather_than_allowing_it(self) -> None:
+        """A secret past the cut is missed, so the result must not read as safe."""
+        result = self._guard("truncate").check_tool_call("write_file", self._args_secret_late())
+        assert result.action is Action.REVIEW
+        assert any(f.subcategory == "input_truncated" for f in result.findings)
+        assert not any(f.subcategory == "openai_key" for f in result.findings)
+
+    def test_truncate_leaves_small_calls_untouched(self) -> None:
+        result = self._guard("truncate").check_tool_call("write_file", {"content": "hello"})
+        assert result.action is Action.ALLOW
+        assert result.findings == []
+
+    def test_block_mode_rejects_on_size_alone(self) -> None:
+        result = self._guard("block").check_tool_call("write_file", self._args_secret_late())
+        assert result.action is Action.BLOCK
+        assert any(f.subcategory == "input_too_long" for f in result.findings)
+
+    def test_allow_mode_scans_the_whole_argument(self) -> None:
+        result = self._guard("allow").check_tool_call("write_file", self._args_secret_late())
+        assert result.action is Action.BLOCK
+        assert any(f.subcategory == "openai_key" for f in result.findings)
+
+    def test_truncation_does_not_reach_the_approval_request(self) -> None:
+        """An operator must approve the arguments that will actually execute."""
+        args = self._args_secret_late()
+        result = self._guard("truncate").check_tool_call("send_email", args)
+        assert result.approval is not None
+        assert result.approval.arguments["content"] == args["content"]

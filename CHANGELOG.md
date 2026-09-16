@@ -4,6 +4,20 @@ All notable changes to the `unplug-ai` SDK.
 
 ## [Unreleased]
 
+### Security
+
+- Tool arguments are scanned for secrets on their way out; a fresh guard no longer allows `send_email` carrying an API key
+- URL-safe base64 payloads are decoded and scanned; `urlsafe_b64decode` takes no `validate` keyword, so that branch previously raised and was swallowed
+- Added AWS secret access key, database connection string, and GitHub fine-grained PAT patterns
+
+### Added
+
+- `LimitConfig.oversize_action` (`truncate` | `block` | `allow`) for tool arguments over `max_input_chars`
+
+### Changed
+
+- Tool arguments over `max_input_chars` now return `Action.REVIEW` with a `limits` / `input_truncated` finding instead of being scanned in full. Set `oversize_action = "allow"` to keep the previous behaviour
+
 ## [0.6.0] — 2026-07-20
 
 ### Security

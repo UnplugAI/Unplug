@@ -12,6 +12,7 @@ from unplug.config.agent_policy import (
     TrajectoryConfig,
 )
 from unplug.config.guard import PipelineConfig
+from unplug.config.limits import LimitConfig
 from unplug.config.tools import ToolPolicyConfig
 from unplug.core.agent.approval import build_approval_request
 from unplug.core.agent.collusion import collusion_findings
@@ -38,6 +39,7 @@ class ToolCallPipeline(BasePipeline):
         config: PipelineConfig | None = None,
         metrics: MetricsCollector | None = None,
         tool_policy: ToolPolicyConfig | None = None,
+        limits: LimitConfig | None = None,
         intent_config: IntentConfig | None = None,
         toolchain_config: ToolChainConfig | None = None,
         collusion_config: CollusionConfig | None = None,
@@ -55,6 +57,7 @@ class ToolCallPipeline(BasePipeline):
         self._secrets = secrets_scanner
         self._leakage = leakage_scanner
         self._tool_policy = tool_policy or ToolPolicyConfig()
+        self._limits = limits or LimitConfig()
         self._intent_config = intent_config or IntentConfig()
         self._toolchain_config = toolchain_config or ToolChainConfig()
         self._collusion_config = collusion_config or CollusionConfig()
@@ -83,9 +86,41 @@ class ToolCallPipeline(BasePipeline):
         text_parts = [input_data.tool_name]
         text_parts.extend(self._extract_string_values(input_data.arguments))
         scan_text = " ".join(text_parts)
-        tainted = self._tagger.tag(scan_text, TrustLevel.USER, "tool_call_pipeline")
 
         findings: list[Finding] = []
+        oversize = self._limits.check_tool_call_length(scan_text)
+        if oversize is not None:
+            if self._limits.oversize_action == "block":
+                return [
+                    Finding(
+                        category="limits",
+                        subcategory=oversize.kind,
+                        stage="limits",
+                        span_start=0,
+                        span_end=0,
+                        score=1.0,
+                        evidence=oversize.message,
+                    )
+                ]
+            if self._limits.oversize_action == "truncate":
+                scan_text = scan_text[: self._limits.max_input_chars]
+                findings.append(
+                    Finding(
+                        category="limits",
+                        subcategory="input_truncated",
+                        stage="limits",
+                        span_start=0,
+                        span_end=0,
+                        score=self._tool_policy.tainted_side_effect_review_score,
+                        evidence=(
+                            f"Tool arguments truncated to {self._limits.max_input_chars} chars "
+                            f"for scanning ({oversize.actual} provided); "
+                            "content past the cut was not scanned"
+                        ),
+                    )
+                )
+
+        tainted = self._tagger.tag(scan_text, TrustLevel.USER, "tool_call_pipeline")
 
         if self._destructive:
             findings.extend(self._destructive.scan(tainted, context))

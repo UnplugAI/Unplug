@@ -13,6 +13,27 @@ Enforces OWASP LLM10 (unbounded consumption) and tool allow/deny lists (LLM06).
 | `max_input_chars` / `max_input_tokens` | `scan()` / `scan_request()` / `scan_output*` | `Action.BLOCK`, category `limits` |
 | `blocked_tools` / `allowed_tools` | `check_tool_call()` | `Action.BLOCK`, subcategory `tool_blocked` |
 | `max_tool_calls_per_session` | `check_tool_call()` after allow/deny | `Action.BLOCK`, subcategory `tool_calls_exceeded` |
+| `max_input_chars` via `oversize_action` | `check_tool_call()` argument text | see below |
+
+### Oversized tool arguments
+
+Tool arguments are joined into one string before scanning, and that string is
+subject to `max_input_chars` too. The behaviour is set by `oversize_action`:
+
+| Value | Behaviour |
+|-------|-----------|
+| `truncate` (default) | Scan the first `max_input_chars`, then add a `limits` / `input_truncated` finding at review score. The call is still evaluated, and the result says plainly that content past the cut was not scanned. |
+| `block` | Reject on size alone, subcategory `input_too_long`. Matches what `scan()` already does. |
+| `allow` | Scan the whole argument however long it is. |
+
+`truncate` is the default because a 60 KB file write is scannable, merely large,
+and rejecting it on size would take out a legitimate workflow. What it must never
+do is come back clean: a secret past the cut produces `Action.REVIEW` with the
+truncation finding rather than `Action.ALLOW` with nothing.
+
+Truncation applies only to the text that gets scanned. The arguments carried in
+`result.approval` are always the full untruncated ones, so an operator approves
+the call that will actually run.
 
 ### Python
 
@@ -26,6 +47,7 @@ guard = Guard(
         allowed_tools=["read_file", "search"],
         blocked_tools=["run_shell"],
         max_tool_calls_per_session=50,
+        oversize_action="truncate",  # truncate | block | allow
     )
 )
 
@@ -40,6 +62,7 @@ tool = guard.check_tool_call("run_shell", {"cmd": "ls"})  # blocked: tool_blocke
 max_input_chars = 8000
 # max_input_tokens = 2000
 max_tool_calls_per_session = 50
+oversize_action = "truncate"
 allowed_tools = ["read_file", "search"]
 blocked_tools = ["run_shell"]
 ```

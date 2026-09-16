@@ -279,6 +279,7 @@ class Guard:
             config=cfg.pipeline,
             metrics=self._metrics,
             tool_policy=cfg.tools,
+            limits=self._limits,
             intent_config=cfg.intent,
             toolchain_config=cfg.toolchain,
             collusion_config=cfg.collusion,

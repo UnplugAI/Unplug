@@ -93,3 +93,25 @@ class TestTokenLimit:
         v = lc.check_input_length("this is way past both limits")
         assert v is not None
         assert v.kind == "input_too_long"
+
+
+class TestToolCallLength:
+    def test_under_the_limit_is_clean(self) -> None:
+        limits = LimitConfig(max_input_chars=100)
+        assert limits.check_tool_call_length("x" * 99) is None
+
+    def test_exactly_at_the_limit_does_not_fire(self) -> None:
+        """check_input_length uses a strict greater-than; keep that boundary."""
+        limits = LimitConfig(max_input_chars=100)
+        assert limits.check_tool_call_length("x" * 100) is None
+
+    def test_over_the_limit_reports_the_violation(self) -> None:
+        limits = LimitConfig(max_input_chars=100)
+        violation = limits.check_tool_call_length("x" * 101)
+        assert violation is not None
+        assert violation.kind == "input_too_long"
+        assert violation.limit == 100
+        assert violation.actual == 101
+
+    def test_oversize_action_defaults_to_truncate(self) -> None:
+        assert LimitConfig().oversize_action == "truncate"
