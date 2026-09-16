@@ -226,12 +226,8 @@ class TestShouldAdvancePrefix:
             )
 
     def test_allow_requires_safe(self) -> None:
-        assert ScanCache.should_advance_prefix(
-            Action.ALLOW, advance_on_redact=True, safe=True
-        )
-        assert not ScanCache.should_advance_prefix(
-            Action.ALLOW, advance_on_redact=True, safe=False
-        )
+        assert ScanCache.should_advance_prefix(Action.ALLOW, advance_on_redact=True, safe=True)
+        assert not ScanCache.should_advance_prefix(Action.ALLOW, advance_on_redact=True, safe=False)
 
 
 class TestSafePrefixAdvanceGuard:

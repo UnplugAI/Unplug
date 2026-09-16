@@ -515,6 +515,9 @@ def _iter_base64_blob_spans(text: str) -> list[tuple[int, int, str]]:
     return spans
 
 
+_URLSAFE_TO_STANDARD = str.maketrans("-_", "+/")
+
+
 def _collapse_base64_whitespace(raw: str) -> str:
     return _BASE64_WS_COLLAPSE.sub("", raw)
 
@@ -528,9 +531,12 @@ def _try_decode_base64_payload(raw: str) -> str | None:
     if len(collapsed) < _MIN_BASE64_BLOB_LEN:
         return None
     padded = collapsed + "=" * ((4 - len(collapsed) % 4) % 4)
-    for decode_fn in (base64.b64decode, base64.urlsafe_b64decode):
+    # urlsafe_b64decode takes no validate= keyword, so translating the URL-safe
+    # alphabet back to the standard one keeps both variants strictly validated.
+    candidates = (padded, padded.translate(_URLSAFE_TO_STANDARD))
+    for candidate in candidates:
         try:
-            decoded_bytes = decode_fn(padded, validate=True)
+            decoded_bytes = base64.b64decode(candidate, validate=True)
             if len(decoded_bytes) > _MAX_BASE64_DECODED_SIZE:
                 return None
             decoded = decoded_bytes.decode("utf-8")

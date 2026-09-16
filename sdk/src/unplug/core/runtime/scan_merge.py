@@ -36,10 +36,14 @@ def merge_scan_results(*results: ScanResult) -> ScanResult:
             existing = by_key.get(key)
             # Prefer higher score (and a defined replacement) so a weak/spoofed
             # remote hit cannot suppress an authoritative local registry/canary finding.
-            if existing is None or finding.score > existing.score or (
-                finding.score == existing.score
-                and existing.replacement is None
-                and finding.replacement is not None
+            if (
+                existing is None
+                or finding.score > existing.score
+                or (
+                    finding.score == existing.score
+                    and existing.replacement is None
+                    and finding.replacement is not None
+                )
             ):
                 by_key[key] = finding
     findings = list(by_key.values())
