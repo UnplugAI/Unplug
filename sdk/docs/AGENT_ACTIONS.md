@@ -1,6 +1,6 @@
 # Agent actions: ALLOW, REDACT, REVIEW, BLOCK
 
-Every Unplug scan returns an **`Action`**. Agent hosts and integration adapters must handle each action differently — especially **`REVIEW`**, which is not the same as **`BLOCK`**.
+Every Unplug scan returns an **`Action`**. Agent hosts and integration adapters must handle each action differently, especially **`REVIEW`**, which is not the same as **`BLOCK`**.
 
 Examples below use `from unplug import Guard` for the host and `from unplug.api.*` only
 where wire types or enums are needed. Do not import from `unplug.core.*`.
@@ -11,8 +11,8 @@ where wire types or enums are needed. Do not import from `unplug.core.*`.
 |-----------------|---------------|------------------------|-------------------|
 | `allow` | `True` | `True` | Proceed with original text |
 | `redact` | varies | usually `True` | Use `result.redacted_text` (or `decision.redacted_text`) |
-| `review` | `False` | `False` | **Pause** — request human approval before side-effect tools; do not treat as silent allow |
-| `block` | `False` | `False` | **Stop** — do not call the LLM or execute the tool |
+| `review` | `False` | `False` | **Pause**. Request human approval before side-effect tools; do not treat as silent allow |
+| `block` | `False` | `False` | **Stop**. Do not call the LLM or execute the tool |
 | `abstain` | `False` | `False` | Escalate (judge, secondary model, or operator) |
 
 `HookDecision.allowed` is `False` for both **`review`** and **`block`**. Check `decision.result.action` (or `decision.needs_review`) to tell them apart.
@@ -107,19 +107,19 @@ if decision.result.action == Action.REVIEW:
     return hold_for_operator(decision)  # pause workflow
 if not decision.allowed:
     raise RuntimeError(decision.message)  # block
-# allowed or redacted — proceed
+# allowed or redacted, proceed
 ```
 
 LangChain note: **`on_tool_start` callbacks are observer-only** for input/output. Use **`unplug_input_runnable` / `unplug_output_runnable`** for enforcement, plus the callback (or direct `before_tool_call`) for tools.
 
 ## Context files (AGENTS.md)
 
-`scan_context_file` returns **`(text_for_prompt, scan_result)`** — not a single result:
+`scan_context_file` returns **`(text_for_prompt, scan_result)`**, not a single result:
 
 ```python
 text_for_prompt, result = guard.scan_context_file(raw_agents_md, filename="AGENTS.md")
 if not result.safe:
-    # text_for_prompt is already a blocked placeholder — do not load raw content
+    # text_for_prompt is already a blocked placeholder, do not load raw content
     load_system_prompt(text_for_prompt)
 else:
     load_system_prompt(text_for_prompt)  # same as raw when clean

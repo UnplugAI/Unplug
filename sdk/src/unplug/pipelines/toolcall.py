@@ -181,20 +181,6 @@ class ToolCallPipeline(BasePipeline):
             }
         )
 
-    @staticmethod
-    def _extract_string_values(obj: Any) -> list[str]:
-        """Recursively extract all string values from a nested dict/list."""
-        values: list[str] = []
-        if isinstance(obj, str):
-            values.append(obj)
-        elif isinstance(obj, dict):
-            for v in obj.values():
-                values.extend(ToolCallPipeline._extract_string_values(v))
-        elif isinstance(obj, list):
-            for item in obj:
-                values.extend(ToolCallPipeline._extract_string_values(item))
-        return values
-
     def _redact(
         self,
         input_data: Any,

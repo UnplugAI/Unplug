@@ -2,13 +2,32 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from unplug.core.agent.argument_map import ArgumentMap, ArgumentSegment, build_argument_text
-from unplug.pipelines.toolcall import ToolCallPipeline
+
+
+def _legacy_strings(obj: Any) -> list[str]:
+    """The flattening the pipeline used before the map existed, kept verbatim.
+
+    This is a frozen copy on purpose. Comparing against the live implementation
+    would pass even if both drifted together, which is the thing being guarded
+    against: the scanners must keep seeing byte-identical input.
+    """
+    values: list[str] = []
+    if isinstance(obj, str):
+        values.append(obj)
+    elif isinstance(obj, dict):
+        for v in obj.values():
+            values.extend(_legacy_strings(v))
+    elif isinstance(obj, list):
+        for item in obj:
+            values.extend(_legacy_strings(item))
+    return values
 
 
 def _legacy_join(tool_name: str, arguments: dict) -> str:
-    """How the pipeline built its scan text before the map existed."""
-    return " ".join([tool_name, *ToolCallPipeline._extract_string_values(arguments)])
+    return " ".join([tool_name, *_legacy_strings(arguments)])
 
 
 class TestJoinEquivalence:

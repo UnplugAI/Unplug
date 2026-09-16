@@ -86,7 +86,7 @@ Optional Stage-3 classifier for borderline cases. Pass any object with
 |------|---------|----------|
 | `judge=` on `Guard()` | `None` | Judge disabled |
 | `judge_low` / `judge_high` on `GuardConfig` | `0.3` / `0.8` | Invoke when max scanner score is in `[low, high)` **or** ML emitted ABSTAIN |
-| Failures / timeouts | — | Fail closed (`Action.BLOCK`, stage `llm_judge`) |
+| Failures / timeouts | n/a | Fail closed (`Action.BLOCK`, stage `llm_judge`) |
 
 Judge JSON `action` is authoritative for that finding's contribution to
 score-driven policy. Inconsistent score/action pairs are clamped:
@@ -131,7 +131,7 @@ guard = Guard(judge=make_litellm_judge(model="gpt-4o-mini"))
 [guard]
 judge_low = 0.3
 judge_high = 0.8
-# judge= must still be passed in Python — there is no silent built-in LLM
+# judge= must still be passed in Python. There is no silent built-in LLM
 ```
 
 ## Public imports
