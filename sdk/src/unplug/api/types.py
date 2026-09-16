@@ -19,6 +19,12 @@ class Finding(BaseModel):
     score: float = Field(ge=0.0, le=1.0, description="Confidence score")
     evidence: str = Field(description="Human-readable explanation")
     replacement: str | None = Field(default=None)
+    argument_path: str | None = Field(
+        default=None, description="Tool argument that carried the match, if known"
+    )
+    argument_offset: int | None = Field(
+        default=None, ge=0, description="Offset within that argument's value"
+    )
 
     @model_validator(mode="after")
     def validate_span(self) -> Self:

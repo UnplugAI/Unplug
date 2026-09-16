@@ -29,6 +29,33 @@ where wire types or enums are needed. Do not import from `unplug.core.*`.
 
 After a web fetch or RAG ingest, call `guard.notify_taint_source("web_fetch")` so the next side-effect tool (email, upload, payment) returns **`review`** instead of **`allow`**.
 
+## Which argument carried the finding
+
+Tool arguments are flattened into one string before scanning, so a finding's
+`span_start` and `span_end` are offsets into that joined text rather than into
+any single argument. For secret findings the argument is recorded separately:
+
+| Field | Meaning |
+|-------|---------|
+| `argument_path` | Dotted path to the argument, e.g. `body` or `json.fields[0].v`. Keys containing a dot are bracket-quoted, as in `a["b.c"]`. |
+| `argument_offset` | Offset of the match within that argument's own value. |
+
+```python
+result = guard.check_tool_call(
+    "http_post",
+    {"url": "https://example.invalid", "json": {"fields": [{"v": api_key}]}},
+)
+for finding in result.findings:
+    if finding.argument_path:
+        print(finding.argument_path, finding.argument_offset)
+        # json.fields[0].v 0
+```
+
+Both fields default to `None`. Policy checks such as the destructive-command
+and session-taint rules report `span_start=0` as a sentinel rather than a real
+offset, so they carry no path; an absent path means the finding is about the
+call itself, not about something an argument contained.
+
 ## REVIEW + human approval
 
 `Guard` accepts an **`ApprovalProvider`**. When a tool call returns `review`, Unplug builds an `ApprovalRequest` and calls your provider. If it returns `True`, the tool call is re-evaluated and may proceed.

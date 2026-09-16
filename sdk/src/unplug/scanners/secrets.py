@@ -39,7 +39,7 @@ class SecretsScanner(BaseScanner):
                     span_start=m.span_start,
                     span_end=m.span_end,
                     score=self._config.base_score,
-                    evidence=f"Canary token '{m.secret_name}' leaked into output",
+                    evidence=f"Canary token '{m.secret_name}' leaked into scanned text",
                     replacement="[REDACTED:canary]",
                 )
                 continue
@@ -50,6 +50,6 @@ class SecretsScanner(BaseScanner):
                 span_start=m.span_start,
                 span_end=m.span_end,
                 score=self._config.base_score,
-                evidence=f"Registered secret '{m.secret_name}' found in output",
+                evidence=f"Registered secret '{m.secret_name}' found in scanned text",
                 replacement=None,
             )

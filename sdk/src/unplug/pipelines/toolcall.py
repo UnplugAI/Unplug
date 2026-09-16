@@ -15,6 +15,7 @@ from unplug.config.guard import PipelineConfig
 from unplug.config.limits import LimitConfig
 from unplug.config.tools import ToolPolicyConfig
 from unplug.core.agent.approval import build_approval_request
+from unplug.core.agent.argument_map import ArgumentMap, build_argument_text
 from unplug.core.agent.collusion import collusion_findings
 from unplug.core.agent.degradation import degraded_tool_findings
 from unplug.core.agent.intent import check_intent_mismatch
@@ -83,9 +84,7 @@ class ToolCallPipeline(BasePipeline):
         return result.model_copy(update={"approval": approval})
 
     def _execute(self, input_data: ToolCall, context: ExecutionContext) -> list[Finding]:
-        text_parts = [input_data.tool_name]
-        text_parts.extend(self._extract_string_values(input_data.arguments))
-        scan_text = " ".join(text_parts)
+        scan_text, arg_map = build_argument_text(input_data.tool_name, input_data.arguments)
 
         findings: list[Finding] = []
         oversize = self._limits.check_tool_call_length(scan_text)
@@ -142,12 +141,12 @@ class ToolCallPipeline(BasePipeline):
         if self._financial:
             findings.extend(self._financial.scan(tainted, context))
 
-        findings.extend(self._check_outbound_secrets(tainted, context))
+        findings.extend(self._check_outbound_secrets(tainted, context, arg_map))
 
         return findings
 
     def _check_outbound_secrets(
-        self, tainted: TaintedText, context: ExecutionContext
+        self, tainted: TaintedText, context: ExecutionContext, arg_map: ArgumentMap
     ) -> list[Finding]:
         """Scan tool arguments for secrets on their way out.
 
@@ -160,7 +159,27 @@ class ToolCallPipeline(BasePipeline):
             if scanner is None:
                 continue
             findings.extend(scanner.scan(tainted, context))
-        return findings
+        return [self._annotate_argument(finding, arg_map) for finding in findings]
+
+    @staticmethod
+    def _annotate_argument(finding: Finding, arg_map: ArgumentMap) -> Finding:
+        """Record which argument the finding's span started in.
+
+        Only span-precise findings go through here. The policy checks report
+        `span_start=0` as a sentinel, and annotating those would name the tool
+        rather than anything that carried a secret.
+        """
+        resolved = arg_map.resolve(finding.span_start)
+        if resolved is None:
+            return finding
+        path, offset = resolved
+        return finding.model_copy(
+            update={
+                "argument_path": path,
+                "argument_offset": offset,
+                "evidence": f"{finding.evidence} (in argument '{path}')",
+            }
+        )
 
     @staticmethod
     def _extract_string_values(obj: Any) -> list[str]:

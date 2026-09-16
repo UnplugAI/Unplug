@@ -13,6 +13,7 @@ All notable changes to the `unplug-ai` SDK.
 ### Added
 
 - `LimitConfig.oversize_action` (`truncate` | `block` | `allow`) for tool arguments over `max_input_chars`
+- `Finding.argument_path` and `Finding.argument_offset` name the tool argument a secret finding came from
 
 ### Changed
 
