@@ -58,6 +58,7 @@ class TestPipelineFailClosed:
 class TestGuardFailClosed:
     def _delayed_raise(self, *args, **kwargs):
         import time
+
         time.sleep(0.01)
         raise RuntimeError("fatal")
 
