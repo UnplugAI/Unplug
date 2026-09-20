@@ -20,7 +20,7 @@
   regex: (?i)(DELETE\s+/|\.delete\(|requests\.delete|httpx\.delete)\b
   flags: i
 - name: git_destructive
-  regex: (?i)\b(git\s+(push\s+--force|reset\s+--hard|clean\s+-fd|branch\s+-D))\b
+  regex: (?i)\b(git\s+(push\s+(?:--force(?:-with-lease)?|-f)|reset\s+--hard|clean\s+-fd|branch\s+-D))\b
   flags: i
 - name: sql_union_injection
   regex: (?i)\b(UNION\s+SELECT|OR\s+1\s*=\s*1|'?\s*OR\s+'1'\s*=\s*'1)\b

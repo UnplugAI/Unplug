@@ -101,3 +101,31 @@ class TestUrlUserinfoWithoutPassword:
     )
     def test_benign_urls_do_not_match(self, text: str) -> None:
         assert "credentials_in_url" not in self._subcategories(text)
+
+
+class TestGitForcePushShortFlag:
+    """git push -f is the form most often typed and matched no pattern."""
+
+    def _subcategories(self, text: str) -> set[str]:
+        scanner = DestructiveScanner()
+        return {f.subcategory for f in scanner.scan(_tainted(text), ExecutionContext())}
+
+    @pytest.mark.parametrize(
+        "command",
+        [
+            "git push -f origin main",
+            "git push --force",
+            "git push --force-with-lease origin main",
+            "git reset --hard HEAD~1",
+            "git branch -D feature",
+        ],
+    )
+    def test_destructive_git_matches(self, command: str) -> None:
+        assert "git_destructive" in self._subcategories(command)
+
+    @pytest.mark.parametrize(
+        "command",
+        ["git push origin main", "git push -foo", "git status"],
+    )
+    def test_safe_git_does_not_match(self, command: str) -> None:
+        assert "git_destructive" not in self._subcategories(command)
