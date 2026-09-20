@@ -47,3 +47,31 @@ class TestPrivateKeyHeaderLabels:
     )
     def test_non_private_blocks_do_not_match(self, text: str) -> None:
         assert "private_key_header" not in _leak(text)
+
+
+class TestCreditCardBrands:
+    """The old alternation encoded 16 and 19 digit groupings only."""
+
+    @pytest.mark.parametrize(
+        "number",
+        [
+            "378282246310005",  # Amex, 15 digits
+            "38520000023237",  # Diners, 14 digits
+            "4111111111111111",  # Visa, 16 digits
+            "4111 1111 1111 1111",
+            "5555-5555-5555-4444",
+        ],
+    )
+    def test_luhn_valid_card_matches(self, number: str) -> None:
+        assert "credit_card" in _leak(number, TrustLevel.TOOL_OUTPUT)
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "4111111111111112",  # fails Luhn
+            "12345",
+            "order 1234 5678",
+        ],
+    )
+    def test_non_card_digits_do_not_match(self, text: str) -> None:
+        assert "credit_card" not in _leak(text, TrustLevel.TOOL_OUTPUT)
