@@ -32,6 +32,17 @@ _ZERO_WIDTH_RE = re.compile("[" + re.escape(_ZERO_WIDTH_CHARS) + "]+")
 # ASCII substitutes. Ordinary CJK punctuation (，。) and ideographs must not
 # be flagged.
 _CONFUSABLE_RE = re.compile(r"[\uff10-\uff19\uff21-\uff3a\uff41-\uff5a\u24b6-\u24cf\u24d0-\u24e9]+")
+# Mathematical alphanumeric symbols (U+1D400-U+1D7FF: bold, italic, script,
+# fraktur, double-struck, sans-serif, monospace letters/digits) normalize
+# straight to ASCII under NFKC, same as the confusables above. Unlike those,
+# ordinary math notation strings several styled variables together ("let
+# f(x) = ax + b", "define xy as the product"), so this block can't be
+# unconditionally suspicious at any short run length. Benign notation tops
+# out at 2 adjacent styled characters; a payload rendered in math-bold runs
+# 9-12. The threshold sits between the two: below it is notation, at or
+# above it is a styled word.
+_MATH_ALPHANUMERIC_MIN_RUN = 4
+_MATH_ALPHANUMERIC_RE = re.compile(r"[\U0001d400-\U0001d7ff]+")
 _WORD_RE = re.compile(r"\w+")
 
 # Only collapse evasion spans that sit close together (e.g. zero-width chars
@@ -41,13 +52,64 @@ _WORD_RE = re.compile(r"\w+")
 _MAX_MERGE_GAP = 3
 
 
+def _merge_close(spans: list[tuple[int, int]], max_gap: int) -> list[tuple[int, int]]:
+    """Merge spans that sit within max_gap of each other, in original-text order."""
+    if not spans:
+        return spans
+    spans = sorted(spans)
+    merged: list[tuple[int, int]] = [spans[0]]
+    for span_start, span_end in spans[1:]:
+        last_start, last_end = merged[-1]
+        if span_start - last_end <= max_gap:
+            merged[-1] = (last_start, max(last_end, span_end))
+        else:
+            merged.append((span_start, span_end))
+    return merged
+
+
+def _group_whitespace_runs(
+    original: str, runs: list[tuple[int, int]]
+) -> list[tuple[int, int, int]]:
+    """Group runs chained by pure-whitespace gaps, of any length.
+
+    Real math notation packs several short styled runs against punctuation
+    ("f(x)", "a+b") without a threat actor's intent; a payload chunked into
+    short styled words to duck a per-run length threshold has nothing *but*
+    word-boundary spaces between the chunks (a styled "the user has ..."
+    split into "the", "user", "has", ...). Requiring the gap to be
+    whitespace-only groups the latter without flattening the former. The gap
+    is not length-capped: an attacker can always add more spaces, but never
+    turn them into anything but whitespace.
+
+    Returns (start, end, styled_chars) triples. styled_chars is the sum of
+    the grouped runs' own lengths, not end - start: measuring span width
+    would let a wide whitespace gap between two short runs *dilute* the
+    count exactly the way this exists to prevent, in the other direction.
+    """
+    if not runs:
+        return []
+    runs = sorted(runs)
+    groups: list[list[tuple[int, int]]] = [[runs[0]]]
+    for span_start, span_end in runs[1:]:
+        _, last_end = groups[-1][-1]
+        if original[last_end:span_start].isspace():
+            groups[-1].append((span_start, span_end))
+        else:
+            groups.append([(span_start, span_end)])
+    return [
+        (group[0][0], group[-1][1], sum(end - start for start, end in group)) for group in groups
+    ]
+
+
 def _evasion_spans(original: str) -> list[tuple[int, int]]:
     """Original-text spans of genuine invisible / mixed-script evasion.
 
     Scoped to the offending characters rather than the whole input so redaction
     keeps the rest of the message. Plain non-English text that merely trips a
     normalization stage (whole words in Cyrillic, CJK punctuation) is not
-    counted as evasion.
+    counted as evasion, and neither is an isolated styled math symbol or a
+    short run of them (ordinary notation, not a payload in disguise) — see
+    `_MATH_ALPHANUMERIC_MIN_RUN` below.
     """
     spans: list[tuple[int, int]] = []
 
@@ -56,6 +118,20 @@ def _evasion_spans(original: str) -> list[tuple[int, int]]:
 
     for match in _CONFUSABLE_RE.finditer(original):
         spans.append((match.start(), match.end()))
+
+    # Below the threshold: notation like "ax" or "f(x)". At or above it: a
+    # whole word rendered in styled Unicode instead of ASCII. Runs separated
+    # only by whitespace are grouped before the threshold is applied, by
+    # total styled-character count rather than span width: otherwise a
+    # payload chunked into short styled words ("the user has ..." split into
+    # "the", "user", "has", ...) stays under the per-run threshold forever,
+    # no matter how long the message or how wide the spaces between chunks.
+    # Real notation packs runs against punctuation ("f(x)"), not just
+    # spaces, so it does not group here.
+    math_runs = [(m.start(), m.end()) for m in _MATH_ALPHANUMERIC_RE.finditer(original)]
+    for span_start, span_end, styled_chars in _group_whitespace_runs(original, math_runs):
+        if styled_chars >= _MATH_ALPHANUMERIC_MIN_RUN:
+            spans.append((span_start, span_end))
 
     # A homoglyph is only suspicious when a non-Latin character sits inside a
     # token that is otherwise Latin: that is mixed-script smuggling ("ignоre").
@@ -77,18 +153,7 @@ def _evasion_spans(original: str) -> list[tuple[int, int]]:
         if run_start is not None:
             spans.append((run_start, end))
 
-    if not spans:
-        return spans
-
-    spans.sort()
-    merged: list[tuple[int, int]] = [spans[0]]
-    for span_start, span_end in spans[1:]:
-        last_start, last_end = merged[-1]
-        if span_start - last_end <= _MAX_MERGE_GAP:
-            merged[-1] = (last_start, max(last_end, span_end))
-        else:
-            merged.append((span_start, span_end))
-    return merged
+    return _merge_close(spans, _MAX_MERGE_GAP)
 
 
 class InjectionScanner(RegexScanner):
