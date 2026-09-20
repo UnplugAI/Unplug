@@ -75,3 +75,29 @@ class TestCreditCardBrands:
     )
     def test_non_card_digits_do_not_match(self, text: str) -> None:
         assert "credit_card" not in _leak(text, TrustLevel.TOOL_OUTPUT)
+
+
+class TestUrlUserinfoWithoutPassword:
+    """https://trusted.example@attacker.example/ is the host-confusion phish and missed."""
+
+    def _subcategories(self, text: str) -> set[str]:
+        scanner = MaliciousUrlScanner()
+        return {f.subcategory for f in scanner.scan(_tainted(text), ExecutionContext())}
+
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "https://trusted.example@attacker.example/",
+            "https://user:pass@attacker.example/",
+            "http://paypal.com@evil.test/login",
+        ],
+    )
+    def test_userinfo_host_confusion_matches(self, url: str) -> None:
+        assert "credentials_in_url" in self._subcategories(url)
+
+    @pytest.mark.parametrize(
+        "text",
+        ["https://example.com/path", "contact us at mailto:a@b.com"],
+    )
+    def test_benign_urls_do_not_match(self, text: str) -> None:
+        assert "credentials_in_url" not in self._subcategories(text)
