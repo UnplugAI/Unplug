@@ -12,6 +12,7 @@ sdk/benchmarks/data/*.jsonl
 !sdk/benchmarks/data/
 !sdk/benchmarks/data/garak_attacks.jsonl
 !sdk/benchmarks/data/benign_ci.jsonl
+!sdk/benchmarks/data/benign_carrier_ci.jsonl
 
 # Distribution / packaging
 .Python
