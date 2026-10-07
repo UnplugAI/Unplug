@@ -49,7 +49,7 @@ def regex_only(monkeypatch: pytest.MonkeyPatch) -> None:
     and CI measure different things from the same call. Tests say which one
     they mean rather than depending on the machine.
     """
-    monkeypatch.setattr(ci_gate, "_resolve_weights", lambda: None)
+    monkeypatch.setattr(ci_gate, "_release_guard", lambda: None)
 
 
 @pytest.fixture
@@ -60,10 +60,12 @@ def with_weights() -> str:
     UNPLUG_MODEL_CACHE at an empty directory for every test by default, so
     without the marker this skips even on a machine that has the weights.
     """
-    path = ci_gate._resolve_weights()
-    if path is None:
+    guard = ci_gate._release_guard()
+    if guard is None:
         pytest.skip("no tiny checkpoint on disk")
-    return path
+    checkpoint = guard.active_checkpoint
+    assert checkpoint is not None
+    return checkpoint
 
 
 class TestGarakCorpus:
@@ -219,6 +221,55 @@ class TestCarrierBenignSlice:
         assert not carrier["measurable"]
         assert not carrier["ok"]
 
+    def test_an_empty_carrier_corpus_fails_the_gate(
+        self, regex_only: None, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        """A corpus with no usable rows fails whatever the configuration.
+
+        The first version only failed this under --require-weights, so the
+        default run printed FAIL for the slice and exited 0. Emptying the file
+        is not something a configuration excuses, and a report that disagrees
+        with the exit code is worse than either alone.
+        """
+        empty = tmp_path / "empty.jsonl"
+        empty.write_text("", encoding="utf-8")
+        monkeypatch.setattr(ci_gate, "CARRIER_CORPUS", empty)
+        passed, report = run_gate()
+        assert not passed
+        assert report["carrier_benign_fpr"]["no_rows"]
+
+    def test_a_corpus_of_only_attack_rows_fails_the_gate(
+        self, regex_only: None, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        # The slice filters to label == 0, so a mislabelled corpus leaves it
+        # with nothing to measure by a different route than an empty file.
+        import json
+
+        mislabelled = tmp_path / "attacks.jsonl"
+        mislabelled.write_text(
+            json.dumps({"text": "x", "label": 1, "category": "injection"}) + "\n",
+            encoding="utf-8",
+        )
+        monkeypatch.setattr(ci_gate, "CARRIER_CORPUS", mislabelled)
+        passed, report = run_gate()
+        assert not passed
+        assert report["carrier_benign_fpr"]["no_rows"]
+
+    @pytest.mark.requires_ml_weights
+    @pytest.mark.real_model_cache
+    def test_report_names_the_checkpoint_the_guard_loaded(self, with_weights: str) -> None:
+        """The reported path must come from the guard that scored, not a second lookup.
+
+        _weights_on_disk reads UNPLUG_TEST_CHECKPOINT before UNPLUG_MODEL_PATH
+        before the cache, and Guard resolves on its own, so describing the
+        checkpoint instead of asking the loaded guard let the two disagree.
+        """
+        from unplug import Guard
+
+        _, report = run_gate()
+        assert report["model"]["checkpoint"] == with_weights
+        assert Guard(model=ci_gate.MODEL_TIER, require_ml=True).active_checkpoint == with_weights
+
     def test_require_weights_fails_when_the_checkpoint_is_absent(self, regex_only: None) -> None:
         passed, report = run_gate(require_weights=True)
         assert not passed
@@ -315,8 +366,18 @@ class TestCarrierBenignSlice:
             encoded, guard_factory=factory, isolated_requests=True
         ).overall.false_positive_rate
 
-        assert wrapped_fpr > bare_fpr * 5, (bare_fpr, wrapped_fpr)
+        # The invariant, and the only rate this asserts: encoding the payload
+        # does not change the result. That is what makes this corpus the
+        # document shape rather than the encoded-benign slice #189 asked for,
+        # and if it stops holding then the premise behind the corpus needs
+        # revisiting, which is worth a failing test.
         assert encoded_fpr == wrapped_fpr, (wrapped_fpr, encoded_fpr)
+        # An earlier version also required wrapped to score at least five times
+        # worse than bare. That would have failed the day someone fixed the span
+        # head: a test that goes red when the bug goes away is a test arguing
+        # for the bug. The current rate is pinned by CARRIER_FPR_RATCHET, and
+        # lowering it is how an improvement lands.
+        assert wrapped_fpr >= bare_fpr, (bare_fpr, wrapped_fpr)
 
     def test_committed_corpus_is_reproducible_from_the_template(self) -> None:
         # A generated corpus nobody can regenerate is a corpus nobody can trust

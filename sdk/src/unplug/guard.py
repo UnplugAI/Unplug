@@ -763,6 +763,22 @@ class Guard:
         return self._ml_provider is not None and self._ml_provider.loaded
 
     @property
+    def active_checkpoint(self) -> str | None:
+        """Filesystem path of the checkpoint this Guard actually loaded.
+
+        ``None`` when no ML provider is active. Resolution has several inputs
+        (UNPLUG_TEST_CHECKPOINT, UNPLUG_MODEL_PATH, the model cache, the
+        validation manifest), so a caller that reports a measurement cannot
+        infer which one won. Asking the Guard is the only way to name the
+        checkpoint a number came from.
+        """
+        if self._ml_provider is None:
+            return None
+        spec = getattr(self._ml_provider, "spec", None)
+        path = getattr(spec, "path", None)
+        return str(path) if path else None
+
+    @property
     def ml_degraded(self) -> bool:
         """True when active_model is configured but ML failed to load."""
         return self._ml_degraded

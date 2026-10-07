@@ -121,24 +121,35 @@ CARRIER_FPR_TARGET = 0.0211
 MODEL_TIER = "tiny"
 
 
-def _resolve_weights() -> str | None:
-    """Return the checkpoint path when weights are on disk, else None."""
+def _weights_on_disk() -> bool:
+    """Whether a checkpoint with weights exists anywhere the resolver looks."""
     try:
         from unplug.ml.validation import resolve_validation_checkpoint
     except ImportError:
+        return False
+    try:
+        return resolve_validation_checkpoint(require_weights=True) is not None
+    except Exception:
+        return False
+
+
+def _release_guard() -> Guard | None:
+    """A guard configured the way a release runs, or None if it cannot load.
+
+    Returned rather than described, because the checkpoint the report names has
+    to be the checkpoint that scores. The resolver reads UNPLUG_TEST_CHECKPOINT
+    before UNPLUG_MODEL_PATH before the cache, and Guard resolves separately, so
+    two lookups can disagree and the run would name one checkpoint while
+    measuring another. Reading it back off the loaded guard removes the second
+    lookup.
+    """
+    if not _weights_on_disk():
         return None
     try:
-        path = resolve_validation_checkpoint(require_weights=True)
+        guard = Guard(model=MODEL_TIER, require_ml=True)
     except Exception:
         return None
-    return str(path) if path else None
-
-
-def _guard_factory(weights: str | None) -> Callable[[], Guard] | None:
-    """Build guards the way a release runs, or None to take evaluate's default."""
-    if weights is None:
-        return None
-    return lambda: Guard(model=MODEL_TIER, require_ml=True)
+    return guard if guard.ml_model_loaded else None
 
 
 def run_gate(threshold: float = 0.5, *, require_weights: bool = False) -> tuple[bool, dict]:
@@ -147,23 +158,31 @@ def run_gate(threshold: float = 0.5, *, require_weights: bool = False) -> tuple[
 
     # Resolved once: every benign slice below must be measured under the same
     # configuration, or the numbers in one run are not comparable to each other.
-    weights = _resolve_weights()
-    factory = _guard_factory(weights)
+    # One configuration for the whole run, so the report names the checkpoint
+    # that actually scored and every check below is measured the same way.
+    shared = _release_guard()
+    factory: Callable[[], Guard] | None = (
+        None if shared is None else (lambda: Guard(model=MODEL_TIER, require_ml=True))
+    )
     # Every slice is scored with isolated_requests: one guard per slice, a fresh
     # ExecutionContext per sample. The default rebuilds the guard per sample,
     # which reloads the checkpoint 95 times and turns a 6 second slice into 27.
     # Verified to give identical counts on all four slices.
     report["model"] = {
         "tier": MODEL_TIER,
-        "weights_present": weights is not None,
-        "checkpoint": weights,
-        "measured_with": "ml" if weights else "regex_only",
+        "weights_present": shared is not None,
+        "checkpoint": None if shared is None else shared.active_checkpoint,
+        "measured_with": "ml" if shared is not None else "regex_only",
         "required": require_weights,
     }
-    if require_weights and weights is None:
+    if require_weights and shared is None:
         passed = False
 
-    matrix = run_matrix(threshold=threshold)
+    # The matrix builds a fresh guard per scan by design, so it takes the factory
+    # rather than the shared instance. Without it the matrix ran on a default
+    # Guard() while the report above said the run was measured with the model,
+    # which was true of the slices and not of the matrix.
+    matrix = run_matrix(threshold=threshold, guard_factory=factory)
     report["converter_matrix"] = matrix.to_dict()
     if not matrix.passed:
         passed = False
@@ -171,9 +190,7 @@ def run_gate(threshold: float = 0.5, *, require_weights: bool = False) -> tuple[
     corpus_report: dict = {"floors": {}, "shortfalls": []}
     if GARAK_CORPUS.exists():
         samples = load_jsonl(GARAK_CORPUS)
-        result = evaluate(
-            samples, threshold=threshold, guard_factory=factory, isolated_requests=True
-        )
+        result = evaluate(samples, threshold=threshold, guard=shared, isolated_requests=True)
         for category, floor in GARAK_RECALL_FLOORS.items():
             metrics = result.by_category.get(category)
             recall = metrics.recall if metrics else 0.0
@@ -204,9 +221,7 @@ def run_gate(threshold: float = 0.5, *, require_weights: bool = False) -> tuple[
         # there: a corpus with only hard rows, and a labelling change that moves
         # the easy rows off label=0.
         easy_missing = not easy
-        easy_result = evaluate(
-            easy, threshold=threshold, guard_factory=factory, isolated_requests=True
-        )
+        easy_result = evaluate(easy, threshold=threshold, guard=shared, isolated_requests=True)
         easy_fpr = easy_result.overall.false_positive_rate
         easy_ok = (easy_fpr <= EASY_FPR_CEILING) if easy else False
 
@@ -216,7 +231,7 @@ def run_gate(threshold: float = 0.5, *, require_weights: bool = False) -> tuple[
         # target was met while it was at it.
         hard_missing = not hard
         hard_result = (
-            evaluate(hard, threshold=threshold, guard_factory=factory, isolated_requests=True)
+            evaluate(hard, threshold=threshold, guard=shared, isolated_requests=True)
             if hard
             else None
         )
@@ -263,14 +278,12 @@ def run_gate(threshold: float = 0.5, *, require_weights: bool = False) -> tuple[
         carrier_samples = [s for s in load_jsonl(CARRIER_CORPUS) if s.label == 0]
         carrier_missing = not carrier_samples
         carrier_result = (
-            evaluate(
-                carrier_samples, threshold=threshold, guard_factory=factory, isolated_requests=True
-            )
+            evaluate(carrier_samples, threshold=threshold, guard=shared, isolated_requests=True)
             if carrier_samples
             else None
         )
         carrier_fpr = carrier_result.overall.false_positive_rate if carrier_result else 0.0
-        measurable = carrier_result is not None and weights is not None
+        measurable = carrier_result is not None and shared is not None
         carrier_ok = (carrier_fpr <= CARRIER_FPR_RATCHET) if measurable else False
         carrier_report = {
             "samples": len(carrier_samples),
@@ -288,9 +301,13 @@ def run_gate(threshold: float = 0.5, *, require_weights: bool = False) -> tuple[
             "meets_target": measurable and carrier_fpr <= CARRIER_FPR_TARGET,
             "to_target": round(max(0.0, carrier_fpr - CARRIER_FPR_TARGET), 4),
         }
-        # An unmeasurable slice does not fail the CI run, which has no weights by
-        # design. It fails --require-weights, which is where a release asks.
-        if measurable and not carrier_ok:
+        # Three different states, and collapsing them is how a gate goes green
+        # while measuring nothing. A corpus with no usable rows always fails:
+        # someone emptied the file and no configuration excuses that. A slice
+        # that could not be scored for want of weights does not fail the default
+        # run, because CI has none by design, but it does fail
+        # --require-weights. A scored slice fails on the ratchet.
+        if carrier_missing or (measurable and not carrier_ok):
             passed = False
         if require_weights and not measurable:
             passed = False
