@@ -32,6 +32,10 @@ _ORPHAN_END_RE = re.compile(rf"{re.escape(_END_PREFIX)}\s+id=\"[^\"]+\"\s*>>>", 
 
 _REMOVED_MARKER = "[removed untrusted boundary marker]"
 
+# Written by wrap_external_content on both sides of the body and read back by
+# strip_boundary_markers. Shared so the two cannot drift apart.
+_DELIMITER = "---\n"
+
 
 class WrappedContent(BaseModel):
     """Untrusted payload wrapped with spoof-resistant boundary markers."""
@@ -71,9 +75,9 @@ def wrap_external_content(
     wrapped = (
         f'{_BEGIN_PREFIX} source="{source}" id="{mid}">>>\n'
         f"{_WARNING}\n"
-        f"---\n"
+        f"{_DELIMITER}"
         f"{body}\n"
-        f"---\n"
+        f"{_DELIMITER}"
         f'{_END_PREFIX} id="{mid}">>>'
     )
     return WrappedContent(text=wrapped, marker_id=mid, source=source, sanitized=sanitized)
@@ -168,14 +172,24 @@ def strip_boundary_markers(text: str) -> str:
         return text
 
     def _inner(block: re.Match[str]) -> str:
+        # The wrapper puts a "---" delimiter on either side of the body, so the
+        # body is everything between the FIRST delimiter and the LAST one.
+        # Splitting with maxsplit stops at the body's own first "---", which is
+        # legal Markdown and not a boundary marker, and silently drops the rest
+        # of the payload (#192). Reading one delimiter in from each end keeps
+        # every byte in between, however many separators the body contains.
         chunk = block.group(0)
-        parts = chunk.split("---\n", 2)
-        if len(parts) >= 3:
-            inner = parts[1]
-            if inner.endswith("\n"):
-                return inner[:-1]
-            return inner
-        return _REMOVED_MARKER
+        _, opened, rest = chunk.partition(_DELIMITER)
+        if not opened:
+            return _REMOVED_MARKER
+        inner, closed, _ = rest.rpartition(_DELIMITER)
+        if not closed:
+            return _REMOVED_MARKER
+        # wrap_external_content writes "{body}\n---\n", so the newline before
+        # the closing delimiter belongs to the wrapper rather than the body.
+        if inner.endswith("\n"):
+            inner = inner[:-1]
+        return inner
 
     stripped = _MARKER_BLOCK_RE.sub(_inner, text)
     stripped = _ORPHAN_BEGIN_RE.sub("", stripped)
