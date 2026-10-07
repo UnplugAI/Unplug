@@ -1,6 +1,6 @@
 .PHONY: install lint typecheck format fix check check-ci check-docs check-lock test test-cov test-security \
 	test-slow test-ml test-ml-harness test-frameworks test-frameworks-live test-all-local \
-	smoke-ml smoke-ml-hooks docker-e2e audit audit-ml scenarios attack-gate examples
+	smoke-ml smoke-ml-hooks docker-e2e audit audit-ml scenarios attack-gate attack-gate-ml examples
 
 install:
 	uv sync --all-extras --dev
@@ -41,6 +41,13 @@ check-ci: check check-docs check-lock
 
 attack-gate:
 	uv run python -m benchmarks.attacks.ci_gate
+
+# The same gate, refusing to finish without checkpoint weights. Without them the
+# ML scanners never load and the benign slices score 0.0, so plain attack-gate
+# can pass on a configuration no user runs. CI has no weights by design, which
+# is why this is a separate target rather than the default.
+attack-gate-ml:
+	uv run python -m benchmarks.attacks.ci_gate --require-weights
 
 # Offline ML unit + integration (synthetic checkpoints). Weight-backed cases
 # skip cleanly when UNPLUG_MODEL_PATH / cache checkpoint is absent.
@@ -105,7 +112,7 @@ test-slow:
 
 # Local pre-release composition: CI parity + frameworks + ML harness + examples.
 # Does not run docker-e2e or live framework installs (see docs/TESTING_HARNESS.md).
-test-all-local: check-ci test-cov test-frameworks test-ml-harness examples test-slow
+test-all-local: check-ci test-cov test-frameworks test-ml-harness attack-gate-ml examples test-slow
 
 audit:
 	uv run unplug-audit
