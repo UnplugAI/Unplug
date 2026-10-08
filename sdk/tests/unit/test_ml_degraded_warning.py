@@ -74,3 +74,22 @@ class TestMlDegradedWarning:
 
         assert _degraded_records(caplog) == []
         assert guard._ml_degraded is False
+
+    def test_scan_result_reports_injection_ml_degraded(self) -> None:
+        """Callers inspect ScanResult, not the private flag. #107."""
+        with patch("unplug.guard.prepare_active_model_spec", return_value=None):
+            guard = Guard(config=GuardConfig(active_model="tiny"))
+
+        assert guard.ml_degraded is True
+        result = guard.scan("some text")
+        assert result.degraded is True
+        assert result.degraded_layers == ["injection_ml"]
+
+    def test_regex_only_scan_is_not_degraded(self) -> None:
+        """No active_model means the ML layer was never configured."""
+        guard = Guard(config=GuardConfig())
+        result = guard.scan("some text")
+        assert guard.ml_degraded is False
+        assert result.degraded is False
+        assert result.degraded_layers == []
+
