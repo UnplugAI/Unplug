@@ -634,7 +634,7 @@ class Guard:
         start_time = time.perf_counter()
         violation = self._limits.check_input_length(request.text)
         if violation is not None:
-            return _limit_result(violation, len(request.text))
+            return self._report_ml_degraded(_limit_result(violation, len(request.text)))
         try:
             with correlation_scope():
                 if self._server_client is not None:
@@ -644,11 +644,11 @@ class Guard:
                 result = self._output_pipeline.run(body, context=ctx)
                 if not isolated:
                     self._maybe_mark_session_tainted_from_scan(Source.TOOL_OUTPUT)
-                return result
+                return self._report_ml_degraded(result)
         except Exception as exc:
             _log.error("guard.scan_output_request failed: %s", exc)
             latency_ms = (time.perf_counter() - start_time) * 1000
-            return _fail_closed(exc, latency_ms)
+            return self._report_ml_degraded(_fail_closed(exc, latency_ms))
 
     def check_tool_call(
         self,
@@ -662,7 +662,8 @@ class Guard:
         start_time = time.perf_counter()
         _ = approved  # resume-only via ApprovalProvider; caller flag is ignored
         if not self._limits.is_tool_allowed(tool_name):
-            return _limit_result(
+            return self._report_ml_degraded(
+    _limit_result(
                 LimitViolation(
                     kind="tool_blocked",
                     limit=0,
@@ -670,8 +671,10 @@ class Guard:
                     message=f"Tool not allowed: {tool_name}",
                 ),
             )
+            )
         if not self._config.tools.is_permitted(tool_name):
-            return _limit_result(
+            return self._report_ml_degraded(
+    _limit_result(
                 LimitViolation(
                     kind="tool_profile_blocked",
                     limit=0,
@@ -681,9 +684,10 @@ class Guard:
                     ),
                 ),
             )
+            )
         count_violation = self._limits.check_tool_call_count(len(self._context.tool_calls) + 1)
         if count_violation is not None:
-            return _limit_result(count_violation)
+            return self._report_ml_degraded(_limit_result(count_violation))
         tc = ToolCall(
             tool_name=tool_name,
             arguments=arguments,
@@ -705,11 +709,11 @@ class Guard:
                     self._context.add_tool_call(tc)
                     if self._config.tools.is_taint_source(tool_name):
                         self.notify_taint_source(tool_name)
-                return result
+                return self._report_ml_degraded(result)
         except Exception as exc:
             _log.error("guard.check_tool_call failed: %s", exc)
             latency_ms = (time.perf_counter() - start_time) * 1000
-            return _fail_closed(exc, latency_ms)
+            return self._report_ml_degraded(_fail_closed(exc, latency_ms))
 
     def scan_request(
         self,
@@ -721,7 +725,7 @@ class Guard:
         start_time = time.perf_counter()
         violation = self._limits.check_input_length(request.text)
         if violation is not None:
-            return _limit_result(violation, len(request.text))
+            return self._report_ml_degraded(_limit_result(violation, len(request.text)))
         try:
             with correlation_scope():
                 if self._server_client is not None:
@@ -744,7 +748,7 @@ class Guard:
                     result = self._run_input_with_cache(request, ctx)
                     if not isolated:
                         self._maybe_mark_session_tainted_from_scan(request.source)
-                    return result
+                    return self._report_ml_degraded(result)
                 finally:
                     ctx.allowed_scanners = prev_allowed
         except ConfigError:
@@ -752,7 +756,7 @@ class Guard:
         except Exception as exc:
             _log.error("guard.scan_request failed: %s", exc)
             latency_ms = (time.perf_counter() - start_time) * 1000
-            return _fail_closed(exc, latency_ms)
+            return self._report_ml_degraded(_fail_closed(exc, latency_ms))
 
     @property
     def is_server_mode(self) -> bool:
@@ -761,6 +765,23 @@ class Guard:
     @property
     def ml_model_loaded(self) -> bool:
         return self._ml_provider is not None and self._ml_provider.loaded
+
+
+    def _report_ml_degraded(self, result: ScanResult) -> ScanResult:
+        """Copy the private ML-unavailable flag onto the result callers inspect.
+
+        ``require_ml=True`` already fails closed. The default path keeps scanning
+        with regex only, but ``ScanResult.degraded`` stayed false because nothing
+        copied ``_ml_degraded`` onto the result. Server mode reports this itself.
+        """
+        if not self._ml_degraded:
+            return result
+        layers = list(result.degraded_layers)
+        if "injection_ml" not in layers:
+            layers.append("injection_ml")
+        if result.degraded and layers == list(result.degraded_layers):
+            return result
+        return result.model_copy(update={"degraded": True, "degraded_layers": layers})
 
     @property
     def ml_degraded(self) -> bool:
