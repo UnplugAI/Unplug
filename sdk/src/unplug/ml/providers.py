@@ -32,6 +32,10 @@ class TransformersSpanProvider(ModelProvider):
             local_files_only=bool(cfg.get("local_files_only", True)),
         )
 
+    @property
+    def loaded(self) -> bool:
+        return self._loaded and getattr(self, "_engine", None) is not None and self._engine.loaded
+
     def _do_load(self) -> None:
         logger.info("loading transformers span provider %s", self._spec.name)
         self._engine.load()

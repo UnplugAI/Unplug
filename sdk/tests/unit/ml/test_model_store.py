@@ -142,6 +142,10 @@ def test_guard_survives_corrupt_checkpoint(tmp_path: Path, monkeypatch: pytest.M
     guard = Guard(config=cfg)
     assert guard.ml_model_loaded is False
     assert "injection_ml" not in guard.scanners_loaded
+    assert guard.ml_load_error is not None
+    assert (
+        "corrupt" in str(guard.ml_load_error).lower() or "json" in str(guard.ml_load_error).lower()
+    )
 
 
 def test_guard_require_ml_corrupt_checkpoint_raises_model_error(
@@ -162,8 +166,37 @@ def test_guard_require_ml_corrupt_checkpoint_raises_model_error(
 
     from unplug import Guard
 
-    with pytest.raises(ModelError, match="require_ml"):
+    with pytest.raises(ModelError, match="require_ml") as excinfo:
         Guard(config=cfg)
+    assert "corrupt" in str(excinfo.value).lower() or "json" in str(excinfo.value).lower()
+
+
+def test_guard_truncated_checkpoint_asserts_not_loaded_and_exposes_error(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Truncated or corrupt checkpoint asserts not loaded and exposes error (#191)."""
+    pytest.importorskip("torch")
+    monkeypatch.delenv("UNPLUG_MODEL_PATH", raising=False)
+    ckpt = tmp_path / "truncated"
+    _write_checkpoint(ckpt, config='{"architectures": ["DebertaV2ForTokenClassification"')
+
+    cfg = merge_catalog_models(
+        GuardConfig(active_model="tiny", require_ml=False, auto_download_model=False)
+    )
+    models = dict(cfg.models)
+    models["tiny"] = models["tiny"].model_copy(update={"path": str(ckpt)})
+    cfg = cfg.model_copy(update={"models": models})
+
+    from unplug import Guard
+
+    guard = Guard(config=cfg)
+    assert guard.ml_model_loaded is False
+    assert "injection_ml" not in guard.scanners_loaded
+    assert guard.ml_load_error is not None
+    assert (
+        "corrupt" in str(guard.ml_load_error).lower() or "json" in str(guard.ml_load_error).lower()
+    )
 
 
 def test_corrupt_manifest_returns_none_and_list_status_ok(

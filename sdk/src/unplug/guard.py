@@ -177,6 +177,7 @@ class Guard:
         self._registry = ScannerRegistry(metrics=self._metrics)
         self._ml_provider = None
         self._ml_degraded = False
+        self._ml_load_error: Exception | None = None
         self._model_cache_version = MODEL_VERSION_LOCAL
 
         scanner_names = list(cfg.scanners)
@@ -191,10 +192,16 @@ class Guard:
                 spec = prepare_active_model_spec(cfg)
                 if spec is not None:
                     provider = load_active_model_provider(cfg, spec=spec)
+                    if provider is not None and not provider.loaded:
+                        raise ModelError(
+                            f"Model provider for tier {cfg.active_model!r} "
+                            "was created but is not loaded"
+                        )
             except ConfigError:
                 raise
             except Exception as exc:
                 load_error = exc
+                self._ml_load_error = exc
                 if cfg.require_ml:
                     tier = cfg.active_model
                     raise ModelError(
@@ -202,19 +209,27 @@ class Guard:
                         f"{type(exc).__name__}: {exc}"
                     ) from exc
                 self._warn_ml_degraded(cfg.active_model, exc)
-            if provider is not None and spec is not None:
+            if provider is not None and provider.loaded and spec is not None:
                 self._ml_provider = provider
                 self._model_cache_version = model_cache_version(spec)
             elif cfg.require_ml:
-                raise ModelError(
-                    f"require_ml=true but model tier {cfg.active_model!r} could not be loaded. "
+                err_msg = (
+                    f"require_ml=true but model tier {cfg.active_model!r} could not be loaded."
+                )
+                if load_error is not None:
+                    err_msg += f" {type(load_error).__name__}: {load_error}"
+                else:
+                    err_msg += f" Run: unplug-models download {cfg.active_model}"
+                raise ModelError(err_msg) from load_error
+            elif load_error is None:
+                self._ml_load_error = ModelError(
+                    f"Model tier {cfg.active_model!r} is not available locally. "
                     f"Run: unplug-models download {cfg.active_model}"
                 )
-            elif load_error is None:
                 self._warn_ml_degraded(cfg.active_model)
 
         v2_scanners = self._registry.get_many(scanner_names, configs=cfg.scanner_configs)
-        if self._ml_provider is not None:
+        if self._ml_provider is not None and self._ml_provider.loaded:
             ml_cfg = cfg.get_scanner_config("injection_ml")
             v2_scanners.append(
                 InjectionSpanScanner(
@@ -767,6 +782,11 @@ class Guard:
         """True when active_model is configured but ML failed to load."""
         return self._ml_degraded
 
+    @property
+    def ml_load_error(self) -> Exception | None:
+        """Underlying exception if active_model failed to load, else None."""
+        return self._ml_load_error
+
     @staticmethod
     def _validate_optional_scanners(names: list[str]) -> None:
         from unplug.exceptions import ConfigError
@@ -791,7 +811,11 @@ class Guard:
     @property
     def scanners_loaded(self) -> list[str]:
         names = list(self._config.scanners)
-        if self._ml_provider is not None and "injection_ml" not in names:
+        if (
+            self._ml_provider is not None
+            and self._ml_provider.loaded
+            and "injection_ml" not in names
+        ):
             names.append("injection_ml")
         return names
 

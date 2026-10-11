@@ -45,8 +45,12 @@ class ModelProvider(ABC):
             return
         with self._load_lock:
             if not self._loaded:
-                self._do_load()
-                self._loaded = True
+                try:
+                    self._do_load()
+                    self._loaded = True
+                except Exception:
+                    self._loaded = False
+                    raise
 
     def unload(self) -> None:
         with self._load_lock:

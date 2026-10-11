@@ -34,7 +34,12 @@ def load_ml_validation_manifest() -> dict[str, Any]:
 
 
 def is_valid_checkpoint(path: Path, *, require_weights: bool = False) -> bool:
-    if not path.is_dir() or not (path / "config.json").is_file():
+    config_path = path / "config.json"
+    if not path.is_dir() or not config_path.is_file():
+        return False
+    try:
+        json.loads(config_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError, OSError):
         return False
     if not require_weights:
         return True

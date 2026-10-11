@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import threading
 from pathlib import Path
@@ -84,7 +85,12 @@ class SpanInferenceModel:
         with self._load_lock:
             if self._model is not None:
                 return
-            self._load_unlocked()
+            try:
+                self._load_unlocked()
+            except Exception:
+                self._model = None
+                self._tokenizer = None
+                raise
 
     def _load_unlocked(self) -> None:
         self._device = resolve_torch_device(self._device_preference)
@@ -95,6 +101,17 @@ class SpanInferenceModel:
         if not self._checkpoint.is_dir():
             msg = f"Checkpoint directory not found: {self._checkpoint}"
             raise FileNotFoundError(msg)
+
+        config_path = self._checkpoint / "config.json"
+        if not config_path.is_file():
+            msg = f"Checkpoint config not found: {config_path}"
+            raise FileNotFoundError(msg)
+
+        try:
+            json.loads(config_path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            msg = f"Checkpoint config at {config_path} is corrupt: {exc}"
+            raise ModelError(msg) from exc
 
         tok_json = self._checkpoint / "tokenizer.json"
         try:

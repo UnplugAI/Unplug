@@ -139,7 +139,7 @@ def load_active_model_provider(
                 # 'tiny' is not available locally" sends them to re-download a
                 # model they already have.
                 msg = (
-                    f"Model tier {tier!r} was configured with path {path!r}, which is not "
+                    f"Model tier {tier!r} was configured with path '{path}', which is not "
                     "a usable checkpoint. Fix the path or unset it to use the model cache."
                 )
             else:
