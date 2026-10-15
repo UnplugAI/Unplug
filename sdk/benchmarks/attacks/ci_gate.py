@@ -29,7 +29,6 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from collections.abc import Callable
 from pathlib import Path
 
 from benchmarks.attacks.converter_matrix import run_matrix
@@ -133,8 +132,8 @@ def _weights_on_disk() -> bool:
         return False
 
 
-def _release_guard() -> Guard | None:
-    """A guard configured the way a release runs, or None if it cannot load.
+def _release_guard() -> tuple[Guard | None, str | None]:
+    """The release guard and the load error, if a checkpoint was found but failed.
 
     Returned rather than described, because the checkpoint the report names has
     to be the checkpoint that scores. The resolver reads UNPLUG_TEST_CHECKPOINT
@@ -142,14 +141,20 @@ def _release_guard() -> Guard | None:
     two lookups can disagree and the run would name one checkpoint while
     measuring another. Reading it back off the loaded guard removes the second
     lookup.
+
+    Absent weights and broken weights are different answers and the caller must
+    be able to tell them apart. Collapsing both to None let a corrupt checkpoint
+    report "no checkpoint on disk", fall back to regex scanners, and pass.
     """
     if not _weights_on_disk():
-        return None
+        return None, None
     try:
         guard = Guard(model=MODEL_TIER, require_ml=True)
-    except Exception:
-        return None
-    return guard if guard.ml_model_loaded else None
+    except Exception as exc:
+        return None, f"{type(exc).__name__}: {exc}"
+    if not guard.ml_model_loaded:
+        return None, "checkpoint resolved but injection_ml did not load"
+    return guard, None
 
 
 def run_gate(threshold: float = 0.5, *, require_weights: bool = False) -> tuple[bool, dict]:
@@ -160,10 +165,7 @@ def run_gate(threshold: float = 0.5, *, require_weights: bool = False) -> tuple[
     # configuration, or the numbers in one run are not comparable to each other.
     # One configuration for the whole run, so the report names the checkpoint
     # that actually scored and every check below is measured the same way.
-    shared = _release_guard()
-    factory: Callable[[], Guard] | None = (
-        None if shared is None else (lambda: Guard(model=MODEL_TIER, require_ml=True))
-    )
+    shared, load_error = _release_guard()
     # Every slice is scored with isolated_requests: one guard per slice, a fresh
     # ExecutionContext per sample. The default rebuilds the guard per sample,
     # which reloads the checkpoint 95 times and turns a 6 second slice into 27.
@@ -172,17 +174,28 @@ def run_gate(threshold: float = 0.5, *, require_weights: bool = False) -> tuple[
         "tier": MODEL_TIER,
         "weights_present": shared is not None,
         "checkpoint": None if shared is None else shared.active_checkpoint,
-        "measured_with": "ml" if shared is not None else "regex_only",
+        # Scoped to the corpus slices. The converter matrix is a normalizer
+        # check and runs on regex scanners either way, so one run-level label
+        # would have claimed the model for a check that never used it.
+        "slices_measured_with": "ml" if shared is not None else "regex_only",
+        "matrix_measured_with": "regex_only",
+        "load_error": load_error,
         "required": require_weights,
     }
+    # A checkpoint that was found and would not load is a failure, not an
+    # absence. Without this the gate scores on regex scanners and reports that
+    # there was no model to use.
+    if load_error is not None:
+        passed = False
     if require_weights and shared is None:
         passed = False
 
-    # The matrix builds a fresh guard per scan by design, so it takes the factory
-    # rather than the shared instance. Without it the matrix ran on a default
-    # Guard() while the report above said the run was measured with the model,
-    # which was true of the slices and not of the matrix.
-    matrix = run_matrix(threshold=threshold, guard_factory=factory)
+    # The matrix keeps its own default guards. It builds a fresh one per scan by
+    # design, so handing it the model factory meant 45 checkpoint loads per run,
+    # 19 seconds against 0. It is a normalizer regression check and the
+    # normalizers sit below the model, so the model buys it nothing. The report
+    # above names its configuration separately rather than the run claiming one.
+    matrix = run_matrix(threshold=threshold)
     report["converter_matrix"] = matrix.to_dict()
     if not matrix.passed:
         passed = False
@@ -327,8 +340,16 @@ def print_gate_report(report: dict) -> None:
 
     model = report.get("model")
     if model:
-        if model["weights_present"]:
-            print(f"\nmeasured with: {MODEL_TIER} weights at {model['checkpoint']}")
+        if model.get("load_error"):
+            print(
+                f"\nmeasured with: [FAIL] a {MODEL_TIER} checkpoint was found but did not "
+                f"load.\n  {model['load_error']}\n"
+                "  Scoring fell back to regex scanners, so the benign numbers below\n"
+                "  describe a configuration nobody ships."
+            )
+        elif model["weights_present"]:
+            print(f"\nslices measured with: {MODEL_TIER} weights at {model['checkpoint']}")
+            print("converter matrix measured with: regex scanners (normalizer check)")
         else:
             mark = "FAIL" if model["required"] else "warn"
             print(

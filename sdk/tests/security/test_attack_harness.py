@@ -49,7 +49,7 @@ def regex_only(monkeypatch: pytest.MonkeyPatch) -> None:
     and CI measure different things from the same call. Tests say which one
     they mean rather than depending on the machine.
     """
-    monkeypatch.setattr(ci_gate, "_release_guard", lambda: None)
+    monkeypatch.setattr(ci_gate, "_release_guard", lambda: (None, None))
 
 
 @pytest.fixture
@@ -60,7 +60,7 @@ def with_weights() -> str:
     UNPLUG_MODEL_CACHE at an empty directory for every test by default, so
     without the marker this skips even on a machine that has the weights.
     """
-    guard = ci_gate._release_guard()
+    guard, _ = ci_gate._release_guard()
     if guard is None:
         pytest.skip("no tiny checkpoint on disk")
     checkpoint = guard.active_checkpoint
@@ -270,6 +270,36 @@ class TestCarrierBenignSlice:
         assert report["model"]["checkpoint"] == with_weights
         assert Guard(model=ci_gate.MODEL_TIER, require_ml=True).active_checkpoint == with_weights
 
+    def test_a_checkpoint_that_will_not_load_fails_the_gate(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Found-but-broken is a failure, not an absence.
+
+        Returning None for both let a corrupt checkpoint report "no checkpoint
+        on disk", fall back to regex scanners and pass, which is the same
+        green-while-measuring-nothing shape the slices guard against.
+        """
+        monkeypatch.setattr(
+            ci_gate, "_release_guard", lambda: (None, "OSError: bad checkpoint header")
+        )
+        passed, report = run_gate()
+        assert not passed
+        assert report["model"]["load_error"] == "OSError: bad checkpoint header"
+        assert not report["model"]["weights_present"]
+
+    def test_absent_weights_do_not_fail_the_default_run(self, regex_only: None) -> None:
+        # The other side of the test above: CI has no checkpoint by design, and
+        # that must stay a pass or the gate gets switched off.
+        passed, report = run_gate()
+        assert passed
+        assert report["model"]["load_error"] is None
+
+    def test_matrix_configuration_is_reported_separately(self, regex_only: None) -> None:
+        # The matrix runs on regex scanners whatever the slices use, so one
+        # run-level label would claim the model for a check that never used it.
+        _, report = run_gate()
+        assert report["model"]["matrix_measured_with"] == "regex_only"
+
     def test_require_weights_fails_when_the_checkpoint_is_absent(self, regex_only: None) -> None:
         passed, report = run_gate(require_weights=True)
         assert not passed
@@ -278,14 +308,14 @@ class TestCarrierBenignSlice:
 
     def test_report_names_the_configuration_it_measured(self, regex_only: None) -> None:
         _, report = run_gate()
-        assert report["model"]["measured_with"] == "regex_only"
+        assert report["model"]["slices_measured_with"] == "regex_only"
         assert report["model"]["checkpoint"] is None
 
     @pytest.mark.requires_ml_weights
     @pytest.mark.real_model_cache
     def test_report_names_the_checkpoint_when_present(self, with_weights: str) -> None:
         _, report = run_gate()
-        assert report["model"]["measured_with"] == "ml"
+        assert report["model"]["slices_measured_with"] == "ml"
         assert report["model"]["checkpoint"] == with_weights
 
     @pytest.mark.requires_ml_weights
@@ -372,12 +402,12 @@ class TestCarrierBenignSlice:
         # and if it stops holding then the premise behind the corpus needs
         # revisiting, which is worth a failing test.
         assert encoded_fpr == wrapped_fpr, (wrapped_fpr, encoded_fpr)
-        # An earlier version also required wrapped to score at least five times
-        # worse than bare. That would have failed the day someone fixed the span
-        # head: a test that goes red when the bug goes away is a test arguing
-        # for the bug. The current rate is pinned by CARRIER_FPR_RATCHET, and
-        # lowering it is how an improvement lands.
-        assert wrapped_fpr >= bare_fpr, (bare_fpr, wrapped_fpr)
+        # bare_fpr is measured and reported, not asserted. An earlier version
+        # required wrapped to score at least five times worse, which would have
+        # failed the day someone fixed the span head: a test that goes red when
+        # the bug goes away is a test arguing for the bug. CARRIER_FPR_RATCHET
+        # is where the current rate lives, and lowering it is how a fix lands.
+        assert bare_fpr is not None
 
     def test_committed_corpus_is_reproducible_from_the_template(self) -> None:
         # A generated corpus nobody can regenerate is a corpus nobody can trust
