@@ -177,6 +177,7 @@ class Guard:
         self._registry = ScannerRegistry(metrics=self._metrics)
         self._ml_provider = None
         self._ml_degraded = False
+        self._ml_load_error: Exception | None = None
         self._model_cache_version = MODEL_VERSION_LOCAL
 
         scanner_names = list(cfg.scanners)
@@ -281,6 +282,7 @@ class Guard:
             detail,
             active_model,
         )
+        self._ml_load_error = exc
         self._ml_degraded = True
 
     @property
@@ -782,6 +784,11 @@ class Guard:
     def ml_degraded(self) -> bool:
         """True when active_model is configured but ML failed to load."""
         return self._ml_degraded
+
+    @property
+    def ml_load_error(self) -> Exception | None:
+        """Why the ML model failed to load; None if it loaded or was never attempted."""
+        return self._ml_load_error
 
     @staticmethod
     def _validate_optional_scanners(names: list[str]) -> None:

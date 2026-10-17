@@ -552,3 +552,49 @@ def test_require_ml_error_still_says_download_when_no_path_was_named(
     )
     with pytest.raises(ModelError, match="download"):
         load_active_model_provider(cfg)
+
+
+def test_guard_exposes_truncated_checkpoint_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    pytest.importorskip("torch")
+    pytest.importorskip("transformers")
+    monkeypatch.delenv("UNPLUG_MODEL_PATH", raising=False)
+    ckpt = tmp_path / "truncated"
+    _write_checkpoint(ckpt, config='{"model_type": "deberta-v2"')  # cut off mid-JSON
+    cfg = merge_catalog_models(
+        GuardConfig(active_model="tiny", require_ml=False, auto_download_model=False)
+    )
+    models = dict(cfg.models)
+    models["tiny"] = models["tiny"].model_copy(update={"path": str(ckpt)})
+    cfg = cfg.model_copy(update={"models": models})
+
+    from unplug import Guard
+
+    guard = Guard(config=cfg)
+    assert guard.ml_model_loaded is False
+    assert guard.ml_load_error is not None
+    assert "config.json" in str(guard.ml_load_error)
+
+
+def test_guard_require_ml_truncated_checkpoint_carries_cause(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    pytest.importorskip("torch")
+    pytest.importorskip("transformers")
+    monkeypatch.delenv("UNPLUG_MODEL_PATH", raising=False)
+    ckpt = tmp_path / "truncated"
+    _write_checkpoint(ckpt, config='{"model_type": "deberta-v2"')
+    cfg = merge_catalog_models(
+        GuardConfig(active_model="tiny", require_ml=True, auto_download_model=False)
+    )
+    models = dict(cfg.models)
+    models["tiny"] = models["tiny"].model_copy(update={"path": str(ckpt)})
+    cfg = cfg.model_copy(update={"models": models})
+
+    from unplug import Guard
+
+    with pytest.raises(ModelError) as excinfo:
+        Guard(config=cfg)
+    assert excinfo.value.__cause__ is not None
+    assert "config.json" in str(excinfo.value)

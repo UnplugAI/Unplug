@@ -51,6 +51,7 @@ class TestMlDegradedWarning:
             + FIX_HINT
         )
         assert guard._ml_degraded is True
+        assert guard.ml_load_error is not None
 
     def test_model_never_wired_reports_not_loaded(self, caplog: pytest.LogCaptureFixture) -> None:
         """No exception, no provider: the message says 'is not loaded', with no class name."""
@@ -74,3 +75,10 @@ class TestMlDegradedWarning:
 
         assert _degraded_records(caplog) == []
         assert guard._ml_degraded is False
+
+    def test_load_failure_is_exposed_on_the_guard(self) -> None:
+        """The caught exception is kept on the Guard, not only summarised in the log."""
+        boom = RuntimeError("boom")
+        with patch("unplug.guard.prepare_active_model_spec", side_effect=boom):
+            guard = Guard(config=GuardConfig(active_model="tiny"))
+        assert guard.ml_load_error is boom
